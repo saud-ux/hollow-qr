@@ -80,6 +80,20 @@ describe("account provisioning", () => {
     expect(role.rows[0]!.role).toBe("customer");
   });
 
+  it("assigns staff role when app_metadata arrives in a follow-up update (Supabase admin createUser)", async () => {
+    const res = await db.query<{ id: string }>(
+      `insert into auth.users (email, raw_app_meta_data) values ('later-staff@x.test', '{"provider":"email"}') returning id`,
+    );
+    const id = res.rows[0]!.id;
+    await db.query(`update auth.users set raw_app_meta_data = raw_app_meta_data || '{"hollow_role":"staff"}' where id = $1`, [id]);
+    const role = await db.query<{ role: string }>("select role from public.profiles where id = $1", [id]);
+    expect(role.rows[0]!.role).toBe("staff");
+
+    await db.query(`update auth.users set raw_user_meta_data = '{"hollow_role":"admin"}' where id = $1`, [id]);
+    const still = await db.query<{ role: string }>("select role from public.profiles where id = $1", [id]);
+    expect(still.rows[0]!.role).toBe("staff");
+  });
+
   it("syncs email confirmation from auth.users", async () => {
     const u = await createAuthUser(db, { email: "late@x.test", confirmed: false });
     let p = await db.query<{ email_confirmed_at: string | null }>(

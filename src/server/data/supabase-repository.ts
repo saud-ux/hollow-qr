@@ -158,6 +158,10 @@ export class SupabaseRepository implements Repository {
       if (code === "weak_password") return { ok: false, code: "WEAK_PASSWORD" };
       throw new RepositoryError("createStaffUser", { code });
     }
+    // Supabase writes app_metadata after the insert trigger runs; set the
+    // role explicitly too (the role-sync trigger also handles it).
+    const { error: roleError } = (await this.db.from("profiles").update({ role: "staff" }).eq("id", data.user.id)) as DbResult;
+    if (roleError) throw new RepositoryError("createStaffUser:role", roleError);
     return { ok: true, userId: data.user.id };
   }
 
