@@ -1,0 +1,32 @@
+# Supabase CLI configuration for local development (`supabase start`) and for
+# linking the hosted project (`supabase link`). Hosted-project Auth settings
+# (Site URL, redirect URLs, email confirmation, SMTP, CAPTCHA) are configured
+# in the Supabase dashboard — see docs/DEPLOYMENT.md.
+project_id = "hollow-rewards"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/wallet", "http://localhost:5173/reset-password"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+minimum_password_length = 8
+password_requirements = "letters_digits"
+
+[auth.email]
+enable_signup = true
+# Local development: no SMTP needed. Production: enable "Confirm email" in the
+# dashboard and set REQUIRE_EMAIL_CONFIRMATION=true.
+enable_confirmations = false
+double_confirm_changes = true

@@ -33,8 +33,8 @@ export function ActivityList({ items, showCustomer = true }: { items: Transactio
             )}
           </div>
           <div className="activity__meta">
-            <span dir="ltr">
-              {t.previousStampCount} → {t.newStampCount}
+            <span>
+              الرصيد من {t.previousStampCount} إلى {t.newStampCount}
             </span>
             {t.previousMembershipStatus !== t.newMembershipStatus && (
               <span>{t.newMembershipStatus === "cancelled" ? "ملغاة" : "نشطة"}</span>

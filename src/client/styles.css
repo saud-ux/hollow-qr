@@ -397,16 +397,12 @@ select {
   filter: grayscale(0.6);
 }
 .pass__dev {
-  position: absolute;
-  top: 8px;
-  inset-inline-start: 50%;
-  transform: translateX(50%);
-  background: rgb(43 30 22 / 80%);
+  display: block;
+  background: var(--espresso);
   color: var(--gold-soft);
-  font-size: 0.7rem;
-  padding: 2px 10px;
-  border-radius: 999px;
-  z-index: 2;
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 3px 10px;
 }
 .pass__header {
   display: flex;

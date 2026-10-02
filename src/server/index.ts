@@ -19,6 +19,14 @@ import { WalletService, WebCryptoPassGenerator } from "./wallet/service";
 const logger = createLogger();
 let warnedFor: string | null = null;
 
+// Reuse the Supabase client across requests in the same isolate.
+let cachedRepo: { key: string; repo: SupabaseRepository } | null = null;
+function repositoryFor(url: string, serviceRoleKey: string): SupabaseRepository {
+  const key = `${url}|${serviceRoleKey.length}|${serviceRoleKey.slice(-12)}`;
+  if (cachedRepo?.key !== key) cachedRepo = { key, repo: new SupabaseRepository(url, serviceRoleKey) };
+  return cachedRepo.repo;
+}
+
 export function buildDeps(env: Bindings): AppDeps {
   const config = loadConfig(env);
   const issuesKey = config.issues.join("|");
@@ -27,10 +35,7 @@ export function buildDeps(env: Bindings): AppDeps {
     logger.warn("config.issues", { issues: config.issues });
   }
 
-  const repo =
-    config.supabaseUrl && env.SUPABASE_SERVICE_ROLE_KEY
-      ? new SupabaseRepository(config.supabaseUrl, env.SUPABASE_SERVICE_ROLE_KEY)
-      : null;
+  const repo = config.supabaseUrl && env.SUPABASE_SERVICE_ROLE_KEY ? repositoryFor(config.supabaseUrl, env.SUPABASE_SERVICE_ROLE_KEY) : null;
   const auth = config.supabaseUrl && config.supabaseAnonKey ? new SupabaseAuthVerifier(config.supabaseUrl, config.supabaseAnonKey) : null;
 
   let notifier: WalletPushNotifier;
