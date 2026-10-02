@@ -25,7 +25,7 @@
   // (safe for browsers); the secret/service-role key is a `wrangler secret`.
   "vars": {
     "APP_ENV": "production",
-    "APP_URL": "https://rewards.example.com",
+    "APP_URL": "https://hollow-rewards.hollowzulfi.workers.dev",
     "SUPABASE_URL": "https://zdggyjodcgogairxeedr.supabase.co",
     "SUPABASE_ANON_KEY": "sb_publishable_yyEH2JeLFAON-NJFrRB6ug_sBRVreRb",
     "REQUIRE_EMAIL_CONFIRMATION": "false",
