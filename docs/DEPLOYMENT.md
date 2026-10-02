@@ -44,9 +44,10 @@ There is no public endpoint for this. The admin creates staff accounts from **/s
    ```bash
    npx wrangler login
    npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-   openssl rand -base64 48 | npx wrangler secret put PASS_AUTH_SECRET
-   openssl rand -base64 48 | npx wrangler secret put QR_TOKEN_SECRET
+   node -e "process.stdout.write(require('crypto').randomBytes(48).toString('base64'))" | npx wrangler secret put PASS_AUTH_SECRET
+   node -e "process.stdout.write(require('crypto').randomBytes(48).toString('base64'))" | npx wrangler secret put QR_TOKEN_SECRET
    ```
+   (These commands work in PowerShell, cmd and bash.)
    Keep `QR_TOKEN_SECRET` stable: rotating it changes every customer's QR code.
    Passes refresh automatically, but stale screenshots stop working.
 3. Deploy:

@@ -33,20 +33,24 @@
 1. **Team ID**: Membership page → `APPLE_TEAM_IDENTIFIER`.
 2. **Pass Type ID**: Certificates, Identifiers & Profiles → Identifiers → **+** → *Pass Type IDs* (e.g. `pass.sa.hollow.rewards`) → `APPLE_PASS_TYPE_IDENTIFIER`.
 3. **Pass Type ID certificate**:
-   - Create a CSR in Keychain Access → Certificates → **+** → *Pass Type ID Certificate*. Choose the Pass Type ID and upload the CSR.
-   - Download the `.cer` and double-click it. Then in Keychain Access export the certificate together with its private key as a **.p12**.
+   - **Windows / any OS:** run `pnpm secrets:csr --email you@example.com`.
+     It writes `.secrets/pass-key.pem` (keep it safe) and `.secrets/pass.csr`.
+   - **Mac alternative:** Keychain Access → Certificate Assistant → *Request a Certificate From a Certificate Authority* (saved to disk).
+   - Apple Developer → Certificates → **+** → *Pass Type ID Certificate* → choose the Pass Type ID → upload the CSR → download `pass.cer`.
+   - Mac only: you can instead double-click the `.cer` and export certificate + key as a `.p12` from Keychain.
 4. **Apple WWDR intermediate certificate**: download the *Worldwide Developer Relations* intermediate that issued your certificate (currently **G4**) from Apple PKI (https://www.apple.com/certificateauthority/).
 
 ## Switching mock → production
 
 ```bash
-# 1. Convert the certificates (writes git-ignored .secrets/, prints next commands)
-pnpm secrets:encode --p12 PassTypeID.p12 --wwdr AppleWWDRCAG4.cer
+# 1. Convert the certificates (writes git-ignored .secrets/, prints the exact next commands)
+pnpm secrets:encode --cert pass.cer --key .secrets/pass-key.pem --wwdr AppleWWDRCAG4.cer   # Windows / any OS
+pnpm secrets:encode --p12 PassTypeID.p12 --wwdr AppleWWDRCAG4.cer                          # Mac Keychain export
 
-# 2. Signing secrets
-npx wrangler secret put APPLE_PASS_CERTIFICATE_BASE64 < .secrets/APPLE_PASS_CERTIFICATE_BASE64.b64
-npx wrangler secret put APPLE_PASS_PRIVATE_KEY_BASE64 < .secrets/APPLE_PASS_PRIVATE_KEY_BASE64.b64
-npx wrangler secret put APPLE_WWDR_CERTIFICATE_BASE64 < .secrets/APPLE_WWDR_CERTIFICATE_BASE64.b64
+# 2. Signing secrets (works in PowerShell, cmd and bash)
+node -e "process.stdout.write(require('fs').readFileSync('.secrets/APPLE_PASS_CERTIFICATE_BASE64.b64','utf8'))" | npx wrangler secret put APPLE_PASS_CERTIFICATE_BASE64
+node -e "process.stdout.write(require('fs').readFileSync('.secrets/APPLE_PASS_PRIVATE_KEY_BASE64.b64','utf8'))" | npx wrangler secret put APPLE_PASS_PRIVATE_KEY_BASE64
+node -e "process.stdout.write(require('fs').readFileSync('.secrets/APPLE_WWDR_CERTIFICATE_BASE64.b64','utf8'))" | npx wrangler secret put APPLE_WWDR_CERTIFICATE_BASE64
 
 # 3. APNs mTLS certificate for update pushes (same Pass Type ID cert + key)
 npx wrangler mtls-certificate upload --cert .secrets/pass-cert.pem --key .secrets/pass-key.pem --name hollow-apns
@@ -58,8 +62,8 @@ npx wrangler mtls-certificate upload --cert .secrets/pass-cert.pem --key .secret
 #    "APPLE_TEAM_IDENTIFIER": "<TEAM ID>",
 #    "APPLE_PASS_TYPE_IDENTIFIER": "pass.sa.hollow.rewards"
 
-# 5. Deploy, then delete .secrets/
-pnpm deploy && rm -rf .secrets
+# 5. Deploy. Keep a backup of .secrets/pass-key.pem in a password manager, then delete .secrets/
+pnpm deploy
 ```
 
 `/api/health` should now report `"walletMode":"production","walletReady":true`.

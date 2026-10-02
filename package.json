@@ -2,7 +2,7 @@
   "name": "hollow-rewards",
   "version": "1.0.0",
   "private": true,
-  "description": "HOLLOW Rewards — Apple Wallet loyalty platform for HOLLOW, Al Zulfi",
+  "description": "HOLLOW Rewards \u2014 Apple Wallet loyalty platform for HOLLOW, Al Zulfi",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
   "engines": {
@@ -23,7 +23,8 @@
     "assets:generate": "node scripts/generate-assets.mjs",
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs",
     "seed:dev": "node scripts/seed-dev.mjs",
-    "secrets:encode": "node scripts/encode-secret.mjs"
+    "secrets:encode": "node scripts/encode-secret.mjs",
+    "secrets:csr": "node scripts/create-csr.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",
