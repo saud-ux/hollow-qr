@@ -63,7 +63,7 @@ npx wrangler mtls-certificate upload --cert .secrets/pass-cert.pem --key .secret
 #    "APPLE_PASS_TYPE_IDENTIFIER": "pass.sa.hollow.rewards"
 
 # 5. Deploy. Keep a backup of .secrets/pass-key.pem in a password manager, then delete .secrets/
-pnpm deploy
+pnpm run deploy
 ```
 
 `/api/health` should now report `"walletMode":"production","walletReady":true`.

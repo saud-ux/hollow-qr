@@ -52,7 +52,7 @@ There is no public endpoint for this. The admin creates staff accounts from **/s
    Passes refresh automatically, but stale screenshots stop working.
 3. Deploy:
    ```bash
-   pnpm deploy          # = pnpm build && wrangler deploy
+   pnpm run deploy          # = pnpm build && wrangler deploy
    ```
 4. Attach your custom domain under **Workers & Pages → hollow-rewards → Settings → Domains & Routes**.
    It must match `APP_URL`.
