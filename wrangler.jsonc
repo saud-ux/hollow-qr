@@ -21,13 +21,14 @@
   },
 
   // Non-secret configuration (production defaults). Local development
-  // overrides these with .dev.vars.
+  // overrides these with .dev.vars. SUPABASE_ANON_KEY is the PUBLISHABLE key
+  // (safe for browsers); the secret/service-role key is a `wrangler secret`.
   "vars": {
     "APP_ENV": "production",
     "APP_URL": "https://rewards.example.com",
-    "SUPABASE_URL": "",
-    "SUPABASE_ANON_KEY": "",
-    "REQUIRE_EMAIL_CONFIRMATION": "true",
+    "SUPABASE_URL": "https://zdggyjodcgogairxeedr.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_yyEH2JeLFAON-NJFrRB6ug_sBRVreRb",
+    "REQUIRE_EMAIL_CONFIRMATION": "false",
     "TURNSTILE_ENABLED": "false",
     "TURNSTILE_SITE_KEY": "",
     "APPLE_WALLET_MODE": "mock",
