@@ -19,7 +19,7 @@ export function AddToWalletButton({ onClick, disabled, busy }: { onClick: () => 
       onClick={onClick}
       disabled={disabled || busy}
       aria-busy={busy}
-      aria-label="Add to Apple Wallet — أضف إلى Apple Wallet"
+      aria-label="Add to Apple Wallet، أضف إلى Apple Wallet"
     >
       {!badgeFailed ? (
         <img

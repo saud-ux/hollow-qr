@@ -166,7 +166,7 @@ export function CustomerPage() {
     undo: {
       title: "تراجع عن آخر عملية",
       message: customer.undoCandidate
-        ? `سيتم عكس العملية: ${ACTION_LABELS_AR[customer.undoCandidate.action]}${customer.undoCandidate.action === "ADD_CUPS" || customer.undoCandidate.action === "REMOVE_CUPS" ? ` (${customer.undoCandidate.quantity})` : ""} — ${formatDateTime(customer.undoCandidate.createdAt)}. يبقى السجل محفوظًا.`
+        ? `سيتم عكس العملية: ${ACTION_LABELS_AR[customer.undoCandidate.action]}${customer.undoCandidate.action === "ADD_CUPS" || customer.undoCandidate.action === "REMOVE_CUPS" ? ` (${customer.undoCandidate.quantity})` : ""}، بتاريخ ${formatDateTime(customer.undoCandidate.createdAt)}. يبقى السجل محفوظًا.`
         : "",
       label: "تأكيد التراجع",
       tone: "warning",
@@ -230,7 +230,7 @@ export function CustomerPage() {
           <span dir="ltr">{customer.email}</span>
           <span dir="ltr">{customer.memberId}</span>
         </p>
-        {cancelled && <div className="status-banner status-banner--danger">العضوية ملغاة — غير نشطة</div>}
+        {cancelled && <div className="status-banner status-banner--danger">العضوية ملغاة وغير نشطة</div>}
         <p className="customer-card__count" dir="ltr">
           {cupsLabel(customer.stampCount)}
         </p>

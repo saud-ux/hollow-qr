@@ -17,13 +17,13 @@ const dateOnly = new Intl.DateTimeFormat("ar-SA-u-nu-latn-ca-gregory", {
 });
 
 export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "لا يوجد";
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : dateTime.format(d);
+  return Number.isNaN(d.getTime()) ? "لا يوجد" : dateTime.format(d);
 }
 
 export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "لا يوجد";
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : dateOnly.format(d);
+  return Number.isNaN(d.getTime()) ? "لا يوجد" : dateOnly.format(d);
 }

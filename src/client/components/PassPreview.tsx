@@ -7,13 +7,12 @@ import { QrCode } from "./QrCode";
  * Web PREVIEW of the Apple Wallet store card. It mirrors the real pass fields
  * and uses the same strip images, but Apple Wallet controls the real layout.
  */
-export function PassPreview({ card, showDevBadge }: { card: CustomerCard; showDevBadge?: boolean }) {
+export function PassPreview({ card }: { card: CustomerCard }) {
   const cancelled = card.membershipStatus === "cancelled";
   const strip = cancelled ? "strip-cancelled" : `strip-${Math.min(card.stampCount, MAX_STAMPS)}`;
   const remaining = MAX_STAMPS - card.stampCount;
   return (
-    <figure className={`pass ${cancelled ? "pass--void" : ""}`} aria-label="معاينة بطاقة HOLLOW Rewards">
-      {showDevBadge && <span className="pass__dev">معاينة — وضع التطوير</span>}
+    <figure className={`pass ${cancelled ? "pass--void" : ""}`} aria-label="بطاقة HOLLOW Rewards">
       <div className="pass__header">
         <img src="/wallet-preview/logo.png" alt="HOLLOW" className="pass__logo" />
         <span className="pass__logo-text">Rewards</span>

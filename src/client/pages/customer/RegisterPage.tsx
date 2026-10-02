@@ -96,7 +96,7 @@ export function RegisterPage() {
     <CustomerLayout hero>
       <section className="hero">
         <h1 className="hero__title">اشترِ 5 أكواب واحصل على السادس مجانًا</h1>
-        <p className="hero__sub">بطاقة ولاء HOLLOW في Apple Wallet — بدون تطبيق.</p>
+        <p className="hero__sub">بطاقة ولاء HOLLOW في Apple Wallet بدون تطبيق.</p>
       </section>
       <form className="card form" onSubmit={onSubmit} noValidate>
         <Field label="الاسم" name="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} maxLength={80} required />

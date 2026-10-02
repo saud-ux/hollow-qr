@@ -1,7 +1,7 @@
 /** Business constants shared by the Worker and the web app. */
 
 export const SHOP_NAME = "HOLLOW";
-export const SHOP_LABEL = "HOLLOW — Al Zulfi";
+export const SHOP_LABEL = "HOLLOW Al Zulfi";
 export const PROGRAM_NAME = "HOLLOW Rewards";
 
 /** Paid cups needed for one free drink. Mirrors the CHECK constraints in SQL. */

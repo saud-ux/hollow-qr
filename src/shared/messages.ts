@@ -24,7 +24,7 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   IDEMPOTENCY_CONFLICT: "تعارض في الطلب، أعد المحاولة",
   RATE_LIMITED: "محاولات كثيرة، انتظر قليلًا ثم أعد المحاولة",
   PAYLOAD_TOO_LARGE: "الطلب كبير جدًا",
-  WALLET_MOCK_MODE: "Apple Wallet غير مفعّل بعد (وضع التطوير)",
+  WALLET_MOCK_MODE: "إضافة البطاقة إلى Apple Wallet غير متاحة حاليًا",
   WALLET_NOT_CONFIGURED: "Apple Wallet غير مهيأ حاليًا",
   WALLET_SIGNING_FAILED: "تعذّر إنشاء بطاقة Apple Wallet حاليًا",
   LINK_EXPIRED: "انتهت صلاحية الرابط، أعد المحاولة",

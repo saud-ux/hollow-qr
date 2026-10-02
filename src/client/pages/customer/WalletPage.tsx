@@ -73,29 +73,23 @@ export function WalletPage() {
           {welcome && (
             <section className="welcome" aria-live="polite">
               <h1>تم إنشاء بطاقتك بنجاح</h1>
-              <p>أضفها الآن إلى Apple Wallet</p>
+              <p>{card.walletMode === "production" && card.walletReady ? "أضفها الآن إلى Apple Wallet" : "اعرض رمز QR للموظف عند الدفع"}</p>
             </section>
           )}
-          {!welcome && <h1 className="page-title">بطاقتي — {card.displayName}</h1>}
+          {!welcome && <h1 className="page-title">بطاقتي {card.displayName}</h1>}
 
           {card.membershipStatus === "cancelled" && <Alert tone="error">عضويتك غير نشطة حاليًا. تواصل مع HOLLOW للمساعدة.</Alert>}
 
-          <div className="wallet-actions">
-            {card.walletMode === "production" && card.walletReady ? (
-              <>
-                <AddToWalletButton onClick={() => void addToWallet()} busy={walletBusy} />
-                {!isAppleMobile() && <p className="muted small">لإضافة البطاقة افتح هذه الصفحة من Safari على iPhone.</p>}
-              </>
-            ) : (
-              <Alert tone="info">
-                Apple Wallet غير مفعّل بعد (وضع التطوير). البطاقة أدناه معاينة فقط، ويمكن للموظف مسح رمز QR الظاهر فيها.
-              </Alert>
-            )}
-            {walletError && <Alert tone="error">{walletError}</Alert>}
-          </div>
+          {card.walletMode === "production" && card.walletReady && (
+            <div className="wallet-actions">
+              <AddToWalletButton onClick={() => void addToWallet()} busy={walletBusy} />
+              {!isAppleMobile() && <p className="muted small">لإضافة البطاقة افتح هذه الصفحة من Safari على iPhone.</p>}
+              {walletError && <Alert tone="error">{walletError}</Alert>}
+            </div>
+          )}
 
-          <PassPreview card={card} showDevBadge={card.walletMode !== "production"} />
-          <p className="muted small center">هذه معاينة للبطاقة؛ يتحكم Apple Wallet بالشكل النهائي.</p>
+          <PassPreview card={card} />
+          <p className="muted small center">اعرض رمز QR للموظف عند الدفع.</p>
         </>
       )}
       <div className="center">

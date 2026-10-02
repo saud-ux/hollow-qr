@@ -47,7 +47,7 @@ export function buildPassJson(account: AccountRow, identity: PassIdentity): Reco
     teamIdentifier: identity.teamIdentifier,
     serialNumber: account.passSerial,
     organizationName: "HOLLOW",
-    description: `${PROGRAM_NAME} — بطاقة ولاء HOLLOW`,
+    description: `${PROGRAM_NAME}، بطاقة ولاء HOLLOW`,
     logoText: "Rewards",
     backgroundColor: PASS_COLORS.background,
     foregroundColor: PASS_COLORS.foreground,

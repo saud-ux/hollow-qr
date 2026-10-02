@@ -396,14 +396,6 @@ select {
 .pass--void {
   filter: grayscale(0.6);
 }
-.pass__dev {
-  display: block;
-  background: var(--espresso);
-  color: var(--gold-soft);
-  font-size: 0.75rem;
-  text-align: center;
-  padding: 3px 10px;
-}
 .pass__header {
   display: flex;
   align-items: center;
