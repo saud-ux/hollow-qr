@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
+    // Web-standard APIs only (fetch, WebCrypto, TextEncoder): the Worker does
+    // not need nodejs_compat. Bindings are typed structurally in platform.ts.
+    "lib": ["ES2023", "WebWorker"],
+    "types": []
+  },
+  "include": ["src/server", "src/shared"]
+}

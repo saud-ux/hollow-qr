@@ -1,0 +1,55 @@
+/**
+ * HOLLOW Rewards — Cloudflare Worker + Static Assets (single Worker, one domain).
+ *
+ * - The React app is built by Vite (@cloudflare/vite-plugin) and served as
+ *   static assets; SPA routes fall back to index.html.
+ * - Only /api/* and /v1/* (Apple Wallet web service) run the Worker first.
+ * - Secrets are NOT in this file. Set them with `wrangler secret put <NAME>`
+ *   (see .env.example / docs/DEPLOYMENT.md) or in .dev.vars for local dev.
+ * - nodejs_compat is intentionally NOT enabled: the Worker only uses
+ *   web-standard APIs (fetch, WebCrypto, TextEncoder).
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hollow-rewards",
+  "main": "src/server/index.ts",
+  "compatibility_date": "2026-09-25",
+  "observability": { "enabled": true },
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/v1/*"]
+  },
+
+  // Non-secret configuration (production defaults). Local development
+  // overrides these with .dev.vars.
+  "vars": {
+    "APP_ENV": "production",
+    "APP_URL": "https://rewards.example.com",
+    "SUPABASE_URL": "",
+    "SUPABASE_ANON_KEY": "",
+    "REQUIRE_EMAIL_CONFIRMATION": "true",
+    "TURNSTILE_ENABLED": "false",
+    "TURNSTILE_SITE_KEY": "",
+    "APPLE_WALLET_MODE": "mock",
+    "APPLE_TEAM_IDENTIFIER": "",
+    "APPLE_PASS_TYPE_IDENTIFIER": "",
+    "DUPLICATE_WINDOW_SECONDS": "60"
+  },
+
+  // Workers Rate Limiting bindings (optional; the code falls back to a
+  // per-isolate limiter if they are absent). namespace_id is any unique
+  // integer string per limiter in your account.
+  "ratelimits": [
+    { "name": "API_RATE_LIMITER", "namespace_id": "4801", "simple": { "limit": 120, "period": 60 } },
+    { "name": "WALLET_RATE_LIMITER", "namespace_id": "4803", "simple": { "limit": 60, "period": 60 } }
+  ]
+
+  // Apple Wallet pass-update pushes (production only). Upload the Pass Type ID
+  // certificate + key ONCE as an mTLS certificate, then uncomment:
+  //
+  //   npx wrangler mtls-certificate upload --cert pass-cert.pem --key pass-key.pem --name hollow-apns
+  //
+  // "mtls_certificates": [
+  //   { "binding": "APPLE_APNS_MTLS", "certificate_id": "<CERTIFICATE_ID_FROM_UPLOAD>" }
+  // ]
+}
