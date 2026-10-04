@@ -10,6 +10,7 @@ import type {
   CreateStaffParams,
   CreateStaffResult,
   DashboardStatsRow,
+  RemoveStaffResult,
   Repository,
 } from "../../src/server/data/repository";
 
@@ -54,7 +55,7 @@ export class PgliteRepository implements Repository {
 
   async applyLoyaltyAction(p: ApplyActionParams): Promise<ApplyActionResult> {
     const r = await this.one(
-      "select public.apply_loyalty_action($1, $2, $3::public.loyalty_action, $4, $5, $6, $7, $8, $9) as r",
+      "select public.apply_loyalty_action($1::uuid, $2::uuid, $3::public.loyalty_action, $4::int, $5::int, $6::uuid, $7::boolean, $8::int, $9::text) as r",
       [
         p.actorId,
         p.accountId,
@@ -83,7 +84,7 @@ export class PgliteRepository implements Repository {
     return r!.s as DashboardStatsRow;
   }
   async listStaff() {
-    const res = await this.db.query<Raw>("select * from public.profiles where role in ('staff','admin') order by created_at");
+    const res = await this.db.query<Raw>("select * from public.profiles where role in ('staff','admin') and disabled_at is null order by created_at");
     return res.rows.map(mapProfile);
   }
   async createStaffUser(p: CreateStaffParams): Promise<CreateStaffResult> {
@@ -95,6 +96,14 @@ export class PgliteRepository implements Repository {
       [p.email, p.displayName],
     );
     return { ok: true, userId: String(r!.id) };
+  }
+  async removeStaffUser(userId: string): Promise<RemoveStaffResult> {
+    const profile = await this.getProfile(userId);
+    if (!profile) return { ok: false, code: "NOT_FOUND" };
+    if (profile.role !== "staff") return { ok: false, code: "NOT_STAFF" };
+    if (profile.disabledAt !== null) return { ok: false, code: "ALREADY_REMOVED" };
+    await this.db.query("update public.profiles set disabled_at = now() where id = $1 and role = 'staff' and disabled_at is null", [userId]);
+    return { ok: true };
   }
 
   async walletRegisterDevice(device: string, pushToken: string, passType: string, serial: string) {

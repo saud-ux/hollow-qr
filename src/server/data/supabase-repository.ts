@@ -9,6 +9,7 @@ import type {
   DashboardStatsRow,
   ProfileRow,
   PushTarget,
+  RemoveStaffResult,
   Repository,
 } from "./repository";
 
@@ -55,7 +56,7 @@ export class SupabaseRepository implements Repository {
   async getProfile(userId: string): Promise<ProfileRow | null> {
     const { data, error } = (await this.db
       .from("profiles")
-      .select("id, display_name, email, role, email_confirmed_at, created_at")
+      .select("id, display_name, email, role, email_confirmed_at, disabled_at, created_at")
       .eq("id", userId)
       .maybeSingle()) as DbResult;
     if (error) throw new RepositoryError("getProfile", error);
@@ -132,8 +133,9 @@ export class SupabaseRepository implements Repository {
   async listStaff(): Promise<ProfileRow[]> {
     const { data, error } = (await this.db
       .from("profiles")
-      .select("id, display_name, email, role, email_confirmed_at, created_at")
+      .select("id, display_name, email, role, email_confirmed_at, disabled_at, created_at")
       .in("role", ["staff", "admin"])
+      .is("disabled_at", null)
       .order("created_at", { ascending: true })
       .limit(500)) as DbResult;
     if (error) throw new RepositoryError("listStaff", error);
@@ -163,6 +165,22 @@ export class SupabaseRepository implements Repository {
     const { error: roleError } = (await this.db.from("profiles").update({ role: "staff" }).eq("id", data.user.id)) as DbResult;
     if (roleError) throw new RepositoryError("createStaffUser:role", roleError);
     return { ok: true, userId: data.user.id };
+  }
+
+  async removeStaffUser(userId: string): Promise<RemoveStaffResult> {
+    const profile = await this.getProfile(userId);
+    if (!profile) return { ok: false, code: "NOT_FOUND" };
+    if (profile.role !== "staff") return { ok: false, code: "NOT_STAFF" };
+    if (profile.disabledAt !== null) return { ok: false, code: "ALREADY_REMOVED" };
+
+    const { error } = (await this.db
+      .from("profiles")
+      .update({ disabled_at: new Date().toISOString() })
+      .eq("id", userId)
+      .eq("role", "staff")
+      .is("disabled_at", null)) as DbResult;
+    if (error) throw new RepositoryError("removeStaffUser", error);
+    return { ok: true };
   }
 
   async walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string) {

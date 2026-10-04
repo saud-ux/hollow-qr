@@ -22,6 +22,7 @@ export function mapProfile(r: Raw): ProfileRow {
     email: str(r.email),
     role: str(r.role) as ProfileRow["role"],
     emailConfirmedAt: isoOrNull(r.email_confirmed_at),
+    disabledAt: isoOrNull(r.disabled_at),
     createdAt: iso(r.created_at),
   };
 }

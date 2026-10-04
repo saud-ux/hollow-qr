@@ -93,7 +93,7 @@ export async function applyAction(
   },
 ): Promise<ActionResult> {
   const res = await db.query<{ r: ActionResult }>(
-    `select public.apply_loyalty_action($1, $2, $3::public.loyalty_action, $4, $5, $6, $7, $8) as r`,
+    `select public.apply_loyalty_action($1::uuid, $2::uuid, $3::public.loyalty_action, $4::int, $5::int, $6::uuid, $7::boolean, $8::int) as r`,
     [
       args.actorId,
       args.accountId,

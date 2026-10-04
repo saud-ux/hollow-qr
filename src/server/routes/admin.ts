@@ -76,6 +76,18 @@ export const adminRoutes = new Hono<HonoEnv>()
     return c.json({ id: result.userId }, 201);
   })
 
+  .post("/staff/:id/remove", async (c) => {
+    const id = parseWith(z.uuid(), c.req.param("id"));
+    const result = await repoOf(c).removeStaffUser(id);
+    if (!result.ok) {
+      if (result.code === "NOT_FOUND") throw new ApiError(404, "NOT_FOUND");
+      if (result.code === "ALREADY_REMOVED") throw new ApiError(409, "INVALID_REQUEST", undefined, "تم حذف هذا الموظف مسبقًا");
+      throw new ApiError(400, "INVALID_REQUEST", undefined, "يمكن حذف حسابات الموظفين فقط");
+    }
+    c.get("deps").logger.info("admin.staff_removed", { actor: c.get("user").id, staffUserId: id });
+    return c.json({ ok: true });
+  })
+
   .get("/export/customers.csv", async (c) => {
     const repo = repoOf(c);
     const rows: unknown[][] = [];

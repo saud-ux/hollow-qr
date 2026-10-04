@@ -11,6 +11,7 @@ export interface ProfileRow {
   email: string;
   role: AppRole;
   emailConfirmedAt: string | null;
+  disabledAt: string | null;
   createdAt: string;
 }
 
@@ -123,6 +124,7 @@ export interface CreateStaffParams {
 }
 
 export type CreateStaffResult = { ok: true; userId: string } | { ok: false; code: "EMAIL_EXISTS" | "WEAK_PASSWORD" };
+export type RemoveStaffResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_STAFF" | "ALREADY_REMOVED" };
 
 export interface Repository {
   getProfile(userId: string): Promise<ProfileRow | null>;
@@ -141,6 +143,7 @@ export interface Repository {
 
   listStaff(): Promise<ProfileRow[]>;
   createStaffUser(params: CreateStaffParams): Promise<CreateStaffResult>;
+  removeStaffUser(userId: string): Promise<RemoveStaffResult>;
 
   walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string): Promise<"created" | "exists" | "unknown_pass">;
   walletUnregisterDevice(device: string, passTypeIdentifier: string, serial: string): Promise<void>;

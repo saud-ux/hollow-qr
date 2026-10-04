@@ -57,7 +57,7 @@ export const requireUser: MiddlewareHandler<HonoEnv> = async (c, next) => {
   const identity = await deps.auth.verify(match[1]!);
   if (!identity) throw new ApiError(401, "UNAUTHENTICATED");
   const profile = await repoOf(c).getProfile(identity.userId);
-  if (!profile) throw new ApiError(401, "UNAUTHENTICATED");
+  if (!profile || profile.disabledAt !== null) throw new ApiError(401, "UNAUTHENTICATED");
   c.set("user", {
     id: profile.id,
     email: profile.email,
