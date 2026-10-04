@@ -1,0 +1,151 @@
+/**
+ * Data-access boundary. The production implementation talks to Supabase
+ * (PostgREST + RPC) with the service-role key; tests use a PGlite-backed
+ * implementation that runs the very same SQL migrations.
+ */
+import type { AppRole, LoyaltyAction, MembershipStatus } from "../../shared/types";
+
+export interface ProfileRow {
+  id: string;
+  displayName: string;
+  email: string;
+  role: AppRole;
+  emailConfirmedAt: string | null;
+  createdAt: string;
+}
+
+export interface AccountRow {
+  id: string;
+  userId: string;
+  memberId: string;
+  stampCount: number;
+  rewardAvailable: boolean;
+  membershipStatus: MembershipStatus;
+  passSerial: string;
+  qrTokenId: string;
+  walletUpdatedAt: string;
+  lastMutationAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  displayName: string;
+  email: string;
+}
+
+export interface ApplyActionParams {
+  actorId: string;
+  accountId: string;
+  action: LoyaltyAction;
+  quantity?: number | null;
+  targetStampCount?: number | null;
+  idempotencyKey?: string | null;
+  confirmRecent?: boolean;
+  recentWindowSeconds: number;
+  source?: string;
+}
+
+/** Raw jsonb result of public.apply_loyalty_action(). */
+export interface ApplyActionResult {
+  ok: boolean;
+  code?: string;
+  replayed?: boolean;
+  transaction_id?: string;
+  action?: LoyaltyAction;
+  previous_stamp_count?: number;
+  new_stamp_count?: number;
+  new_reward_available?: boolean;
+  remaining?: number;
+  current?: number;
+  seconds_ago?: number;
+  last_action?: LoyaltyAction | null;
+  last_quantity?: number | null;
+  account?: { id: string; pass_serial: string; stamp_count: number; reward_available: boolean; membership_status: MembershipStatus };
+}
+
+export interface TransactionRow {
+  id: string;
+  seq: number;
+  loyaltyAccountId: string;
+  memberId: string;
+  customerName: string;
+  customerEmail: string;
+  actorUserId: string;
+  actorName: string;
+  actorRole: AppRole;
+  action: LoyaltyAction;
+  quantity: number;
+  delta: number;
+  previousStampCount: number;
+  newStampCount: number;
+  previousRewardAvailable: boolean;
+  newRewardAvailable: boolean;
+  previousMembershipStatus: MembershipStatus;
+  newMembershipStatus: MembershipStatus;
+  reversalOf: string | null;
+  reversedBy: string | null;
+  reversedAt: string | null;
+  createdAt: string;
+}
+
+export interface SearchRow {
+  accountId: string;
+  memberId: string;
+  displayName: string;
+  email: string;
+  stampCount: number;
+  rewardAvailable: boolean;
+  membershipStatus: MembershipStatus;
+  lastMutationAt: string | null;
+  createdAt: string;
+}
+
+export interface DashboardStatsRow {
+  total_customers: number;
+  active_customers: number;
+  cancelled_customers: number;
+  new_today: number;
+  new_this_week: number;
+  cups_added_today: number;
+  rewards_available: number;
+  rewards_redeemed_today: number;
+  rewards_redeemed_total: number;
+  time_zone: string;
+}
+
+export interface PushTarget {
+  deviceLibraryIdentifier: string;
+  pushToken: string;
+}
+
+export interface CreateStaffParams {
+  displayName: string;
+  email: string;
+  password: string;
+}
+
+export type CreateStaffResult = { ok: true; userId: string } | { ok: false; code: "EMAIL_EXISTS" | "WEAK_PASSWORD" };
+
+export interface Repository {
+  getProfile(userId: string): Promise<ProfileRow | null>;
+  ensureLoyaltyAccount(userId: string): Promise<void>;
+  getAccountByUserId(userId: string): Promise<AccountRow | null>;
+  getAccountById(accountId: string): Promise<AccountRow | null>;
+  getAccountByMemberId(memberId: string): Promise<AccountRow | null>;
+  getAccountByQrTokenId(qrTokenId: string): Promise<AccountRow | null>;
+  getAccountBySerial(passSerial: string): Promise<AccountRow | null>;
+
+  applyLoyaltyAction(params: ApplyActionParams): Promise<ApplyActionResult>;
+
+  searchCustomers(query: string, limit: number, offset: number, includeEmail: boolean): Promise<{ rows: SearchRow[]; total: number }>;
+  listTransactions(accountId: string | null, limit: number, offset: number): Promise<{ rows: TransactionRow[]; total: number }>;
+  getDashboardStats(timeZone: string): Promise<DashboardStatsRow>;
+
+  listStaff(): Promise<ProfileRow[]>;
+  createStaffUser(params: CreateStaffParams): Promise<CreateStaffResult>;
+
+  walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string): Promise<"created" | "exists" | "unknown_pass">;
+  walletUnregisterDevice(device: string, passTypeIdentifier: string, serial: string): Promise<void>;
+  walletUpdatedSerials(device: string, passTypeIdentifier: string, sinceMicros: bigint | null): Promise<{ serial: string; tag: bigint }[]>;
+  walletPushTargets(serial: string): Promise<PushTarget[]>;
+  walletDeleteDevice(device: string): Promise<void>;
+  walletDeviceCount(serial: string): Promise<number>;
+}

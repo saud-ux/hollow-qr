@@ -1,0 +1,28 @@
+# Local development secrets/vars for `pnpm dev` (copy to .dev.vars — never commit .dev.vars).
+# These override the "vars" in wrangler.jsonc when running locally.
+APP_ENV=development
+APP_URL=http://localhost:5173
+
+SUPABASE_URL=https://YOUR-PROJECT-REF.supabase.co
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+REQUIRE_EMAIL_CONFIRMATION=false
+TURNSTILE_ENABLED=false
+TURNSTILE_SITE_KEY=
+
+APPLE_WALLET_MODE=mock
+APPLE_TEAM_IDENTIFIER=
+APPLE_PASS_TYPE_IDENTIFIER=
+APPLE_PASS_CERTIFICATE_BASE64=
+APPLE_PASS_PRIVATE_KEY_BASE64=
+APPLE_PASS_PRIVATE_KEY_PASSPHRASE=
+APPLE_WWDR_CERTIFICATE_BASE64=
+
+# Generate each with: openssl rand -base64 48   (must be different, >= 32 chars)
+# If left empty in development, random per-process values are used (QR codes
+# then change on every restart).
+PASS_AUTH_SECRET=
+QR_TOKEN_SECRET=
+
+DUPLICATE_WINDOW_SECONDS=60

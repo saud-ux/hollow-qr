@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+.wrangler/
+*.tsbuildinfo
+node_modules/.tmp/
+
+# local env & secrets — never commit
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.secrets/
+*.p12
+*.pem
+*.key
+*.cer
+*.pkpass
+
+# os / editor
+.DS_Store
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# supabase local
+supabase/.branches
+supabase/.temp

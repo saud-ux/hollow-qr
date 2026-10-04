@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2b1e16">
+<link rel="icon" type="image/png" href="/brand/favicon-64.png">
+<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+<title>HOLLOW Rewards روابط</title>
+<style>
+/* Layout: one narrow RTL column of audience sections (customers → staff → owner), each a list of link rows with copy buttons. */
+:root {
+  --paper: #f4ede0;
+  --card: #fbf8f2;
+  --ink: #2b1e16;
+  --muted: #6f5f52;
+  --line: #e2d5bf;
+  --accent: #7a4e2d;
+  --chip: #efe4d1;
+  --gold: #c9a227;
+  --ok: #2e7d4f;
+  --font-display: "SF Arabic", "Geeza Pro", "Segoe UI", Tahoma, sans-serif;
+  --font-body: "SF Arabic", "Geeza Pro", "Segoe UI", Tahoma, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --logo-light: block;
+  --logo-dark: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1d1612; --card: #2a201a; --ink: #f1e7d8; --muted: #b9a893; --line: #3d3027;
+    --accent: #d9a877; --chip: #352820; --gold: #e0bd4f; --ok: #6fcf97;
+    --logo-light: none; --logo-dark: block; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1d1612; --card: #2a201a; --ink: #f1e7d8; --muted: #b9a893; --line: #3d3027;
+  --accent: #d9a877; --chip: #352820; --gold: #e0bd4f; --ok: #6fcf97;
+  --logo-light: none; --logo-dark: block; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+}
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 32px 48px;
+  display: grid;
+  gap: 28px;
+}
+header { display: grid; gap: 10px; justify-items: start; }
+.logo { height: 34px; width: auto; }
+.logo--light { display: var(--logo-light); }
+.logo--dark { display: var(--logo-dark); }
+h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.9rem;
+  margin: 0;
+  text-wrap: balance;
+}
+.lede { margin: 0; color: var(--muted); max-width: 60ch; }
+.rule {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  background: var(--chip); border-radius: 12px; padding: 10px 14px; font-weight: 500;
+}
+.cups { display: inline-flex; gap: 4px; }
+.cups span { width: 14px; height: 18px; border: 2px solid var(--accent); border-top-width: 4px; border-radius: 2px 2px 5px 5px; }
+.cups span.free { border-color: var(--gold); background: var(--gold); }
+
+section { display: grid; gap: 12px; }
+.sec-head { display: grid; gap: 2px; }
+h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.35rem;
+  margin: 0;
+}
+.sec-head p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.badge {
+  justify-self: start; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--accent); border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px;
+}
+
+.list { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 14px;
+  align-items: center;
+  padding: 14px 16px;
+}
+.item + .item { border-top: 1px solid var(--line); }
+.item h3 { margin: 0; font-size: 1.02rem; font-weight: 600; }
+.item p { margin: 2px 0 6px; color: var(--muted); font-size: 0.92rem; }
+.url {
+  direction: ltr; text-align: left; display: block;
+  font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent);
+  overflow-wrap: anywhere; text-decoration: none;
+}
+.url:hover, .url:focus-visible { text-decoration: underline; }
+.actions { display: flex; gap: 8px; align-self: start; padding-top: 2px; }
+.btn {
+  font: inherit; font-size: 0.85rem; font-weight: 600;
+  min-height: 36px; padding: 4px 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+  text-decoration: none; display: inline-flex; align-items: center; white-space: nowrap;
+}
+.btn--primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.btn.copied { color: var(--ok); border-color: var(--ok); }
+
+.qr-card {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px;
+}
+.qr { width: 132px; height: 132px; background: #fff; border-radius: 10px; padding: 6px; }
+.qr svg { width: 100%; height: 100%; display: block; }
+.qr-card h3 { margin: 0 0 4px; font-size: 1.02rem; }
+.qr-card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+
+.note { color: var(--muted); font-size: 0.88rem; margin: 0; }
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 14px; }
+
+@media (max-width: 520px) {
+  .item { grid-template-columns: minmax(0, 1fr); }
+  .actions { padding-top: 0; }
+  .qr-card { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+  h1 { font-size: 1.6rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body><div class="wrap" dir="rtl" lang="ar">
+  <header>
+    <img class="logo logo--light" alt="HOLLOW" src="/brand/wordmark-espresso.webp">
+    <img class="logo logo--dark" alt="HOLLOW" src="/brand/wordmark-cream.webp">
+    <h1>روابط HOLLOW Rewards</h1>
+    <p class="lede">روابط برنامج الولاء في مكان واحد للعملاء والموظفين والإدارة. اضغط على الرابط لفتحه أو على «نسخ» لمشاركته.</p>
+    <div class="rule" aria-label="قاعدة البرنامج: خمسة أكواب ثم مشروب مجاني">
+      <span class="cups" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span class="free"></span></span>
+      <span>اشترِ 5 أكواب واحصل على السادس مجانًا</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="customers">
+    <div class="sec-head">
+      <h2 id="customers">العملاء</h2>
+      <p>روابط عامة يمكن مشاركتها مع أي عميل.</p>
+    </div>
+
+    <div class="qr-card">
+      <div class="qr" role="img" aria-label="رمز QR لصفحة التسجيل"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 35 35" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h35v35H0z"/><path stroke="#000000" d="M1 1.5h7m6 0h2m1 0h2m1 0h5m2 0h7M1 2.5h1m5 0h1m2 0h3m1 0h5m3 0h2m3 0h1m5 0h1M1 3.5h1m1 0h3m1 0h1m1 0h1m1 0h4m2 0h3m1 0h4m2 0h1m1 0h3m1 0h1M1 4.5h1m1 0h3m1 0h1m1 0h2m1 0h1m2 0h3m3 0h1m1 0h3m1 0h1m1 0h3m1 0h1M1 5.5h1m1 0h3m1 0h1m1 0h1m2 0h3m1 0h1m2 0h1m2 0h3m2 0h1m1 0h3m1 0h1M1 6.5h1m5 0h1m1 0h1m3 0h2m1 0h4m1 0h1m1 0h1m1 0h1m1 0h1m5 0h1M1 7.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M9 8.5h1m1 0h1m1 0h1m2 0h1m5 0h2M1 9.5h1m1 0h5m4 0h1m1 0h6m5 0h1m1 0h5M1 10.5h6m1 0h2m1 0h1m3 0h1m1 0h1m1 0h4m1 0h1m2 0h2m1 0h2m1 0h1M1 11.5h1m1 0h2m1 0h4m3 0h1m2 0h2m1 0h1m3 0h1m1 0h1m1 0h1m1 0h1m1 0h2M4 12.5h3m2 0h4m2 0h1m1 0h1m2 0h1m1 0h1m3 0h2m1 0h3m1 0h1M5 13.5h1m1 0h1m2 0h2m7 0h1m2 0h1m1 0h3m1 0h3m1 0h1M1 14.5h1m2 0h1m4 0h3m2 0h5m2 0h1m2 0h1m2 0h1m4 0h2M2 15.5h2m2 0h2m3 0h5m2 0h1m1 0h1m1 0h2m1 0h8M2 16.5h3m1 0h1m1 0h2m2 0h2m1 0h1m1 0h1m1 0h6m1 0h3m2 0h1M2 17.5h2m2 0h2m2 0h1m1 0h4m2 0h1m1 0h2m1 0h4m1 0h2m3 0h1M3 18.5h2m1 0h1m1 0h2m1 0h1m3 0h1m1 0h5m1 0h2m2 0h2m1 0h2m1 0h1M2 19.5h1m1 0h4m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m2 0h1m1 0h1m1 0h2m1 0h2m1 0h2M1 20.5h1m1 0h4m2 0h1m3 0h2m1 0h4m6 0h1m1 0h4M1 21.5h1m3 0h3m1 0h2m1 0h1m1 0h2m1 0h1m3 0h6m2 0h2m1 0h2M1 22.5h3m4 0h1m1 0h2m2 0h1m1 0h1m1 0h2m2 0h1m1 0h4m2 0h1m2 0h1M1 23.5h1m3 0h5m2 0h1m2 0h3m1 0h1m1 0h1m5 0h1m1 0h1m2 0h1M1 24.5h1m3 0h1m2 0h4m2 0h3m2 0h1m2 0h1m1 0h2m3 0h3m1 0h1M1 25.5h1m1 0h5m2 0h2m1 0h1m1 0h2m1 0h1m4 0h1m1 0h6m1 0h2M9 26.5h4m4 0h1m1 0h4m2 0h1m3 0h1m1 0h1m1 0h1M1 27.5h7m3 0h3m2 0h1m2 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h2M1 28.5h1m5 0h1m1 0h2m1 0h3m1 0h2m2 0h6m3 0h4M1 29.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h1m4 0h1m2 0h1m2 0h6m1 0h1M1 30.5h1m1 0h3m1 0h1m1 0h3m4 0h3m2 0h4m1 0h1m2 0h3m1 0h1M1 31.5h1m1 0h3m1 0h1m1 0h1m1 0h3m1 0h1m2 0h1m1 0h1m1 0h3m2 0h2m1 0h1M1 32.5h1m5 0h1m2 0h1m3 0h2m1 0h1m2 0h5m4 0h3M1 33.5h7m1 0h1m2 0h2m4 0h1m1 0h2m1 0h3m1 0h2m3 0h1"/></svg>
+</div>
+      <div>
+        <h3>رمز التسجيل للكاونتر</h3>
+        <p>اطبع هذا الرمز أو اعرضه عند الكاشير. يمسحه العميل بكاميرا الجوال فيفتح صفحة التسجيل مباشرة.</p>
+      </div>
+    </div>
+
+    <div class="list">
+      <div class="item">
+        <div>
+          <h3>التسجيل في البرنامج</h3>
+          <p>يسجّل العميل الجديد بالاسم والبريد الإلكتروني وكلمة المرور، ثم تظهر بطاقته ورمز QR الخاص به.</p>
+          <a class="url" href="https://hollow-rewards.hollowzulfi.workers.dev" target="_blank" rel="noopener">hollow-rewards.hollowzulfi.workers.dev</a>
+        </div>
+        <div class="actions"><button class="btn" type="button" data-copy="https://hollow-rewards.hollowzulfi.workers.dev">نسخ</button></div>
+      </div>
+      <div class="item">
+        <div>
+          <h3>تسجيل الدخول</h3>
+          <p>للعميل المسجّل مسبقًا للوصول إلى بطاقته من أي جهاز.</p>
+          <a class="url" href="https://hollow-rewards.hollowzulfi.workers.dev/login" target="_blank" rel="noopener">hollow-rewards.hollowzulfi.workers.dev/login</a>
+        </div>
+        <div class="actions"><button class="btn" type="button" data-copy="https://hollow-rewards.hollowzulfi.workers.dev/login">نسخ</button></div>
+      </div>
+      <div class="item">
+        <div>
+          <h3>بطاقتي</h3>
+          <p>تعرض عدد الأكواب والمكافأة ورمز QR الذي يمسحه الموظف عند الدفع.</p>
+          <a class="url" href="https://hollow-rewards.hollowzulfi.workers.dev/wallet" target="_blank" rel="noopener">hollow-rewards.hollowzulfi.workers.dev/wallet</a>
+        </div>
+        <div class="actions"><button class="btn" type="button" data-copy="https://hollow-rewards.hollowzulfi.workers.dev/wallet">نسخ</button></div>
+      </div>
+      <div class="item">
+        <div>
+          <h3>نسيت كلمة المرور</h3>
+          <p>يرسل رابط إعادة تعيين كلمة المرور إلى بريد العميل.</p>
+          <a class="url" href="https://hollow-rewards.hollowzulfi.workers.dev/forgot-password" target="_blank" rel="noopener">hollow-rewards.hollowzulfi.workers.dev/forgot-password</a>
+        </div>
+        <div class="actions"><button class="btn" type="button" data-copy="https://hollow-rewards.hollowzulfi.workers.dev/forgot-password">نسخ</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="staff">
+    <div class="sec-head">
+      <h2 id="staff">الموظفون</h2>
+      <p>تسجيل الدخول بحساب الموظف الذي ينشئه المدير.</p>
+    </div>
+    <div class="list">
+      <div class="item">
+        <div>
+          <h3>دخول الموظفين</h3>
+          <p>صفحة تسجيل الدخول للموظفين والمدير.</p>
+          <a class="url" href="https://hollow-rewards.hollowzulfi.workers.dev/staff/login" target="_blank" rel="noopener">hollow-rewards.hollowzulfi.workers.dev/staff/login</a>
+        </div>
+        <div class="actions"><button class="btn" type="button" data-copy="https://hollow-rewards.hollowzulfi.workers.dev/staff/login">نسخ</button></div>
+      </div>
+      <div class="item">
+        <div>
+          <h3>شاشة الكاشير</h3>
+          <p>مسح QR، أو إدخال رقم العضوية، ثم إضافة الأكواب أو استخدام المشروب المجاني. يُفضّل إضافتها إلى الشاشة الرئيسية لجهاز الكاونتر.</p>
+          <a class="url" href="https://hollow-rewards.hollowzulfi.workers.dev/staff" target="_blank" rel="noopener">hollow-rewards.hollowzulfi.workers.dev/staff</a>
+        </div>
+        <div class="actions"><button class="btn" type="button" data-copy="https://hollow-rewards.hollowzulfi.workers.dev/staff">نسخ</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="admin">
+    <div class="sec-head">
+      <h2 id="admin">الإدارة</h2>
+      <p>للمدير فقط. الدخول من نفس صفحة دخول الموظفين.</p>
+    </div>
+    <div class="list">
+      <div class="item">
+        <div>
+          <h3>لوحة الإدارة</h3>
+          <p>الإحصاءات، والبحث في جميع العملاء وسجلّهم، وإضافة الموظفين، وتصدير البيانات بصيغة CSV.</p>
+          <a class="url" href="https://hollow-rewards.hollowzulfi.workers.dev/staff/admin" target="_blank" rel="noopener">hollow-rewards.hollowzulfi.workers.dev/staff/admin</a>
+        </div>
+        <div class="actions"><button class="btn" type="button" data-copy="https://hollow-rewards.hollowzulfi.workers.dev/staff/admin">نسخ</button></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>HOLLOW · Al Zulfi</footer>
+</div>
+
+<script src="/links.js" defer></script>
+</body>
+</html>
