@@ -29,6 +29,8 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   WALLET_SIGNING_FAILED: "تعذّر إنشاء بطاقة Apple Wallet حاليًا",
   LINK_EXPIRED: "انتهت صلاحية الرابط، أعد المحاولة",
   EMAIL_EXISTS: "هذا البريد مسجل مسبقًا",
+  STAFF_NOT_FOUND: "الموظف غير موجود أو تمت إزالته",
+  CANNOT_REMOVE_ADMIN: "لا يمكن إزالة حساب مدير",
   CONFIG_ERROR: "الخدمة غير مهيأة بالكامل",
   INTERNAL: "حدث خطأ غير متوقع، حاول مرة أخرى",
 };

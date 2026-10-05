@@ -10,6 +10,7 @@ import type {
   CreateStaffParams,
   CreateStaffResult,
   DashboardStatsRow,
+  RemoveStaffResult,
   Repository,
 } from "../../src/server/data/repository";
 
@@ -95,6 +96,15 @@ export class PgliteRepository implements Repository {
       [p.email, p.displayName],
     );
     return { ok: true, userId: String(r!.id) };
+  }
+  async removeStaffUser(userId: string): Promise<RemoveStaffResult> {
+    const r = await this.one("update public.profiles set role = 'customer' where id = $1 and role = 'staff' returning id", [userId]);
+    if (!r) return { ok: false, code: "STAFF_NOT_FOUND" };
+    await this.db.query(
+      "update auth.users set banned_until = 'infinity', raw_app_meta_data = raw_app_meta_data || '{\"hollow_role\":null}' where id = $1",
+      [userId],
+    );
+    return { ok: true };
   }
 
   async walletRegisterDevice(device: string, pushToken: string, passType: string, serial: string) {

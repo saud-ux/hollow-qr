@@ -4,7 +4,7 @@ Apple Wallet loyalty card for **HOLLOW — Al Zulfi**: _buy 5 cups, the 6th is f
 (اشترِ 5 أكواب واحصل على السادس مجانًا).
 
 - **Customer site** (Arabic, RTL, mobile-first): sign up, log in, reset the password, view the card, add it to Apple Wallet.
-- **Staff / admin dashboard** (Arabic, RTL, iPhone/iPad): scan the QR, add cups (1–5 in one action), redeem the free drink, remove a cup, undo, search; admins also get stats, customer history, membership cancellation, staff accounts and CSV exports.
+- **Staff / admin dashboard** (Arabic, RTL, iPhone/iPad): scan the QR, add cups (1–5 in one action), redeem the free drink, remove a cup, undo, search; admins also get stats, customer history, membership cancellation, staff accounts (add and remove) and CSV exports.
 - **Apple Wallet**: a real signed `.pkpass` store card, the pass web service (`/v1/...`) and APNs update pushes. A **mock mode** runs everything without Apple certificates.
 
 | Layer | Tech |

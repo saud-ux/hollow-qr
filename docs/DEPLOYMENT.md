@@ -35,7 +35,7 @@ pnpm bootstrap:admin --email owner@example.com --name "Owner"
 ```
 
 The script runs locally with the service-role key. It creates the account, or promotes an existing one, and sets `profiles.role = 'admin'`.
-There is no public endpoint for this. The admin creates staff accounts from **/staff/admin**.
+There is no public endpoint for this. The admin creates and removes staff accounts from **/staff/admin**. Removing a staff member demotes them to customer and bans their Supabase Auth user; the user row is kept because their past transactions reference it, so the same email cannot be reused for a new staff account.
 
 ## 3. Cloudflare Worker
 

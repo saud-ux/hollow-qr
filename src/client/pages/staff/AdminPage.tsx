@@ -4,9 +4,10 @@ import { ROLE_LABELS_AR } from "../../../shared/messages";
 import type { DashboardStats, Paginated, StaffMember, TransactionItem } from "../../../shared/types";
 import { ActivityList } from "../../components/ActivityList";
 import { CustomerSearch } from "../../components/CustomerSearch";
+import { ConfirmDialog } from "../../components/Dialog";
 import { Alert, Field } from "../../components/Field";
 import { StaffLayout } from "../../components/StaffLayout";
-import { apiDownload, apiGet, apiPost, errorText } from "../../lib/api";
+import { apiDelete, apiDownload, apiGet, apiPost, errorText } from "../../lib/api";
 import { formatDate } from "../../lib/dates";
 import { validateEmail, validateName, validatePassword } from "../../lib/validation";
 
@@ -29,6 +30,8 @@ function StaffManagement() {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [removing, setRemoving] = useState<StaffMember | null>(null);
+  const [removeBusy, setRemoveBusy] = useState(false);
 
   const load = useCallback(() => {
     apiGet<{ items: StaffMember[] }>("/api/admin/staff")
@@ -61,6 +64,22 @@ function StaffManagement() {
     }
   }
 
+  async function onRemove(member: StaffMember) {
+    setRemoveBusy(true);
+    setError(null);
+    setOk(null);
+    try {
+      await apiDelete(`/api/admin/staff/${member.id}`);
+      setOk(`تمت إزالة الموظف ${member.displayName}`);
+      load();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setRemoveBusy(false);
+      setRemoving(null);
+    }
+  }
+
   return (
     <section className="panel">
       <h2>الموظفون</h2>
@@ -72,6 +91,9 @@ function StaffManagement() {
               <th scope="col">البريد</th>
               <th scope="col">الدور</th>
               <th scope="col">تاريخ الإنشاء</th>
+              <th scope="col">
+                <span className="visually-hidden">إجراءات</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -81,10 +103,29 @@ function StaffManagement() {
                 <td dir="ltr">{s.email}</td>
                 <td>{ROLE_LABELS_AR[s.role]}</td>
                 <td>{formatDate(s.createdAt)}</td>
+                <td>
+                  {s.role === "staff" && (
+                    <button type="button" className="btn btn--small btn--danger" onClick={() => setRemoving(s)}>
+                      إزالة
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+      {removing && (
+        <ConfirmDialog
+          open
+          tone="danger"
+          title={`إزالة الموظف ${removing.displayName}؟`}
+          message={<p>لن يتمكن الموظف من تسجيل الدخول إلى لوحة الموظفين بعد الإزالة. تبقى العمليات التي نفذها في السجل.</p>}
+          confirmLabel="نعم، إزالة الموظف"
+          busy={removeBusy}
+          onConfirm={() => void onRemove(removing)}
+          onCancel={() => setRemoving(null)}
+        />
       )}
       <form className="form form--inline" onSubmit={onCreate} noValidate>
         <h3>إضافة موظف جديد</h3>

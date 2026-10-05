@@ -9,6 +9,7 @@ import type {
   DashboardStatsRow,
   ProfileRow,
   PushTarget,
+  RemoveStaffResult,
   Repository,
 } from "./repository";
 
@@ -163,6 +164,27 @@ export class SupabaseRepository implements Repository {
     const { error: roleError } = (await this.db.from("profiles").update({ role: "staff" }).eq("id", data.user.id)) as DbResult;
     if (roleError) throw new RepositoryError("createStaffUser:role", roleError);
     return { ok: true, userId: data.user.id };
+  }
+
+  async removeStaffUser(userId: string): Promise<RemoveStaffResult> {
+    // Demote first: the API reads the role from profiles on every request, so
+    // this alone cuts access off immediately, even for a still-valid JWT.
+    const { data, error } = (await this.db
+      .from("profiles")
+      .update({ role: "customer" })
+      .eq("id", userId)
+      .eq("role", "staff")
+      .select("id")) as DbResult;
+    if (error) throw new RepositoryError("removeStaffUser:role", error);
+    if (!Array.isArray(data) || data.length === 0) return { ok: false, code: "STAFF_NOT_FOUND" };
+    // Then block sign-in and token refresh, and drop the role request so the
+    // role-sync trigger can never promote this user again.
+    const { error: authError } = await this.db.auth.admin.updateUserById(userId, {
+      ban_duration: "876000h",
+      app_metadata: { hollow_role: null },
+    });
+    if (authError) throw new RepositoryError("removeStaffUser:ban", { code: (authError as { code?: string }).code });
+    return { ok: true };
   }
 
   async walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string) {

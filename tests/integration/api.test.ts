@@ -251,6 +251,34 @@ describe("admin features", () => {
     expect(staffCreate.status).toBe(403);
   });
 
+  it("removes staff: access revoked immediately, history kept, admins protected", async () => {
+    const created = await post("/api/admin/staff", { displayName: "Leaving", email: "leaving@hollow.test", password: "Strong123pass" }, bearer(adminId));
+    const { id } = (await created.json()) as { id: string };
+    const { account } = await newCustomer("Removal Customer");
+    expect((await act(account.id, id, { action: "ADD_CUPS", quantity: 1 })).status).toBe(200);
+
+    const del = (path: string, actor: string) => app.request(path, { method: "DELETE", headers: bearer(actor) });
+    expect((await del(`/api/admin/staff/${id}`, staffId)).status).toBe(403);
+    const adminRes = await del(`/api/admin/staff/${adminId}`, adminId);
+    expect(adminRes.status).toBe(403);
+    expect(((await adminRes.json()) as { error: { code: string } }).error.code).toBe("CANNOT_REMOVE_ADMIN");
+
+    expect((await del(`/api/admin/staff/${id}`, adminId)).status).toBe(200);
+    expect((await act(account.id, id, { action: "ADD_CUPS", quantity: 1, confirmRecent: true })).status).toBe(403);
+    const banned = await db.query<{ banned: boolean; hollow_role: string | null }>(
+      "select banned_until is not null as banned, raw_app_meta_data ->> 'hollow_role' as hollow_role from auth.users where id = $1",
+      [id],
+    );
+    expect(banned.rows[0]).toEqual({ banned: true, hollow_role: null });
+    const list = (await (await app.request("/api/admin/staff", { headers: bearer(adminId) })).json()) as { items: { id: string }[] };
+    expect(list.items.map((s) => s.id)).not.toContain(id);
+    const history = await db.query("select 1 from public.loyalty_transactions where actor_user_id = $1", [id]);
+    expect(history.rows).toHaveLength(1);
+
+    expect((await del(`/api/admin/staff/${id}`, adminId)).status).toBe(404);
+    expect((await del("/api/admin/staff/not-a-uuid", adminId)).status).toBe(400);
+  });
+
   it("exports Excel-friendly CSV without tokens", async () => {
     await newCustomer("=cmd|' /C calc'!A0");
     const res = await app.request("/api/admin/export/customers.csv", { headers: bearer(adminId) });

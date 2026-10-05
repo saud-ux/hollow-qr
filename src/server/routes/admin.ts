@@ -76,6 +76,19 @@ export const adminRoutes = new Hono<HonoEnv>()
     return c.json({ id: result.userId }, 201);
   })
 
+  .delete("/staff/:id", async (c) => {
+    const id = parseWith(z.uuid(), c.req.param("id"));
+    const repo = repoOf(c);
+    const target = await repo.getProfile(id);
+    if (!target || target.role === "customer") throw new ApiError(404, "STAFF_NOT_FOUND");
+    // Admins (including the caller) are never removed from the dashboard.
+    if (target.role === "admin") throw new ApiError(403, "CANNOT_REMOVE_ADMIN");
+    const result = await repo.removeStaffUser(id);
+    if (!result.ok) throw new ApiError(404, "STAFF_NOT_FOUND");
+    c.get("deps").logger.info("admin.staff_removed", { actor: c.get("user").id, staffUserId: id });
+    return c.json({ ok: true });
+  })
+
   .get("/export/customers.csv", async (c) => {
     const repo = repoOf(c);
     const rows: unknown[][] = [];

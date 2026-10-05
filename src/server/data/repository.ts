@@ -124,6 +124,9 @@ export interface CreateStaffParams {
 
 export type CreateStaffResult = { ok: true; userId: string } | { ok: false; code: "EMAIL_EXISTS" | "WEAK_PASSWORD" };
 
+/** False when the user is not (or no longer) a staff member. */
+export type RemoveStaffResult = { ok: true } | { ok: false; code: "STAFF_NOT_FOUND" };
+
 export interface Repository {
   getProfile(userId: string): Promise<ProfileRow | null>;
   ensureLoyaltyAccount(userId: string): Promise<void>;
@@ -141,6 +144,12 @@ export interface Repository {
 
   listStaff(): Promise<ProfileRow[]>;
   createStaffUser(params: CreateStaffParams): Promise<CreateStaffResult>;
+  /**
+   * Revokes a staff member's access: demotes the profile to customer and
+   * blocks sign-in. The auth user is kept because their past loyalty
+   * transactions reference it.
+   */
+  removeStaffUser(userId: string): Promise<RemoveStaffResult>;
 
   walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string): Promise<"created" | "exists" | "unknown_pass">;
   walletUnregisterDevice(device: string, passTypeIdentifier: string, serial: string): Promise<void>;
