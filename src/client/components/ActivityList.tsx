@@ -28,7 +28,7 @@ export function ActivityList({ items, showCustomer = true }: { items: Transactio
             <strong>{describeTransaction(t)}</strong>
             {showCustomer && (
               <Link to={`/staff/customers/${t.accountId}`} className="activity__customer">
-                {t.customerName} <span dir="ltr">({t.memberId})</span>
+                {t.customerName} <span dir="ltr" className="nowrap">({t.memberId})</span>
               </Link>
             )}
           </div>

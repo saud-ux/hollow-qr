@@ -87,36 +87,27 @@ function StaffManagement() {
       {error && <Alert tone="error">{error}</Alert>}
       {ok && <Alert tone="success">{ok}</Alert>}
       {staff && (
-        <table className="table">
-          <thead>
-            <tr>
-              <th scope="col">الاسم</th>
-              <th scope="col">البريد</th>
-              <th scope="col">الدور</th>
-              <th scope="col">تاريخ الإنشاء</th>
-              <th scope="col">الإجراء</th>
-            </tr>
-          </thead>
-          <tbody>
-            {staff.map((s) => (
-              <tr key={s.id}>
-                <td>{s.displayName}</td>
-                <td dir="ltr">{s.email}</td>
-                <td>{ROLE_LABELS_AR[s.role]}</td>
-                <td>{formatDate(s.createdAt)}</td>
-                <td>
-                  {s.role === "staff" ? (
-                    <button type="button" className="btn btn--small btn--danger" onClick={() => setRemoveTarget(s)}>
-                      حذف الموظف
-                    </button>
-                  ) : (
-                    <span className="muted">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul className="staff-list">
+          {staff.map((s) => (
+            <li key={s.id} className="staff-list__item">
+              <div className="staff-list__info">
+                <div className="staff-list__head">
+                  <span className="staff-list__name">{s.displayName}</span>
+                  <span className={`badge ${s.role === "admin" ? "badge--gold" : "badge--muted"}`}>{ROLE_LABELS_AR[s.role]}</span>
+                </div>
+                <span className="staff-list__email" dir="ltr">
+                  {s.email}
+                </span>
+                <span className="staff-list__date">أُضيف في {formatDate(s.createdAt)}</span>
+              </div>
+              {s.role === "staff" && (
+                <button type="button" className="btn btn--small btn--danger-soft" onClick={() => setRemoveTarget(s)}>
+                  حذف
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
       <form className="form form--inline" onSubmit={onCreate} noValidate>
         <h3>إضافة موظف جديد</h3>
