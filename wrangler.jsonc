@@ -20,9 +20,11 @@
     "run_worker_first": ["/api/*", "/v1/*"]
   },
 
-  // Non-secret configuration (production defaults). Local development
-  // overrides these with .dev.vars. SUPABASE_ANON_KEY is the PUBLISHABLE key
-  // (safe for browsers); the secret/service-role key is a `wrangler secret`.
+  // Non-secret configuration for production. Local development overrides
+  // these with .dev.vars. SUPABASE_ANON_KEY is the PUBLISHABLE key (safe for
+  // browsers); the secret/service-role key is a `wrangler secret`.
+  // `wrangler deploy` REPLACES vars set in the Cloudflare dashboard with the
+  // ones below, so every production value must live here, not only there.
   "vars": {
     "APP_ENV": "production",
     "APP_URL": "https://hollow-rewards.hollowzulfi.workers.dev",
@@ -31,9 +33,9 @@
     "REQUIRE_EMAIL_CONFIRMATION": "false",
     "TURNSTILE_ENABLED": "false",
     "TURNSTILE_SITE_KEY": "",
-    "APPLE_WALLET_MODE": "mock",
-    "APPLE_TEAM_IDENTIFIER": "",
-    "APPLE_PASS_TYPE_IDENTIFIER": "",
+    "APPLE_WALLET_MODE": "production",
+    "APPLE_TEAM_IDENTIFIER": "N2KXQ7MVY3",
+    "APPLE_PASS_TYPE_IDENTIFIER": "pass.com.hollowzulfi.rewards",
     "DUPLICATE_WINDOW_SECONDS": "60"
   },
 
