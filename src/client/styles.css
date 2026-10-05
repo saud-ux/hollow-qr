@@ -83,6 +83,9 @@ h3 {
 .center {
   text-align: center;
 }
+.nowrap {
+  white-space: nowrap;
+}
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -135,6 +138,10 @@ h3 {
 .btn--danger {
   background: var(--danger);
   color: #fff;
+}
+.btn--danger-soft {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 .btn--reward {
   background: var(--gold);
@@ -619,6 +626,9 @@ select {
   margin: 0 auto;
   padding: 16px;
   display: grid;
+  /* minmax(0, …) keeps wide content (long emails, tables) from stretching the
+     page past the screen, which makes iOS Safari zoom the whole page out. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 .staff-home {
@@ -959,22 +969,54 @@ select {
   color: #6f5f52;
   font-size: 0.85rem;
 }
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.92rem;
-  display: block;
-  overflow-x: auto;
+.staff-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
 }
-.table th,
-.table td {
-  text-align: start;
-  padding: 8px;
-  border-bottom: 1px solid var(--beige);
+.staff-list__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--cream);
+}
+.staff-list__info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.staff-list__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.staff-list__name {
+  font-weight: 800;
+}
+.staff-list__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: end;
+  font-size: 0.9rem;
+  color: #6f5f52;
+}
+.staff-list__date {
+  font-size: 0.85rem;
+  color: #6f5f52;
 }
 .form--inline {
   margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--beige);
+}
+.form--inline > * {
   max-width: 440px;
 }
 
