@@ -45,14 +45,15 @@
   "ratelimits": [
     { "name": "API_RATE_LIMITER", "namespace_id": "4801", "simple": { "limit": 120, "period": 60 } },
     { "name": "WALLET_RATE_LIMITER", "namespace_id": "4803", "simple": { "limit": 60, "period": 60 } }
-  ]
+  ],
 
-  // Apple Wallet pass-update pushes (production only). Upload the Pass Type ID
-  // certificate + key ONCE as an mTLS certificate, then uncomment:
+  // Apple Wallet pass-update pushes (production only): the Pass Type ID
+  // certificate + key uploaded as an mTLS certificate with
   //
   //   npx wrangler mtls-certificate upload --cert pass-cert.pem --key pass-key.pem --name hollow-apns
   //
-  // "mtls_certificates": [
-  //   { "binding": "APPLE_APNS_MTLS", "certificate_id": "<CERTIFICATE_ID_FROM_UPLOAD>" }
-  // ]
+  // "hollow-apns" expires 2027-11-04; upload the renewed one and update the ID.
+  "mtls_certificates": [
+    { "binding": "APPLE_APNS_MTLS", "certificate_id": "694b7fc6-a376-4ff6-97bf-f91633ef2f1d" }
+  ]
 }
