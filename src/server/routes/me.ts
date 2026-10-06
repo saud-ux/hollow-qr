@@ -1,15 +1,25 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import type { CustomerCard, MeResponse } from "../../shared/types";
 import { assertCoreSecrets } from "../config";
 import type { AccountRow } from "../data/repository";
 import { ApiError } from "../http/errors";
-import { repoOf, walletOf, type AppContext, type HonoEnv } from "../http/context";
+import { repoOf, runInBackground, walletOf, type AppContext, type HonoEnv } from "../http/context";
 import { rateLimit, requireUser } from "../http/middleware";
+import { parseJsonBody } from "../http/validation";
 import { signPassDownload, verifyPassDownload } from "../security/tokens";
 import { PKPASS_MIME } from "../wallet/pkpass";
 import { WalletUnavailableError } from "../wallet/service";
 
 const DOWNLOAD_TTL_SECONDS = 300;
+const pushTokenSchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[0-9a-f]{64,200}$/),
+});
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function ownAccount(c: AppContext): Promise<AccountRow> {
@@ -108,6 +118,39 @@ export const meRoutes = new Hono<HonoEnv>()
         "Last-Modified": new Date(account.walletUpdatedAt).toUTCString(),
       },
     });
+  })
+
+  // iOS app: register this device for order-status notifications.
+  .post("/me/push-devices", requireUser, rateLimit("api", "user"), async (c) => {
+    const { token } = await parseJsonBody(c, pushTokenSchema);
+    await repoOf(c).registerPushDevice(c.get("user").id, token);
+    return c.json({ ok: true });
+  })
+
+  // Called on sign-out so the device stops receiving this user's updates.
+  .post("/me/push-devices/remove", requireUser, rateLimit("api", "user"), async (c) => {
+    const { token } = await parseJsonBody(c, pushTokenSchema);
+    await repoOf(c).unregisterPushDevice(c.get("user").id, token);
+    return c.json({ ok: true });
+  })
+
+  // In-app account deletion (App Store guideline 5.1.1(v)). Customers only:
+  // staff accounts are removed by an admin.
+  .post("/me/delete", requireUser, rateLimit("api", "user"), async (c) => {
+    await parseJsonBody(c, z.object({ confirm: z.literal("DELETE") }));
+    const user = c.get("user");
+    const repo = repoOf(c);
+    if (user.role !== "customer") throw new ApiError(403, "FORBIDDEN");
+    const account = await repo.getAccountByUserId(user.id);
+    const result = await repo.deleteCustomerAccount(user.id);
+    if (!result.ok) {
+      if (result.code === "ACTIVE_ORDER") throw new ApiError(409, "ACTIVE_ORDER");
+      throw new ApiError(result.code === "NOT_A_CUSTOMER" ? 403 : 404, result.code === "NOT_A_CUSTOMER" ? "FORBIDDEN" : "NOT_FOUND");
+    }
+    c.get("deps").logger.info("account.deleted", { userId: user.id });
+    // A pass still in Wallet refreshes into its cancelled state.
+    if (account) runInBackground(c, walletOf(c).passChanged(account.passSerial));
+    return c.json({ ok: true });
   })
 
   // Development aid: inspect the pass.json that WOULD be signed. Disabled in

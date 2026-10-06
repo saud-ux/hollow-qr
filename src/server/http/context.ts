@@ -3,6 +3,7 @@ import type { AppConfig } from "../config";
 import type { AuthVerifier } from "../auth/verifier";
 import type { Repository } from "../data/repository";
 import type { Logger } from "../lib/logger";
+import type { AppPushSender } from "../push/app-push";
 import type { WalletService } from "../wallet/service";
 import type { AppRole } from "../../shared/types";
 import type { Bindings } from "../platform";
@@ -15,6 +16,7 @@ export interface AppDeps {
   repo: Repository | null;
   auth: AuthVerifier | null;
   wallet: WalletService | null;
+  appPush: AppPushSender;
   rateLimiter: RateLimiter;
   logger: Logger;
   now: () => Date;

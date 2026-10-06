@@ -126,6 +126,11 @@ export interface CreateStaffParams {
 
 export type CreateStaffResult = { ok: true; userId: string } | { ok: false; code: "EMAIL_EXISTS" | "WEAK_PASSWORD" };
 export type RemoveStaffResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_STAFF" | "ALREADY_REMOVED" };
+export type DeleteAccountResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_A_CUSTOMER" | "ACTIVE_ORDER" };
+
+export function deleteAccountCode(code: string | undefined): "NOT_FOUND" | "NOT_A_CUSTOMER" | "ACTIVE_ORDER" {
+  return code === "NOT_A_CUSTOMER" || code === "ACTIVE_ORDER" ? code : "NOT_FOUND";
+}
 
 export interface MenuItemRow {
   id: string;
@@ -214,6 +219,18 @@ export interface Repository {
   setOrderStatus(actorId: string, orderId: string, status: OrderStatus, cancelReason: string | null): Promise<OrderRpcResult>;
   customerOrderAction(customerId: string, orderId: string, action: "cancel" | "arrived"): Promise<OrderRpcResult>;
   listOrders(params: ListOrdersParams): Promise<Order[]>;
+
+  /** iOS app push tokens. A token moves to whoever signed in last on that device. */
+  registerPushDevice(userId: string, token: string): Promise<void>;
+  unregisterPushDevice(userId: string, token: string): Promise<void>;
+  pushTokensForOrder(orderId: string): Promise<string[]>;
+  deletePushToken(token: string): Promise<void>;
+
+  /**
+   * App Store account deletion: anonymizes the customer's data
+   * (delete_customer_account), then frees the email and blocks sign-in.
+   */
+  deleteCustomerAccount(userId: string): Promise<DeleteAccountResult>;
 
   walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string): Promise<"created" | "exists" | "unknown_pass">;
   walletUnregisterDevice(device: string, passTypeIdentifier: string, serial: string): Promise<void>;

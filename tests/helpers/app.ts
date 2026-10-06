@@ -6,6 +6,7 @@ import type { AppDeps } from "../../src/server/http/context";
 import { allowAll } from "../../src/server/http/rate-limit";
 import { silentLogger } from "../../src/server/lib/logger";
 import type { Bindings } from "../../src/server/platform";
+import { MockAppPushSender, type AppPushSender } from "../../src/server/push/app-push";
 import { MockPushNotifier, type WalletPushNotifier } from "../../src/server/wallet/apns";
 import { WalletService, WebCryptoPassGenerator } from "../../src/server/wallet/service";
 import { PgliteRepository } from "./pglite-repository";
@@ -35,10 +36,11 @@ export function testEnv(overrides: Partial<Bindings> = {}): Bindings {
   };
 }
 
-export function buildTestApp(db: PGlite, env: Bindings = testEnv(), notifier?: WalletPushNotifier) {
+export function buildTestApp(db: PGlite, env: Bindings = testEnv(), notifier?: WalletPushNotifier, appPushSender?: AppPushSender) {
   const config = loadConfig(env);
   const repo = new PgliteRepository(db);
   const push = notifier ?? new MockPushNotifier(silentLogger);
+  const appPush = appPushSender ?? new MockAppPushSender(silentLogger);
   const generator =
     config.wallet.ready && config.wallet.passTypeIdentifier && config.wallet.teamIdentifier
       ? new WebCryptoPassGenerator(env, {
@@ -51,10 +53,11 @@ export function buildTestApp(db: PGlite, env: Bindings = testEnv(), notifier?: W
     repo,
     auth: fakeAuth,
     wallet: new WalletService(config, repo, push, silentLogger, generator),
+    appPush,
     rateLimiter: allowAll,
     logger: silentLogger,
     now: () => new Date(),
   };
   const app = createApp(deps);
-  return { app, deps, repo, notifier: push };
+  return { app, deps, repo, notifier: push, appPush };
 }

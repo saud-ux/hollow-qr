@@ -5,6 +5,7 @@ import { ApiError } from "../http/errors";
 import { repoOf, runInBackground, walletOf, type HonoEnv } from "../http/context";
 import { rateLimit, requireRole, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
+import { notifyOrderStatus } from "../push/order-notifications";
 import { throwOrderError } from "./orders";
 
 const uuid = z.uuid();
@@ -44,6 +45,8 @@ export const staffOrderRoutes = new Hono<HonoEnv>()
     }
     const [order] = await repo.listOrders({ orderId: id, scope: "all", limit: 1 });
     if (!order) throw new ApiError(404, "ORDER_NOT_FOUND");
+    const { appPush, logger } = c.get("deps");
+    runInBackground(c, notifyOrderStatus({ repo, appPush, logger }, order));
     return c.json({ order });
   })
 

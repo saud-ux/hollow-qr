@@ -5,5 +5,5 @@
     "lib": ["ES2023", "DOM"],
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "tests", "src/server", "src/shared"]
+  "include": ["vite.config.ts", "vitest.config.ts", "capacitor.config.ts", "tests", "src/server", "src/shared"]
 }

@@ -33,11 +33,22 @@ export interface AppConfig {
     /** APNs mTLS binding available for update pushes. */
     pushEnabled: boolean;
   };
+  /** iOS app push notifications (APNs token auth). */
+  appPush: {
+    bundleId: string;
+    keyId: string | null;
+    teamId: string | null;
+    /** Key id, Team ID and APNS_AUTH_KEY all present. */
+    enabled: boolean;
+  };
   /** Non-secret configuration problems, safe to log. */
   issues: string[];
 }
 
 const MIN_SECRET_LENGTH = 32;
+export const DEFAULT_APP_BUNDLE_ID = "com.hollowzulfi.coffee";
+/** Origin of the Capacitor iOS app's web view (allowed to call the API). */
+export const NATIVE_APP_ORIGIN = "capacitor://localhost";
 
 // Development fallback: random per isolate, so tokens are unstable across
 // restarts. Never used in production (production fails closed instead).
@@ -152,6 +163,13 @@ export function loadConfig(env: Bindings): AppConfig {
     !usingEphemeralSecrets &&
     passAuthSecret.length >= MIN_SECRET_LENGTH;
 
+  const bundleId = trimmed(env.APPLE_APP_BUNDLE_ID) ?? DEFAULT_APP_BUNDLE_ID;
+  const apnsKeyId = trimmed(env.APNS_KEY_ID);
+  const hasApnsKey = Boolean(trimmed(env.APNS_AUTH_KEY));
+  if (apnsKeyId && !/^[A-Z0-9]{10}$/.test(apnsKeyId)) issues.push("APNS_KEY_ID should be the 10-character key id from the .p8 file name");
+  if (apnsKeyId && !hasApnsKey) issues.push("APNS_KEY_ID is set but the APNS_AUTH_KEY secret is missing: app pushes are off");
+  if (hasApnsKey && !apnsKeyId) issues.push("APNS_AUTH_KEY is set but APNS_KEY_ID is missing: app pushes are off");
+
   const windowRaw = Number.parseInt(env.DUPLICATE_WINDOW_SECONDS ?? "", 10);
   const duplicateWindowSeconds =
     Number.isFinite(windowRaw) && windowRaw >= 0 && windowRaw <= 3600 ? windowRaw : DEFAULT_DUPLICATE_WINDOW_SECONDS;
@@ -177,6 +195,12 @@ export function loadConfig(env: Bindings): AppConfig {
       hasSigningMaterial,
       ready,
       pushEnabled: ready && Boolean(env.APPLE_APNS_MTLS),
+    },
+    appPush: {
+      bundleId,
+      keyId: apnsKeyId,
+      teamId: teamIdentifier,
+      enabled: Boolean(apnsKeyId && hasApnsKey && teamIdentifier),
     },
     issues,
   };

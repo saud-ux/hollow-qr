@@ -12,6 +12,7 @@ import { SupabaseRepository } from "./data/supabase-repository";
 import type { AppDeps } from "./http/context";
 import { WorkersRateLimiter } from "./http/rate-limit";
 import { createLogger } from "./lib/logger";
+import { ApnsTokenSender, DisabledAppPushSender, MockAppPushSender, type AppPushSender } from "./push/app-push";
 import type { Bindings, ExecutionContextLike } from "./platform";
 import { DisabledPushNotifier, MockPushNotifier, MtlsApnsNotifier, type WalletPushNotifier } from "./wallet/apns";
 import { WalletService, WebCryptoPassGenerator } from "./wallet/service";
@@ -44,6 +45,14 @@ export function buildDeps(env: Bindings): AppDeps {
     notifier = new MtlsApnsNotifier(env.APPLE_APNS_MTLS, config.wallet.passTypeIdentifier, logger);
   } else notifier = new DisabledPushNotifier(logger);
 
+  let appPush: AppPushSender;
+  if (config.appPush.enabled && env.APNS_AUTH_KEY && config.appPush.keyId && config.appPush.teamId) {
+    appPush = new ApnsTokenSender(
+      { authKey: env.APNS_AUTH_KEY, keyId: config.appPush.keyId, teamId: config.appPush.teamId, bundleId: config.appPush.bundleId },
+      logger,
+    );
+  } else appPush = config.isProduction ? new DisabledAppPushSender() : new MockAppPushSender(logger);
+
   const generator =
     config.wallet.ready && config.wallet.passTypeIdentifier && config.wallet.teamIdentifier
       ? new WebCryptoPassGenerator(env, {
@@ -57,6 +66,7 @@ export function buildDeps(env: Bindings): AppDeps {
     repo,
     auth,
     wallet: repo ? new WalletService(config, repo, notifier, logger, generator) : null,
+    appPush,
     rateLimiter: new WorkersRateLimiter({
       api: env.API_RATE_LIMITER,
       wallet: env.WALLET_RATE_LIMITER,
