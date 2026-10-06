@@ -153,7 +153,10 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
         )}
         {item.descriptionAr && <p className="menu-card__desc">{item.descriptionAr}</p>}
         <div className="menu-card__foot">
-          <span className="menu-card__price">{riyals(item.priceHalalas)}</span>
+          <span className="menu-card__price">
+            {riyals(item.priceHalalas)}
+            {item.calories !== null && <small className="kcal">{item.calories} سعرة</small>}
+          </span>
           {soldOut ? (
             <span className="badge badge--muted">نفد</span>
           ) : hasOptions ? (

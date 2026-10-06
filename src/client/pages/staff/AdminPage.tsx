@@ -10,6 +10,7 @@ import { StaffLayout } from "../../components/StaffLayout";
 import { apiDownload, apiGet, apiPost, errorText } from "../../lib/api";
 import { formatDate } from "../../lib/dates";
 import { validateEmail, validateName, validatePassword } from "../../lib/validation";
+import { OffersPanel, RatingsPanel } from "./AdminEngagement";
 
 const STAT_LABELS: [keyof DashboardStats, string][] = [
   ["totalCustomers", "إجمالي العملاء"],
@@ -190,6 +191,9 @@ export function AdminPage() {
           </div>
         ))}
       </section>
+
+      <OffersPanel />
+      <RatingsPanel />
 
       <section className="panel">
         <h2>بحث عن عميل</h2>

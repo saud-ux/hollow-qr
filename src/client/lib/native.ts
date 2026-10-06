@@ -63,7 +63,23 @@ let onToken: TokenHandler | null = null;
  * Installs the push listeners once at startup. `register` sends a new token
  * to the server; `open` handles a tapped notification.
  */
-export async function initNativePush(handlers: { register: TokenHandler; open: (orderId: string) => void }): Promise<void> {
+/** Where a tapped notification leads (the server sets it in the payload). */
+export type PushTarget = { kind: "order"; orderId: string } | { kind: "menu" } | { kind: "staff-orders" };
+
+export function pushTarget(data: unknown): PushTarget | null {
+  const d = (data ?? {}) as { orderId?: unknown; link?: unknown };
+  if (typeof d.orderId === "string" && /^[0-9a-f-]{36}$/i.test(d.orderId)) return { kind: "order", orderId: d.orderId };
+  if (d.link === "menu") return { kind: "menu" };
+  if (d.link === "staff-orders") return { kind: "staff-orders" };
+  return null;
+}
+
+/** Opens a page of the website in Safari (the app itself has no staff screens). */
+export function openWebsite(path: string): void {
+  window.open(`${NATIVE_API_BASE.replace(/\/$/, "")}${path}`, "_blank");
+}
+
+export async function initNativePush(handlers: { register: TokenHandler; open: (target: PushTarget) => void }): Promise<void> {
   if (!isNative) return;
   onToken = handlers.register;
   const { PushNotifications } = await import("@capacitor/push-notifications");
@@ -77,8 +93,8 @@ export async function initNativePush(handlers: { register: TokenHandler; open: (
     onToken?.(value);
   });
   await PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
-    const orderId = (notification.data as { orderId?: unknown } | undefined)?.orderId;
-    if (typeof orderId === "string" && /^[0-9a-f-]{36}$/i.test(orderId)) handlers.open(orderId);
+    const target = pushTarget(notification.data);
+    if (target) handlers.open(target);
   });
 }
 

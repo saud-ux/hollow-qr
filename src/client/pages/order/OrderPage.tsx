@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
-import { FULFILLMENT_LABELS_AR, isActiveStatus, STATUS_LABELS_AR, type Order, type OrderStatus } from "../../../shared/ordering";
+import { FULFILLMENT_LABELS_AR, isActiveStatus, MAX_RATING_COMMENT, STATUS_LABELS_AR, type Order, type OrderStatus } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
 import { Alert, Spinner } from "../../components/Field";
 import { ShopLayout } from "../../components/Shop";
@@ -198,6 +198,8 @@ export function OrderPage() {
         </Link>
       )}
 
+      {order.status === "completed" && <RateOrder order={order} onRated={setOrder} />}
+
       <section className="sheet">
         <h2 className="pass-label">{FULFILLMENT_LABELS_AR[order.fulfillment]}</h2>
         {order.fulfillment === "delivery" && <p className="muted">{order.deliveryAddress}</p>}
@@ -272,6 +274,105 @@ export function OrderPage() {
         onCancel={() => setConfirmCancel(false)}
       />
     </ShopLayout>
+  );
+}
+
+const STAR_LABELS = ["سيئ", "مقبول", "جيد", "ممتاز", "رائع"];
+
+/** Stars and an optional comment, once the order is completed; read-only after. */
+function RateOrder({ order, onRated }: { order: Order; onRated: (o: Order) => void }) {
+  const [stars, setStars] = useState(0);
+  const [comment, setComment] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (order.rating !== null) {
+    return (
+      <section className="sheet rate rate--done" aria-label="تقييمك">
+        <Stars value={order.rating} />
+        <p>شكرًا على تقييمك!</p>
+        {order.ratingComment && <p className="muted small">«{order.ratingComment}»</p>}
+      </section>
+    );
+  }
+
+  async function submit() {
+    setBusy(true);
+    setError(null);
+    try {
+      const body = { rating: stars, comment: comment.trim() || undefined };
+      onRated((await apiPost<{ order: Order }>(`/api/orders/${order.id}/rate`, body)).order);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="sheet rate" aria-labelledby="rate-title">
+      <h2 id="rate-title" className="rate__title">
+        كيف كان طلبك؟
+      </h2>
+      <div className="rate__stars" role="radiogroup" aria-label="التقييم">
+        {[1, 2, 3, 4, 5].map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="radio"
+            aria-checked={stars === v}
+            aria-label={`${v} من 5، ${STAR_LABELS[v - 1]}`}
+            className={`rate__star ${v <= stars ? "is-on" : ""}`}
+            onClick={() => setStars(v)}
+          >
+            <StarIcon />
+          </button>
+        ))}
+      </div>
+      {stars > 0 && (
+        <>
+          <p className="rate__label">{STAR_LABELS[stars - 1]}</p>
+          <textarea
+            className="rate__comment"
+            rows={2}
+            maxLength={MAX_RATING_COMMENT}
+            placeholder="تبي تضيف ملاحظة؟ (اختياري)"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+          />
+          {error && <Alert tone="error">{error}</Alert>}
+          <button type="button" className="btn btn--primary btn--block" onClick={() => void submit()} disabled={busy}>
+            {busy ? "جارٍ الإرسال…" : "أرسل التقييم"}
+          </button>
+        </>
+      )}
+    </section>
+  );
+}
+
+function Stars({ value }: { value: number }) {
+  return (
+    <div className="rate__stars rate__stars--static" aria-label={`${value} من 5`}>
+      {[1, 2, 3, 4, 5].map((v) => (
+        <span key={v} className={`rate__star ${v <= value ? "is-on" : ""}`} aria-hidden="true">
+          <StarIcon />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 2.8l2.83 5.73 6.32.92-4.58 4.46 1.08 6.3L12 17.2l-5.65 3 1.08-6.3-4.58-4.46 6.32-.92z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

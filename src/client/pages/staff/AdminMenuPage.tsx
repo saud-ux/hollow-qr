@@ -173,6 +173,7 @@ type Draft = {
   isArchived: boolean;
   optionLabel: string;
   options: MenuOption[];
+  calories: string;
 };
 
 const newOptionId = () => `opt-${Math.random().toString(36).slice(2, 8)}`;
@@ -188,6 +189,7 @@ const emptyDraft = (category: MenuCategory = "drink"): Draft => ({
   isAvailable: true,
   isArchived: false,
   optionLabel: "",
+  calories: "",
   options: [],
 });
 
@@ -262,6 +264,11 @@ function MenuPanel() {
     if (!draft.nameAr.trim()) return setDraftError("اكتب اسم الصنف");
     if (price === null) return setDraftError("اكتب السعر بالأرقام (مثال: 15 أو 15.5)");
     if (!Number.isFinite(sortOrder) || sortOrder < 0) return setDraftError("الترتيب رقم من 0 فأكثر");
+    const kcalText = toLatinDigits(draft.calories).trim();
+    const calories = kcalText ? Number(kcalText) : null;
+    if (calories !== null && (!Number.isInteger(calories) || calories < 0 || calories > 5000)) {
+      return setDraftError("السعرات رقم صحيح من 0 إلى 5000، أو اتركها فاضية");
+    }
     const options = draft.options
       .map((o) => ({ ...o, nameAr: o.nameAr.trim(), noteAr: o.noteAr?.trim() || null }))
       .filter((o) => o.nameAr);
@@ -276,6 +283,7 @@ function MenuPanel() {
       isArchived: draft.isArchived,
       optionLabel: options.length ? draft.optionLabel.trim() || "النوع" : null,
       options,
+      calories,
     };
     setBusy(true);
     setDraftError(null);
@@ -307,6 +315,7 @@ function MenuPanel() {
       isArchived: i.isArchived,
       optionLabel: i.optionLabel ?? "",
       options: i.options,
+      calories: i.calories === null ? "" : String(i.calories),
     });
 
   return (
@@ -383,6 +392,14 @@ function MenuPanel() {
               </div>
               <Field label="السعر (ريال)" inputMode="decimal" dir="ltr" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
             </div>
+            <Field
+              label="السعرات الحرارية (اختياري)"
+              inputMode="numeric"
+              dir="ltr"
+              value={draft.calories}
+              onChange={(e) => setDraft({ ...draft, calories: e.target.value })}
+              hint="للحصة الواحدة، تظهر تحت السعر في المنيو"
+            />
             <Field label="الترتيب" inputMode="numeric" dir="ltr" value={draft.sortOrder} onChange={(e) => setDraft({ ...draft, sortOrder: e.target.value })} hint="الأصغر يظهر أولًا" />
             <Toggle label="متوفر للطلب" checked={draft.isAvailable} onChange={(v) => setDraft({ ...draft, isAvailable: v })} />
             {draft.id && <Toggle label="إخفاء من المنيو" checked={draft.isArchived} onChange={(v) => setDraft({ ...draft, isArchived: v })} />}
