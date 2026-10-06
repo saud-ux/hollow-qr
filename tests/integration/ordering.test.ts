@@ -402,8 +402,8 @@ describe("menu management", () => {
 
   it("uploads images after checking their bytes", async () => {
     const matcha = item("ماتشا باردة");
-    const upload = (bytes: Uint8Array, type: string) =>
-      app.request(`/api/admin/menu/${matcha.id}/image`, { method: "PUT", headers: { "content-type": type, ...bearer(adminId) }, body: bytes });
+    const upload = (bytes: Uint8Array<ArrayBuffer>, type: string) =>
+      app.request(`/api/admin/menu/${matcha.id}/image`, { method: "PUT", headers: { "content-type": type, ...bearer(adminId) }, body: new Blob([bytes]) });
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 
     expect((await upload(new TextEncoder().encode("<svg/>"), "image/png")).status).toBe(400);
@@ -422,7 +422,7 @@ describe("menu management", () => {
     const byStaff = await app.request(`/api/admin/menu/${matcha.id}/image`, {
       method: "PUT",
       headers: { "content-type": "image/png", ...bearer(staffId) },
-      body: png,
+      body: new Blob([png]),
     });
     expect(byStaff.status).toBe(403);
   });
