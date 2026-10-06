@@ -7,7 +7,7 @@
  *     One-time: registers the App ID (with Push Notifications), creates an
  *     Apple Distribution certificate and the App Store provisioning profile.
  *     Writes <outDir>/IOS_SIGNING.txt: the certificate + private key (PEM),
- *     to be saved as the IOS_SIGNING repository secret.
+ *     which the workflow saves as the IOS_SIGNING repository secret.
  *
  *   node scripts/ios-signing.mjs profile <file>
  *     Downloads the active App Store profile to <file> (re-creating it if
