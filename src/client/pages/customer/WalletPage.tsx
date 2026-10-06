@@ -10,6 +10,13 @@ import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { isAppleMobile } from "../../lib/hooks";
 import { addPassNatively, isNative, successFeedback } from "../../lib/native";
+import { getThemeChoice, setThemeChoice, type ThemeChoice } from "../../lib/theme";
+
+const THEMES: { value: ThemeChoice; label: string }[] = [
+  { value: "system", label: "تلقائي" },
+  { value: "light", label: "فاتح" },
+  { value: "dark", label: "داكن" },
+];
 
 export function WalletPage() {
   const { session, loading, me, meError, refreshMe, signOut } = useAuth();
@@ -22,6 +29,7 @@ export function WalletPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [theme, setTheme] = useState<ThemeChoice>(getThemeChoice);
 
   // Keep the preview fresh after staff updates (on focus / every 30 s).
   useEffect(() => {
@@ -125,6 +133,28 @@ export function WalletPage() {
         </>
       )}
       <nav className="settings" aria-label="الحساب">
+        {isNative && (
+          <div className="settings__row settings__row--theme">
+            المظهر
+            <div className="theme-switch" role="radiogroup" aria-label="المظهر">
+              {THEMES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === t.value}
+                  className={`theme-switch__opt ${theme === t.value ? "is-on" : ""}`}
+                  onClick={() => {
+                    setThemeChoice(t.value);
+                    setTheme(t.value);
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <Link to="/support" className="settings__row">
           الدعم والمساعدة
           <ChevronIcon />

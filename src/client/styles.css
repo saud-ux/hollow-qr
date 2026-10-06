@@ -2710,3 +2710,116 @@ select {
 .pass__fields:not(.pass__fields--aux) .pass__field > * {
   justify-self: start;
 }
+
+/* ---------- Dark theme, iOS app only (see lib/theme.ts): follows the iPhone
+   unless the customer picks light or dark on My card. The loyalty card stays
+   cream, like the real card in Apple Wallet. ---------- */
+html.native[data-theme="dark"] {
+  --cream: #17110d;
+  --paper: #221914;
+  --beige: #3a2c22;
+  --sand: #5a4637;
+  --espresso: #f1e8da;
+  --espresso-2: #e6d9c3;
+  --brown: #d9a873;
+  --label: #d6ad6b;
+  --shadow: 0 10px 30px rgb(0 0 0 / 40%);
+  color-scheme: dark;
+}
+html.native[data-theme="dark"] :is(.muted, .field__hint, .hero__sub, .menu-card__desc, .empty, .ticket__note, .receipt__note, .order-row__side small, .spinner) {
+  color: #b3a190;
+}
+html.native[data-theme="dark"] :is(.customer__footer, .tabbar__item) {
+  color: #9d8b7c;
+}
+html.native[data-theme="dark"] .steps__item:not(.is-done, .is-current) {
+  color: #8f7e70;
+}
+html.native[data-theme="dark"] :is(.shop__header, .tabbar, .menu-card, .sheet, .ticket, .order-row, .menu-chip, .settings) {
+  border-color: #33271e;
+}
+html.native[data-theme="dark"] .menu-section__title::after {
+  background: #33271e;
+}
+html.native[data-theme="dark"] .settings__row {
+  border-top-color: #2e231b;
+}
+html.native[data-theme="dark"] :is(.shop__header, .menu-chips) {
+  background: rgb(23 17 13 / 92%);
+}
+html.native[data-theme="dark"] .checkout__submit {
+  background: linear-gradient(to bottom, rgb(23 17 13 / 0%), var(--cream) 40%);
+}
+html.native[data-theme="dark"] .item-img--placeholder {
+  background: radial-gradient(circle at 50% 62%, #31261e 0, #261d17 55%, #1d1611 100%);
+}
+html.native[data-theme="dark"] .skeleton {
+  background: linear-gradient(90deg, #2a2019 25%, #3a2c23 50%, #2a2019 75%);
+  background-size: 200% 100%;
+}
+/* Espresso panels stay dark brown with light text. */
+html.native[data-theme="dark"] :is(.band, .ticket__band, .choice--on, .status-chip--preparing, .cart-bar, .live-order, .order-live) {
+  background: #2b1e16;
+  color: #f1e8da;
+}
+html.native[data-theme="dark"] :is(.cart-bar, .live-order, .order-live, .band) {
+  box-shadow: 0 0 0 1px #3d2e24, 0 12px 28px rgb(0 0 0 / 45%);
+}
+html.native[data-theme="dark"] .cart-bar__count {
+  color: #2b1e16;
+}
+html.native[data-theme="dark"] .order-live__meta {
+  color: #c9b79f;
+}
+html.native[data-theme="dark"] .tabbar__item.active::before {
+  background: rgb(201 162 39 / 24%);
+}
+/* Line drawings and the wordmark turn cream on the dark background. */
+html.native[data-theme="dark"] :is(.wordmark, .tent-art, .empty__art, .item-img__mark) {
+  filter: brightness(0) invert(0.92) sepia(0.25);
+}
+html.native[data-theme="dark"] .pass {
+  --cream: #f4ede0;
+  --paper: #fbf8f2;
+  --beige: #e6d9c3;
+  --sand: #d8c7a8;
+  --espresso: #2b1e16;
+  --label: #8c6239;
+  color: #2b1e16;
+  border-color: #3d2e24;
+  color-scheme: light;
+}
+
+.reorder-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Appearance switch on My card. */
+.settings__row--theme {
+  cursor: default;
+}
+.theme-switch {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--beige);
+}
+.theme-switch__opt {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--espresso);
+  cursor: pointer;
+}
+.theme-switch__opt.is-on {
+  background: var(--paper);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 18%);
+}

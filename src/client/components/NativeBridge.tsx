@@ -17,7 +17,7 @@ export function NativeBridge() {
 
   useEffect(() => {
     if (!isNative) return;
-    void initNativeShell();
+    initNativeShell();
     initMotion();
     void initNativePush({
       register: (token) => {

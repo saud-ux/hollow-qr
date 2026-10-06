@@ -108,13 +108,7 @@ export function currentPushToken(): string | null {
   return isNative ? storedPushToken() : null;
 }
 
-export async function initNativeShell(): Promise<void> {
+export function initNativeShell(): void {
   if (!isNative) return;
   document.documentElement.classList.add("native");
-  try {
-    const { StatusBar, Style } = await import("@capacitor/status-bar");
-    await StatusBar.setStyle({ style: Style.Light });
-  } catch {
-    // not fatal
-  }
 }

@@ -5,8 +5,10 @@ import { AuthProvider } from "./lib/auth";
 import { CartProvider } from "./lib/cart";
 import { ConfigContext, fetchPublicConfig } from "./lib/config";
 import { getSupabase } from "./lib/supabase";
+import { initTheme } from "./lib/theme";
 import "./styles.css";
 
+initTheme();
 const root = createRoot(document.getElementById("root")!);
 
 function renderMessage(text: string) {
