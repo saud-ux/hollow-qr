@@ -180,8 +180,9 @@ export function CartPage() {
       <ShopLayout>
         <h1 className="page-title">السلة</h1>
         <div className="empty">
-          <img src="/wallet-preview/cup-empty.png" alt="" className="empty__cup" />
-          <p>سلتك فارغة</p>
+          <img src="/brand/tent-espresso.png" alt="" className="empty__art" />
+          <h2 className="empty__title">سلتك فارغة</h2>
+          <p className="empty__sub">اختر مشروبك من المنيو ونجهّزه لك.</p>
           <Link to="/menu" className="btn btn--primary">
             تصفّح المنيو
           </Link>

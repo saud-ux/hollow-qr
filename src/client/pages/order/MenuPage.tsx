@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { CATEGORY_LABELS_AR, type MenuCategory, type MenuItem, type MenuResponse } from "../../../shared/ordering";
+import { CATEGORY_LABELS_AR, isActiveStatus, STATUS_LABELS_AR, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
 import { Alert } from "../../components/Field";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
+import { apiGet } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { flyToCart, motionOn } from "../../lib/motion";
@@ -16,6 +17,7 @@ export function MenuPage() {
   const { menu, error } = useMenu();
   return (
     <ShopLayout bottom={<CartBar menu={menu} />}>
+      <LiveOrder />
       <LoyaltyBand card={me?.card ?? null} />
       {error && !menu && <Alert tone="error">{error}</Alert>}
       {!menu && !error && <MenuSkeleton />}
@@ -44,6 +46,35 @@ export function MenuPage() {
           );
         })}
     </ShopLayout>
+  );
+}
+
+/** An order in progress, pinned on top of the menu so it's one tap away. */
+function LiveOrder() {
+  const { session } = useAuth();
+  const [order, setOrder] = useState<Order | null>(null);
+  useEffect(() => {
+    if (!session) return;
+    let alive = true;
+    apiGet<{ items: Order[] }>("/api/orders")
+      .then((r) => alive && setOrder(r.items.find((o) => isActiveStatus(o.status)) ?? null))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [session]);
+  if (!session || !order) return null;
+  return (
+    <Link to={`/orders/${order.id}`} className="live-order">
+      <span className="live-order__dot" aria-hidden="true" />
+      <span className="live-order__text">
+        <strong>
+          طلبك <span dir="ltr">#{order.orderNumber}</span>
+        </strong>
+        <small>{STATUS_LABELS_AR[order.status]}</small>
+      </span>
+      <span className="live-order__go">تابع الطلب ›</span>
+    </Link>
   );
 }
 
