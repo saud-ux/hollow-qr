@@ -130,41 +130,64 @@ describe("order status notifications", () => {
     await post("/api/me/push-devices", { token: token(5) }, bearer(customer.id));
     await post("/api/me/push-devices", { token: token(6) }, bearer(customer.id));
     const order = await placeOrder(customer.id);
-    expect(pushesFor(order.id)).toHaveLength(0);
-
-    await setStatus(order.id, "preparing");
+    // Received: confirmed with the order number and total.
     await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(2));
     expect(pushesFor(order.id)[0]!.message).toMatchObject({ title: "HOLLOW", collapseId: order.id });
-    expect(pushesFor(order.id)[0]!.message.body).toContain(`#${order.orderNumber}`);
+    expect(pushesFor(order.id)[0]!.message.body).toContain(`استلمنا طلبك #${order.orderNumber}`);
+    expect(pushesFor(order.id)[0]!.message.body).toContain(`${order.totalHalalas / 100} ر.س`);
+
+    await setStatus(order.id, "preparing");
+    await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(4));
+    expect(pushesFor(order.id)[2]!.message.body).toContain(`#${order.orderNumber}`);
 
     await setStatus(order.id, "ready");
-    await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(4));
-    expect(pushesFor(order.id)[2]!.message.body).toContain("الكاشير");
+    await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(6));
+    expect(pushesFor(order.id)[4]!.message.body).toContain("الكاشير");
 
     await setStatus(order.id, "completed");
-    await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(6));
-    expect(pushesFor(order.id)[4]!.message.body).toContain("2 أكواب");
+    await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(8));
+    expect(pushesFor(order.id)[6]!.message.body).toContain("2 أكواب");
     expect(new Set(pushesFor(order.id).map((p) => p.token))).toEqual(new Set([token(5), token(6)]));
+  });
+
+  it("confirms a received order once, even when the app retries it", async () => {
+    const customer = await newCustomer();
+    await post("/api/me/push-devices", { token: token(10) }, bearer(customer.id));
+    const idempotencyKey = randomUUID();
+    const first = await placeOrder(customer.id, { idempotencyKey });
+    const retry = await post(
+      "/api/orders",
+      { items: [{ menuItemId: drinkId, quantity: 2 }], fulfillment: "pickup", phone: "0512345678", idempotencyKey },
+      bearer(customer.id),
+    );
+    expect(retry.status).toBe(200);
+    await vi.waitFor(() => expect(pushesFor(first.id)).toHaveLength(1));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(pushesFor(first.id)).toHaveLength(1);
+    expect(pushesFor(first.id)[0]!.message.body).toContain("الدفع عند الاستلام");
   });
 
   it("explains staff cancellations and stays quiet for the customer's own", async () => {
     const customer = await newCustomer();
     await post("/api/me/push-devices", { token: token(7) }, bearer(customer.id));
     const byStaff = await placeOrder(customer.id);
-    await setStatus(byStaff.id, "cancelled", { cancelReason: "نفد الحليب" });
     await vi.waitFor(() => expect(pushesFor(byStaff.id)).toHaveLength(1));
-    expect(pushesFor(byStaff.id)[0]!.message.body).toContain("نفد الحليب");
+    await setStatus(byStaff.id, "cancelled", { cancelReason: "نفد الحليب" });
+    await vi.waitFor(() => expect(pushesFor(byStaff.id)).toHaveLength(2));
+    expect(pushesFor(byStaff.id)[1]!.message.body).toContain("نفد الحليب");
 
     const byCustomer = await placeOrder(customer.id);
+    await vi.waitFor(() => expect(pushesFor(byCustomer.id)).toHaveLength(1));
     expect((await post(`/api/orders/${byCustomer.id}/cancel`, {}, bearer(customer.id))).status).toBe(200);
     await new Promise((r) => setTimeout(r, 20));
-    expect(pushesFor(byCustomer.id)).toHaveLength(0);
+    expect(pushesFor(byCustomer.id)).toHaveLength(1);
   });
 
   it("drops tokens APNs reports as invalid", async () => {
     const customer = await newCustomer();
     await post("/api/me/push-devices", { token: token(8) }, bearer(customer.id));
     const order = await placeOrder(customer.id);
+    await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(1));
     const spy = vi.spyOn(appPush, "send").mockResolvedValueOnce("invalid-token");
     await setStatus(order.id, "preparing");
     await vi.waitFor(async () => {

@@ -1,4 +1,4 @@
-import type { Order } from "../../shared/ordering";
+import { formatSar, type Order } from "../../shared/ordering";
 import type { Repository } from "../data/repository";
 import type { Logger } from "../lib/logger";
 import type { AppPushMessage, AppPushSender } from "./app-push";
@@ -10,6 +10,9 @@ export function orderStatusMessage(order: Order): AppPushMessage | null {
   const n = `#${order.orderNumber}`;
   let body: string;
   switch (order.status) {
+    case "new":
+      body = `استلمنا طلبك ${n} · الإجمالي ${formatSar(order.totalHalalas)} ر.س، والدفع عند الاستلام. نبلغك أول ما نبدأ نحضّره`;
+      break;
     case "preparing":
       body = `بدأنا نحضّر طلبك ${n} ☕`;
       break;

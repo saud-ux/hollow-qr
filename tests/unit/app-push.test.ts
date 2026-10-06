@@ -96,7 +96,7 @@ describe("orderStatusMessage", () => {
   const base = { id: "o1", orderNumber: 12, fulfillment: "pickup", cancelledBy: null, cancelReason: null, loyaltyResult: null } as unknown as Order;
 
   it("words each step for the way the order is collected", () => {
-    expect(orderStatusMessage({ ...base, status: "new" })).toBeNull();
+    expect(orderStatusMessage({ ...base, status: "new", totalHalalas: 1550 })!.body).toContain("استلمنا طلبك #12 · الإجمالي 15.50 ر.س");
     expect(orderStatusMessage({ ...base, status: "preparing" })!.body).toContain("#12");
     expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "curbside" })!.body).toContain("وصلت");
     expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "delivery" })!.body).toContain("المندوب");

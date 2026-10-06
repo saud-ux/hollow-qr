@@ -13,9 +13,10 @@ import {
 import type { AppConfig } from "../config";
 import type { MenuItemRow, OrderRpcResult } from "../data/repository";
 import { ApiError, type ErrorStatus } from "../http/errors";
-import { repoOf, type AppContext, type HonoEnv } from "../http/context";
+import { repoOf, runInBackground, type AppContext, type HonoEnv } from "../http/context";
 import { rateLimit, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
+import { notifyOrderStatus } from "../push/order-notifications";
 
 export function menuImageUrl(config: Pick<AppConfig, "supabaseUrl">, path: string | null): string | null {
   if (!path || !config.supabaseUrl) return null;
@@ -158,8 +159,13 @@ export const orderRoutes = new Hono<HonoEnv>()
       timeZone: BUSINESS_TIME_ZONE,
     });
     if (!result.ok || !result.order_id) throwOrderError(result);
-    if (!result.replayed) logger.info("order.placed", { orderId: result.order_id, fulfillment: body.fulfillment });
-    return c.json({ order: await ownOrder(c, result.order_id) }, result.replayed ? 200 : 201);
+    const order = await ownOrder(c, result.order_id);
+    if (!result.replayed) {
+      logger.info("order.placed", { orderId: result.order_id, fulfillment: body.fulfillment });
+      // The customer's phone confirms the order was received.
+      runInBackground(c, notifyOrderStatus({ repo, appPush: c.get("deps").appPush, logger }, order));
+    }
+    return c.json({ order }, result.replayed ? 200 : 201);
   })
 
   .get("/orders", requireUser, rateLimit("api", "user"), async (c) => {
