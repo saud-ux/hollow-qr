@@ -3,19 +3,18 @@ import { useState } from "react";
 /**
  * "Add to Apple Wallet" button.
  *
- * Apple requires the official badge artwork (download it from Apple's
- * "Add to Apple Wallet" guidelines page, Arabic + English versions) instead
- * of a recreation. Place the official SVG at
- *   public/apple-wallet/add-to-apple-wallet-ar.svg
- * and it is used automatically; until then a neutral black button with the
- * required wording is shown (no imitation of Apple's Wallet glyph).
+ * Apple requires the official badge artwork instead of a recreation:
+ * public/apple-wallet/add-to-apple-wallet-ar.svg is Apple's Arabic RGB badge
+ * (from the "Add to Apple Wallet" guidelines download). If it fails to load,
+ * a neutral black button with the required wording is shown (no imitation of
+ * Apple's Wallet glyph).
  */
 export function AddToWalletButton({ onClick, disabled, busy }: { onClick: () => void; disabled?: boolean; busy?: boolean }) {
   const [badgeFailed, setBadgeFailed] = useState(false);
   return (
     <button
       type="button"
-      className="wallet-btn"
+      className={`wallet-btn ${badgeFailed ? "wallet-btn--text" : ""}`}
       onClick={onClick}
       disabled={disabled || busy}
       aria-busy={busy}

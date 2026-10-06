@@ -409,18 +409,30 @@ select {
   gap: 8px;
   justify-items: center;
 }
+/* The badge carries its own black frame; the button only adds the tap target. */
 .wallet-btn {
-  background: #000;
-  color: #fff;
+  background: none;
   border: 0;
-  border-radius: 12px;
-  min-height: 52px;
-  min-width: 220px;
+  border-radius: 10px;
   padding: 0;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+.wallet-btn:disabled {
+  opacity: 0.6;
+}
+.wallet-btn:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+.wallet-btn--text {
+  background: #000;
+  color: #fff;
+  border-radius: 12px;
+  min-height: 52px;
+  min-width: 220px;
 }
 .wallet-btn__badge {
   display: block;
