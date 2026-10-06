@@ -124,7 +124,7 @@ export function WalletPage() {
           {card.walletMode === "production" && card.walletReady && (
             <div className="wallet-actions">
               <AddToWalletButton onClick={() => void addToWallet()} busy={walletBusy} />
-              {!isAppleMobile() && <p className="muted small">لإضافة البطاقة افتح هذه الصفحة من Safari على iPhone.</p>}
+              {!isNative && !isAppleMobile() && <p className="muted small">لإضافة البطاقة افتح هذه الصفحة من Safari على iPhone.</p>}
               {walletNote && <p className="muted small">{walletNote}</p>}
               {walletError && <Alert tone="error">{walletError}</Alert>}
             </div>
