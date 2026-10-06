@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   FULFILLMENT_LABELS_AR,
+  isOrderable,
   normalizeSaudiPhone,
   type FulfillmentType,
   type MenuItem,
@@ -80,7 +81,7 @@ export function CartPage() {
   useEffect(() => {
     if (!menu) return;
     for (const l of cart.lines) {
-      if (!menu.items.some((i) => i.id === l.menuItemId)) cart.remove(l.menuItemId);
+      if (!menu.items.some((i) => i.id === l.menuItemId)) cart.remove(l.menuItemId, l.optionId);
     }
   }, [menu, cart]);
 
@@ -97,7 +98,15 @@ export function CartPage() {
   const discount = rewardApplies ? Math.max(...drinks.map(({ item }) => item.priceHalalas)) : 0;
   const fee = fulfillment === "delivery" ? (settings?.deliveryFeeHalalas ?? 0) : 0;
   const total = subtotal + fee - discount;
-  const unavailable = lines.filter(({ item }) => !item.isAvailable);
+  // A line can't be ordered when the item is off, or its origin is missing or out of stock.
+  const lineProblem = ({ line, item }: (typeof lines)[number]): "soldout" | "choose" | "option-out" | null => {
+    if (!isOrderable(item)) return "soldout";
+    if (item.options.length === 0) return null;
+    const option = item.options.find((o) => o.id === line.optionId);
+    if (!option) return "choose";
+    return option.isAvailable ? null : "option-out";
+  };
+  const unavailable = lines.filter((l) => lineProblem(l) !== null);
   const belowMinimum = fulfillment === "delivery" && settings ? subtotal < settings.deliveryMinOrderHalalas : false;
 
   function locate() {
@@ -133,7 +142,12 @@ export function CartPage() {
     if (Object.values(next).some(Boolean)) return;
 
     const body: PlaceOrderRequest = {
-      items: lines.map(({ line }) => ({ menuItemId: line.menuItemId, quantity: line.quantity, note: line.note.trim() || undefined })),
+      items: lines.map(({ line }) => ({
+        menuItemId: line.menuItemId,
+        quantity: line.quantity,
+        note: line.note.trim() || undefined,
+        optionId: line.optionId ?? undefined,
+      })),
       fulfillment,
       phone: normalizedPhone!,
       carDescription: fulfillment === "curbside" ? car.trim() : undefined,
@@ -207,36 +221,64 @@ export function CartPage() {
             طلبك
           </h2>
           <ul className="cart-lines">
-            {lines.map(({ line, item }) => (
-              <li key={item.id} className={`cart-line ${item.isAvailable ? "" : "cart-line--soldout"}`}>
-                <ItemImage item={item} className="cart-line__img" />
-                <div className="cart-line__body">
-                  <div className="cart-line__top">
-                    <span className="cart-line__name">{item.nameAr}</span>
-                    <span className="cart-line__price">{riyals(item.priceHalalas * line.quantity)}</span>
+            {lines.map((entry) => {
+              const { line, item } = entry;
+              const key = `${line.menuItemId}|${line.optionId ?? ""}`;
+              const problem = lineProblem(entry);
+              return (
+                <li key={key} className={`cart-line ${problem === "soldout" ? "cart-line--soldout" : ""}`}>
+                  <ItemImage item={item} className="cart-line__img" />
+                  <div className="cart-line__body">
+                    <div className="cart-line__top">
+                      <span className="cart-line__name">{item.nameAr}</span>
+                      <span className="cart-line__price">{riyals(item.priceHalalas * line.quantity)}</span>
+                    </div>
+                    {item.options.length > 0 && (
+                      <div className="cart-origins" role="radiogroup" aria-label={item.optionLabel ?? "النوع"}>
+                        {item.options.map((o) => (
+                          <button
+                            key={o.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={line.optionId === o.id}
+                            className={`cart-origin ${line.optionId === o.id ? "is-on" : ""}`}
+                            disabled={!o.isAvailable}
+                            onClick={() => cart.setOption(item.id, line.optionId, o.id)}
+                          >
+                            {o.nameAr}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {problem === "soldout" && <span className="badge badge--danger">نفد، احذفه من السلة</span>}
+                    {problem === "choose" && <span className="badge badge--warning">اختر {item.optionLabel ?? "النوع"}</span>}
+                    {problem === "option-out" && <span className="badge badge--danger">هذا المحصول نفد، اختر غيره</span>}
+                    <div className="cart-line__actions">
+                      <QtyStepper
+                        quantity={line.quantity}
+                        onChange={(q) => cart.setQuantity(item.id, q, line.optionId)}
+                        label={item.nameAr}
+                      />
+                      {!openNotes.has(key) && !line.note ? (
+                        <button type="button" className="link-btn" onClick={() => setOpenNotes(new Set(openNotes).add(key))}>
+                          إضافة ملاحظة
+                        </button>
+                      ) : null}
+                    </div>
+                    {(openNotes.has(key) || line.note) && (
+                      <input
+                        className="note-input"
+                        value={line.note}
+                        onChange={(e) => cart.setNote(item.id, e.target.value, line.optionId)}
+                        placeholder="مثال: بدون سكر، ثلج قليل"
+                        maxLength={120}
+                        aria-label={`ملاحظة على ${item.nameAr}`}
+                      />
+                    )}
                   </div>
-                  {!item.isAvailable && <span className="badge badge--danger">نفد، احذفه من السلة</span>}
-                  <div className="cart-line__actions">
-                    <QtyStepper quantity={line.quantity} onChange={(q) => cart.setQuantity(item.id, q)} label={item.nameAr} />
-                    {!openNotes.has(item.id) && !line.note ? (
-                      <button type="button" className="link-btn" onClick={() => setOpenNotes(new Set(openNotes).add(item.id))}>
-                        إضافة ملاحظة
-                      </button>
-                    ) : null}
-                  </div>
-                  {(openNotes.has(item.id) || line.note) && (
-                    <input
-                      className="note-input"
-                      value={line.note}
-                      onChange={(e) => cart.setNote(item.id, e.target.value)}
-                      placeholder="مثال: بدون سكر، ثلج قليل"
-                      maxLength={120}
-                      aria-label={`ملاحظة على ${item.nameAr}`}
-                    />
-                  )}
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
           <Link to="/menu" className="link-btn">
             + إضافة أصناف

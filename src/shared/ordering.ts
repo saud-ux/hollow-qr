@@ -9,6 +9,15 @@ export const MENU_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 export const MAX_ORDER_LINES = 30;
 export const MAX_LINE_QUANTITY = 20;
 
+/** One choice on an item, e.g. a coffee origin. Same price as the item. */
+export interface MenuOption {
+  id: string;
+  nameAr: string;
+  /** Short tasting note shown under the name. */
+  noteAr: string | null;
+  isAvailable: boolean;
+}
+
 export interface MenuItem {
   id: string;
   nameAr: string;
@@ -20,6 +29,17 @@ export interface MenuItem {
   isAvailable: boolean;
   isArchived: boolean;
   sortOrder: number;
+  /** Heading for the choice, e.g. "المحصول". */
+  optionLabel: string | null;
+  /** Empty when the item has no choice. */
+  options: MenuOption[];
+}
+
+export const MAX_MENU_OPTIONS = 12;
+
+/** The customer can order it: the item is on, and if it has options at least one is in stock. */
+export function isOrderable(item: Pick<MenuItem, "isAvailable" | "options">): boolean {
+  return item.isAvailable && (item.options.length === 0 || item.options.some((o) => o.isAvailable));
 }
 
 export interface DayHours {
@@ -52,6 +72,9 @@ export interface OrderLine {
   unitPriceHalalas: number;
   quantity: number;
   note: string | null;
+  /** The chosen option, e.g. "إثيوبي". */
+  optionId: string | null;
+  optionNameAr: string | null;
 }
 
 export interface LoyaltyResult {
@@ -94,7 +117,7 @@ export interface Order {
 }
 
 export interface PlaceOrderRequest {
-  items: { menuItemId: string; quantity: number; note?: string }[];
+  items: { menuItemId: string; quantity: number; note?: string; optionId?: string }[];
   fulfillment: FulfillmentType;
   phone: string;
   carDescription?: string;

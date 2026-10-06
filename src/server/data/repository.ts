@@ -3,7 +3,7 @@
  * (PostgREST + RPC) with the service-role key; tests use a PGlite-backed
  * implementation that runs the very same SQL migrations.
  */
-import type { FulfillmentType, MenuCategory, Order, OrderStatus, ShopSettings } from "../../shared/ordering";
+import type { FulfillmentType, MenuCategory, MenuOption, Order, OrderStatus, ShopSettings } from "../../shared/ordering";
 import type { AppRole, LoyaltyAction, MembershipStatus } from "../../shared/types";
 
 export interface ProfileRow {
@@ -143,13 +143,15 @@ export interface MenuItemRow {
   isAvailable: boolean;
   isArchived: boolean;
   sortOrder: number;
+  optionLabel: string | null;
+  options: MenuOption[];
 }
 
 export type MenuItemInput = Omit<MenuItemRow, "id" | "imagePath">;
 
 export interface PlaceOrderParams {
   customerId: string;
-  items: { menuItemId: string; quantity: number; note: string | null }[];
+  items: { menuItemId: string; quantity: number; note: string | null; optionId: string | null }[];
   fulfillment: FulfillmentType;
   phone: string;
   carDescription: string | null;

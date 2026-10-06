@@ -34,6 +34,8 @@ export function toMenuItem(config: Pick<AppConfig, "supabaseUrl">, row: MenuItem
     isAvailable: row.isAvailable,
     isArchived: row.isArchived,
     sortOrder: row.sortOrder,
+    optionLabel: row.optionLabel,
+    options: row.options,
   };
 }
 
@@ -45,6 +47,7 @@ export function statusForOrderCode(code: string): ErrorStatus {
     case "NOT_FOUND":
       return 404;
     case "EMPTY_ORDER":
+    case "OPTION_REQUIRED":
     case "TOO_MANY_ITEMS":
       return 400;
     default:
@@ -81,6 +84,7 @@ export const placeOrderSchema = z
           menuItemId: z.uuid(),
           quantity: z.number().int().min(1).max(MAX_LINE_QUANTITY),
           note: optionalText(120),
+          optionId: z.string().trim().max(40).optional(),
         }),
       )
       .min(1)
@@ -141,7 +145,7 @@ export const orderRoutes = new Hono<HonoEnv>()
     const repo = repoOf(c);
     const result = await repo.placeOrder({
       customerId: user.id,
-      items: body.items.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity, note: i.note ?? null })),
+      items: body.items.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity, note: i.note ?? null, optionId: i.optionId || null })),
       fulfillment: body.fulfillment,
       phone,
       carDescription: body.carDescription ?? null,

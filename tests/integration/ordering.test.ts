@@ -35,7 +35,7 @@ const item = (name: string) => menu.find((m) => m.nameAr === name)!;
 
 function orderBody(overrides: Record<string, unknown> = {}) {
   return {
-    items: [{ menuItemId: item("قهوة مقطرة").id, quantity: 1 }],
+    items: [{ menuItemId: item("قهوة مقطرة").id, quantity: 1, optionId: "ethiopia" }],
     fulfillment: "pickup",
     phone: "0512345678",
     idempotencyKey: randomUUID(),
@@ -269,7 +269,7 @@ describe("the order board", () => {
     const customer = await newCustomer();
     const order = await placed(customer.id, {
       items: [
-        { menuItemId: item("قهوة مقطرة").id, quantity: 2 },
+        { menuItemId: item("قهوة مقطرة").id, quantity: 2, optionId: "ethiopia" },
         { menuItemId: item("كيكة تشوكلت").id, quantity: 3 },
       ],
     });
@@ -313,7 +313,7 @@ describe("the order board", () => {
       items: [
         { menuItemId: item("قهوة اليوم باردة").id, quantity: 1 },
         { menuItemId: item("ماتشا باردة").id, quantity: 1 },
-        { menuItemId: item("قهوة مقطرة").id, quantity: 1 },
+        { menuItemId: item("قهوة مقطرة").id, quantity: 1, optionId: "ethiopia" },
       ],
     });
     expect(order).toMatchObject({ useReward: true, subtotalHalalas: 800 + 2100 + 1500, discountHalalas: 2100, totalHalalas: 2300 });

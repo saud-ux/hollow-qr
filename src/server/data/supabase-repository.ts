@@ -38,7 +38,8 @@ type DbError = { message: string; code?: string } | null;
 /** supabase-js returns `any` data for an untyped schema; narrow it explicitly. */
 type DbResult = { data: unknown; error: DbError; count?: number | null };
 
-const MENU_SELECT = "id, name_ar, name_en, description_ar, category, price_halalas, image_path, is_available, is_archived, sort_order";
+const MENU_SELECT =
+  "id, name_ar, name_en, description_ar, category, price_halalas, image_path, is_available, is_archived, sort_order, option_label, options";
 const SETTINGS_SELECT =
   "ordering_paused, pickup_enabled, curbside_enabled, delivery_enabled, delivery_fee_halalas, delivery_min_order_halalas, weekly_hours";
 
@@ -280,7 +281,7 @@ export class SupabaseRepository implements Repository {
   async placeOrder(p: PlaceOrderParams): Promise<OrderRpcResult> {
     const data = await this.rpc("place_order", {
       p_customer_id: p.customerId,
-      p_items: p.items.map((i) => ({ menu_item_id: i.menuItemId, quantity: i.quantity, note: i.note })),
+      p_items: p.items.map((i) => ({ menu_item_id: i.menuItemId, quantity: i.quantity, note: i.note, option_id: i.optionId })),
       p_fulfillment: p.fulfillment,
       p_phone: p.phone,
       p_car_description: p.carDescription,
