@@ -104,7 +104,7 @@ export function ItemImage({ item, className = "" }: { item: Pick<MenuItem, "imag
       {item.category === "drink" ? (
         <img src="/wallet-preview/cup-filled.png" alt="" className="item-img__cup" />
       ) : (
-        <img src="/brand/wordmark-cream.png" alt="" className="item-img__mark" />
+        <img src="/brand/wordmark-espresso.png" alt="" className="item-img__mark" />
       )}
     </span>
   );

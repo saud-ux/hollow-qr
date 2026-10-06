@@ -107,9 +107,11 @@ export function WalletPage() {
               <p>{card.walletMode === "production" && card.walletReady ? "أضفها الآن إلى Apple Wallet" : "اعرض رمز QR للموظف عند الدفع"}</p>
             </section>
           )}
-          {!welcome && <h1 className="page-title">بطاقتي {card.displayName}</h1>}
+          {!welcome && <h1 className="page-title">بطاقتي</h1>}
 
           {card.membershipStatus === "cancelled" && <Alert tone="error">عضويتك غير نشطة حاليًا. تواصل مع HOLLOW للمساعدة.</Alert>}
+
+          <PassPreview card={card} />
 
           {card.walletMode === "production" && card.walletReady && (
             <div className="wallet-actions">
@@ -119,24 +121,28 @@ export function WalletPage() {
               {walletError && <Alert tone="error">{walletError}</Alert>}
             </div>
           )}
-
-          <PassPreview card={card} />
           <p className="muted small center">اعرض رمز QR للموظف عند الدفع.</p>
         </>
       )}
-      <div className="center">
-        <button type="button" className="btn btn--ghost" onClick={() => void signOut()}>
+      <nav className="settings" aria-label="الحساب">
+        <Link to="/support" className="settings__row">
+          الدعم والمساعدة
+          <ChevronIcon />
+        </Link>
+        <Link to="/privacy" className="settings__row">
+          سياسة الخصوصية
+          <ChevronIcon />
+        </Link>
+        <button type="button" className="settings__row" onClick={() => void signOut()}>
           تسجيل الخروج
         </button>
-      </div>
-      {me?.user.role === "customer" && (
-        <div className="danger-zone">
-          <button type="button" className="btn btn--ghost btn--small btn--danger-text" onClick={() => setDeleteOpen(true)}>
+        {me?.user.role === "customer" && (
+          <button type="button" className="settings__row settings__row--danger" onClick={() => setDeleteOpen(true)}>
             حذف الحساب
           </button>
-          {deleteError && <Alert tone="error">{deleteError}</Alert>}
-        </div>
-      )}
+        )}
+      </nav>
+      {deleteError && <Alert tone="error">{deleteError}</Alert>}
       <ConfirmDialog
         open={deleteOpen}
         title="حذف حسابك نهائيًا؟"
@@ -152,5 +158,13 @@ export function WalletPage() {
         onCancel={() => setDeleteOpen(false)}
       />
     </CustomerLayout>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m15 6-6 6 6 6" />
+    </svg>
   );
 }

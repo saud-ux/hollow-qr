@@ -365,13 +365,15 @@ export function CartPage() {
 
         {formError && <Alert tone="error">{formError}</Alert>}
         {session ? (
-          <button
-            type="submit"
-            className="btn btn--primary btn--block btn--lg"
-            disabled={busy || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum}
-          >
-            {busy ? "جارٍ إرسال الطلب…" : `تأكيد الطلب · ${riyals(total)}`}
-          </button>
+          <div className="checkout__submit">
+            <button
+              type="submit"
+              className="btn btn--primary btn--block btn--lg"
+              disabled={busy || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum}
+            >
+              {busy ? "جارٍ إرسال الطلب…" : `تأكيد الطلب · ${riyals(total)}`}
+            </button>
+          </div>
         ) : (
           <div className="signin-cta">
             <p>سجّل الدخول لإكمال الطلب وجمع أكوابك</p>

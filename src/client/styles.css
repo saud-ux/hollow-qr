@@ -375,14 +375,6 @@ select {
   text-align: left;
 }
 
-/* Account deletion */
-.danger-zone {
-  margin-top: 28px;
-  text-align: center;
-}
-.btn--danger-text {
-  color: #a1352a;
-}
 .hero__title {
   font-size: 1.6rem;
   margin: 8px 0 4px;
@@ -1278,16 +1270,17 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #2b1e16;
+  background: radial-gradient(circle at 50% 62%, #f3eadb 0, #e9dcc5 55%, #dccab0 100%);
 }
 .item-img__cup {
-  width: 26%;
+  width: 32%;
   height: auto;
+  filter: drop-shadow(0 8px 10px rgb(43 30 22 / 22%));
 }
 .item-img__mark {
-  width: 52%;
+  width: 50%;
   height: auto;
-  opacity: 0.9;
+  opacity: 0.55;
 }
 .menu-card__body {
   flex: 1;
@@ -2458,4 +2451,132 @@ select {
     transform: scale(2.1);
     opacity: 0;
   }
+}
+
+/* Active tab: a soft gold pill behind the icon, like iOS. */
+.tabbar__item svg {
+  position: relative;
+  z-index: 1;
+}
+.tabbar__item.active::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 50%;
+  width: 48px;
+  height: 30px;
+  margin-left: -24px;
+  border-radius: 15px;
+  background: var(--gold-soft);
+}
+
+/* Checkout button stays in reach above the tab bar while the form scrolls. */
+.checkout__submit {
+  position: sticky;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  z-index: 5;
+  margin-inline: -16px;
+  padding: 18px 16px 10px;
+  background: linear-gradient(to bottom, rgb(244 237 224 / 0%), var(--cream) 40%);
+}
+
+/* Menu section chips, pinned under the header. */
+.menu-chips {
+  position: sticky;
+  top: calc(60px + env(safe-area-inset-top));
+  z-index: 12;
+  display: flex;
+  gap: 8px;
+  margin: -4px -16px 0;
+  padding: 8px 16px;
+  background: rgb(244 237 224 / 94%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.menu-chip {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid #e2d5bf;
+  background: var(--paper);
+  color: var(--espresso);
+  cursor: pointer;
+}
+.menu-chip.is-active {
+  background: var(--espresso);
+  border-color: var(--espresso);
+  color: var(--paper);
+}
+.menu-section {
+  scroll-margin-top: calc(120px + env(safe-area-inset-top));
+}
+
+/* Loading placeholders shaped like the menu. */
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #ebe1cf 25%, #f5efe4 50%, #ebe1cf 75%);
+  background-size: 200% 100%;
+  animation: hollow-shimmer 1.4s linear infinite;
+}
+.skeleton--img {
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+}
+.skeleton--line {
+  height: 12px;
+  margin-top: 6px;
+  width: 70%;
+}
+.skeleton--short {
+  width: 40%;
+}
+@keyframes hollow-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* Account options on My card: one quiet grouped list, like iOS Settings. */
+.settings {
+  display: grid;
+  margin-top: 8px;
+  background: var(--paper);
+  border: 1px solid #e2d5bf;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--espresso);
+  text-decoration: none;
+  text-align: start;
+  background: none;
+  border: 0;
+  border-top: 1px solid #ece2d1;
+  cursor: pointer;
+}
+.settings__row:first-child {
+  border-top: 0;
+}
+.settings__row svg {
+  color: #a8978a;
+}
+.settings__row--danger {
+  color: var(--danger);
 }

@@ -1,11 +1,11 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { CATEGORY_LABELS_AR, type MenuCategory, type MenuItem, type MenuResponse } from "../../../shared/ordering";
-import { Alert, Spinner } from "../../components/Field";
+import { Alert } from "../../components/Field";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
-import { flyToCart } from "../../lib/motion";
+import { flyToCart, motionOn } from "../../lib/motion";
 import { riyals, useMenu } from "../../lib/menu";
 import { closedNote } from "./hours";
 
@@ -18,19 +18,20 @@ export function MenuPage() {
     <ShopLayout bottom={<CartBar menu={menu} />}>
       <LoyaltyBand card={me?.card ?? null} />
       {error && !menu && <Alert tone="error">{error}</Alert>}
-      {!menu && !error && <Spinner />}
+      {!menu && !error && <MenuSkeleton />}
       {menu && !menu.shop.isOpen && (
         <div className="shop-closed" role="status">
           <strong>لا نستقبل طلبات الآن</strong>
           <span>{closedNote(menu.shop.settings)}</span>
         </div>
       )}
+      {menu && <CategoryChips categories={CATEGORIES.filter((c) => menu.items.some((i) => i.category === c))} />}
       {menu &&
         CATEGORIES.map((category) => {
           const items = menu.items.filter((i) => i.category === category);
           if (items.length === 0) return null;
           return (
-            <section key={category} className="menu-section" aria-labelledby={`cat-${category}`}>
+            <section key={category} id={`section-${category}`} className="menu-section" aria-labelledby={`cat-${category}`}>
               <h2 id={`cat-${category}`} className="menu-section__title">
                 {CATEGORY_LABELS_AR[category]}
               </h2>
@@ -43,6 +44,58 @@ export function MenuPage() {
           );
         })}
     </ShopLayout>
+  );
+}
+
+/** Jump between menu sections; the chip of the section in view is highlighted. */
+function CategoryChips({ categories }: { categories: MenuCategory[] }) {
+  const [active, setActive] = useState<MenuCategory | null>(categories[0] ?? null);
+  useEffect(() => {
+    const sections = categories.map((c) => document.getElementById(`section-${c}`)).filter((el): el is HTMLElement => el !== null);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (visible) setActive(visible.target.id.replace("section-", "") as MenuCategory);
+      },
+      { rootMargin: "-130px 0px -55% 0px" },
+    );
+    sections.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [categories]);
+  if (categories.length < 2) return null;
+  return (
+    <nav className="menu-chips" aria-label="أقسام المنيو">
+      {categories.map((c) => (
+        <button
+          key={c}
+          type="button"
+          className={`menu-chip ${active === c ? "is-active" : ""}`}
+          aria-current={active === c ? "true" : undefined}
+          onClick={() => {
+            setActive(c);
+            document.getElementById(`section-${c}`)?.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" });
+          }}
+        >
+          {CATEGORY_LABELS_AR[c]}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function MenuSkeleton() {
+  return (
+    <div className="menu-grid" aria-busy="true" aria-label="جارٍ تحميل المنيو">
+      {Array.from({ length: 4 }, (_, i) => (
+        <div key={i} className="menu-card skeleton-card" aria-hidden="true">
+          <div className="skeleton skeleton--img" />
+          <div className="menu-card__body">
+            <div className="skeleton skeleton--line" />
+            <div className="skeleton skeleton--line skeleton--short" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

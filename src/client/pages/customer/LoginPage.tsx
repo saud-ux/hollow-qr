@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { normalizeEmail } from "../../../shared/format";
 import { CustomerLayout } from "../../components/CustomerLayout";
+import { isNative } from "../../lib/native";
 import { Alert, Field } from "../../components/Field";
 import { Turnstile } from "../../components/Turnstile";
 import { useAuth } from "../../lib/auth";
@@ -84,8 +85,11 @@ export function LoginPage() {
   const next = safeNext(params);
   if (session) return <Navigate to={next} replace />;
   return (
-    <CustomerLayout>
-      <h1 className="page-title">تسجيل الدخول</h1>
+    <CustomerLayout hero>
+      <section className="hero">
+        <h1 className="hero__title">أهلًا من جديد</h1>
+        <p className="hero__sub">سجّل دخولك عشان تطلب وتتابع أكوابك.</p>
+      </section>
       <LoginForm onSuccess={() => void navigate(next, { replace: true })} />
       <p className="form__alt">
         <Link to="/forgot-password">نسيت كلمة المرور؟</Link>
@@ -93,6 +97,11 @@ export function LoginPage() {
       <p className="form__alt">
         ليس لديك بطاقة؟ <Link to={params.has("next") ? withNext("/register", next) : "/register"}>انضم الآن</Link>
       </p>
+      {isNative && (
+        <p className="form__alt">
+          <Link to="/menu">تصفّح المنيو بدون تسجيل</Link>
+        </p>
+      )}
     </CustomerLayout>
   );
 }
