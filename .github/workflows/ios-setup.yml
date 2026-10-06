@@ -1,0 +1,33 @@
+# One-time iOS signing setup (run again only if the certificate expires or is revoked).
+# Registers the App ID with Push Notifications, creates the Apple Distribution
+# certificate and the App Store profile, and hands you IOS_SIGNING.txt to save
+# as a repository secret. Needs the ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 secrets.
+name: iOS setup (one time)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Create App ID, certificate and profile
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: node scripts/ios-signing.mjs setup "$RUNNER_TEMP/signing"
+      - name: Upload IOS_SIGNING.txt (deleted automatically after 1 day)
+        uses: actions/upload-artifact@v4
+        with:
+          name: IOS_SIGNING
+          path: ${{ runner.temp }}/signing/IOS_SIGNING.txt
+          retention-days: 1
