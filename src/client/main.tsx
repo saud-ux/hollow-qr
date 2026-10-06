@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { AuthProvider } from "./lib/auth";
+import { CartProvider } from "./lib/cart";
 import { ConfigContext, fetchPublicConfig } from "./lib/config";
 import { getSupabase } from "./lib/supabase";
 import "./styles.css";
@@ -28,7 +29,9 @@ fetchPublicConfig()
       <StrictMode>
         <ConfigContext.Provider value={config}>
           <AuthProvider supabase={supabase}>
-            <App />
+            <CartProvider>
+              <App />
+            </CartProvider>
           </AuthProvider>
         </ConfigContext.Provider>
       </StrictMode>,

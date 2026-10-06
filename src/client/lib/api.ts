@@ -52,6 +52,19 @@ export async function apiPost<T>(path: string, body: unknown = {}): Promise<T> {
   return (await (await request(path, { method: "POST", body: JSON.stringify(body) })).json()) as T;
 }
 
+export async function apiSend<T>(method: "PUT" | "PATCH", path: string, body: unknown): Promise<T> {
+  return (await (await request(path, { method, body: JSON.stringify(body) })).json()) as T;
+}
+
+/** Uploads raw bytes (menu images). */
+export async function apiUpload<T>(path: string, blob: Blob): Promise<T> {
+  return (await (await request(path, { method: "PUT", body: blob, headers: { "Content-Type": blob.type } })).json()) as T;
+}
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  return (await (await request(path, { method: "DELETE" })).json()) as T;
+}
+
 /** Downloads an authenticated file (CSV exports) and saves it. */
 export async function apiDownload(path: string, filename: string): Promise<void> {
   const res = await request(path);

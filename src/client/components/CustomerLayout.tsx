@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { TentArt, Wordmark } from "./Brand";
 
-export function CustomerLayout({ children, hero = false }: { children: ReactNode; hero?: boolean }) {
+export function CustomerLayout({ children, hero = false, dock }: { children: ReactNode; hero?: boolean; dock?: ReactNode }) {
   return (
-    <div className="customer">
+    <div className={`customer ${dock ? "customer--docked" : ""}`}>
       <header className="customer__header">
         <Link to="/" className="customer__brand" aria-label="HOLLOW Rewards، الصفحة الرئيسية">
           <Wordmark />
@@ -15,6 +15,7 @@ export function CustomerLayout({ children, hero = false }: { children: ReactNode
       <footer className="customer__footer">
         <span dir="ltr">HOLLOW · Al Zulfi</span>
       </footer>
+      {dock && <div className="shop__dock">{dock}</div>}
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { normalizeEmail } from "../../../shared/format";
 import { CustomerLayout } from "../../components/CustomerLayout";
 import { Alert, Field } from "../../components/Field";
 import { Turnstile } from "../../components/Turnstile";
 import { useAuth } from "../../lib/auth";
 import { useCaptcha } from "../../lib/captcha";
+import { safeNext, withNext } from "../../lib/next";
 import { authErrorAr, validateEmail } from "../../lib/validation";
 
 export function LoginForm({ onSuccess, submitLabel = "تسجيل الدخول" }: { onSuccess: () => void; submitLabel?: string }) {
@@ -79,16 +80,18 @@ export function LoginForm({ onSuccess, submitLabel = "تسجيل الدخول" }
 export function LoginPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
-  if (session) return <Navigate to="/wallet" replace />;
+  const [params] = useSearchParams();
+  const next = safeNext(params);
+  if (session) return <Navigate to={next} replace />;
   return (
     <CustomerLayout>
       <h1 className="page-title">تسجيل الدخول</h1>
-      <LoginForm onSuccess={() => void navigate("/wallet", { replace: true })} />
+      <LoginForm onSuccess={() => void navigate(next, { replace: true })} />
       <p className="form__alt">
         <Link to="/forgot-password">نسيت كلمة المرور؟</Link>
       </p>
       <p className="form__alt">
-        ليس لديك بطاقة؟ <Link to="/register">انضم الآن</Link>
+        ليس لديك بطاقة؟ <Link to={params.has("next") ? withNext("/register", next) : "/register"}>انضم الآن</Link>
       </p>
     </CustomerLayout>
   );

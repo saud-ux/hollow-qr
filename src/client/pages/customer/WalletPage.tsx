@@ -4,6 +4,7 @@ import { AddToWalletButton } from "../../components/AddToWalletButton";
 import { CustomerLayout } from "../../components/CustomerLayout";
 import { Alert, Spinner } from "../../components/Field";
 import { PassPreview } from "../../components/PassPreview";
+import { TabBar } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { isAppleMobile } from "../../lib/hooks";
@@ -28,7 +29,7 @@ export function WalletPage() {
 
   if (loading) {
     return (
-      <CustomerLayout>
+      <CustomerLayout dock={<TabBar />}>
         <Spinner />
       </CustomerLayout>
     );
@@ -54,7 +55,7 @@ export function WalletPage() {
   const emailError = meError instanceof ApiClientError && meError.code === "EMAIL_NOT_CONFIRMED";
 
   return (
-    <CustomerLayout>
+    <CustomerLayout dock={<TabBar />}>
       {!me && !meError && <Spinner />}
       {meError !== null && !emailError && <Alert tone="error">{errorText(meError)}</Alert>}
       {(notConfirmed || emailError) && (
