@@ -18,7 +18,13 @@ export function StaffLayout({ children }: { children: ReactNode }) {
           <NavLink to="/staff" end>
             الرئيسية
           </NavLink>
-          {isAdmin && <NavLink to="/staff/admin">الإدارة</NavLink>}
+          <NavLink to="/staff/orders">الطلبات</NavLink>
+          {isAdmin && <NavLink to="/staff/admin/menu">المنيو</NavLink>}
+          {isAdmin && (
+            <NavLink to="/staff/admin" end>
+              الإدارة
+            </NavLink>
+          )}
         </nav>
         <div className="staff__user">
           {me && (
