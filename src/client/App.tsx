@@ -1,7 +1,9 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { Spinner } from "./components/Field";
+import { NativeBridge } from "./components/NativeBridge";
 import { StaffGuard } from "./components/StaffGuard";
+import { isNative } from "./lib/native";
 import { ForgotPasswordPage } from "./pages/customer/ForgotPasswordPage";
 import { LoginPage } from "./pages/customer/LoginPage";
 import { QrLandingPage } from "./pages/customer/QrLandingPage";
@@ -12,6 +14,7 @@ import { CartPage } from "./pages/order/CartPage";
 import { MenuPage } from "./pages/order/MenuPage";
 import { OrderPage } from "./pages/order/OrderPage";
 import { OrdersPage } from "./pages/order/OrdersPage";
+import { PrivacyPage, SupportPage } from "./pages/info/InfoPages";
 
 // Staff screens (QR scanner etc.) are code-split so customers never download them.
 const AdminMenuPage = lazy(() => import("./pages/staff/AdminMenuPage").then((m) => ({ default: m.AdminMenuPage })));
@@ -24,9 +27,40 @@ const StaffLoginPage = lazy(() => import("./pages/staff/StaffLoginPage").then((m
 export function App() {
   return (
     <BrowserRouter>
+      <NativeBridge />
       <Suspense fallback={<Spinner />}>
+        {isNative ? <NativeRoutes /> : <WebRoutes />}
+      </Suspense>
+    </BrowserRouter>
+  );
+}
+
+/** The iOS app is for customers: it opens on the menu and has no staff screens. */
+function NativeRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/menu" replace />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/wallet" element={<WalletPage />} />
+      <Route path="/menu" element={<MenuPage />} />
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/orders" element={<OrdersPage />} />
+      <Route path="/orders/:id" element={<OrderPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/support" element={<SupportPage />} />
+      <Route path="*" element={<Navigate to="/menu" replace />} />
+    </Routes>
+  );
+}
+
+function WebRoutes() {
+  return (
         <Routes>
         <Route path="/" element={<RegisterPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/support" element={<SupportPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -80,7 +114,5 @@ export function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Suspense>
-    </BrowserRouter>
   );
 }

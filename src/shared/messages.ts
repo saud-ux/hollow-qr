@@ -43,6 +43,7 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   ORDER_NOT_FOUND: "الطلب غير موجود",
   IMAGE_INVALID: "الصورة غير صالحة. استخدم JPG أو PNG أو WebP",
   IMAGE_TOO_LARGE: "حجم الصورة أكبر من 2 ميجابايت",
+  ACTIVE_ORDER: "عندك طلب قيد التحضير أو التوصيل. احذف حسابك بعد استلامه",
   INTERNAL: "حدث خطأ غير متوقع، حاول مرة أخرى",
 };
 

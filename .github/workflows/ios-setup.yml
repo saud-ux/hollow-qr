@@ -1,0 +1,46 @@
+# One-time iOS signing setup (run again only if the certificate expires or is revoked).
+# Registers the App ID with Push Notifications, creates the Apple Distribution
+# certificate and the App Store profile, and saves the certificate + private key
+# straight into the IOS_SIGNING repository secret (never as a log or artifact:
+# this repository is public).
+# Needs the ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 secrets, plus GH_ADMIN_TOKEN:
+# a fine-grained token for this repository with "Secrets: Read and write"
+# (you can delete it after this workflow succeeds).
+name: iOS setup (one time)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the token that saves the secret
+        env:
+          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "::error::GH_ADMIN_TOKEN secret missing"; exit 1; fi
+          gh secret list --repo "$GITHUB_REPOSITORY" > /dev/null
+      - name: Create App ID, certificate and profile
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: node scripts/ios-signing.mjs setup "$RUNNER_TEMP/signing"
+      - name: Save IOS_SIGNING as a repository secret
+        env:
+          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+        run: |
+          gh secret set IOS_SIGNING --repo "$GITHUB_REPOSITORY" < "$RUNNER_TEMP/signing/IOS_SIGNING.txt"
+          echo "Saved IOS_SIGNING. You can now run the 'iOS TestFlight' workflow."
+      - name: Remove the key from the runner
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/signing"

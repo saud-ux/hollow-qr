@@ -20,6 +20,7 @@ import type {
   CreateStaffParams,
   CreateStaffResult,
   DashboardStatsRow,
+  DeleteAccountResult,
   ListOrdersParams,
   MenuItemInput,
   MenuItemRow,
@@ -30,6 +31,7 @@ import type {
   RemoveStaffResult,
   Repository,
 } from "./repository";
+import { deleteAccountCode } from "./repository";
 
 type Raw = Record<string, unknown>;
 type DbError = { message: string; code?: string } | null;
@@ -317,6 +319,48 @@ export class SupabaseRepository implements Repository {
       p_limit: p.limit ?? 50,
     });
     return ((data ?? []) as Raw[]).map(mapOrder);
+  }
+
+  async registerPushDevice(userId: string, token: string): Promise<void> {
+    const { error } = (await this.db
+      .from("push_devices")
+      .upsert({ token, user_id: userId, platform: "ios" }, { onConflict: "token" })) as DbResult;
+    if (error) throw new RepositoryError("registerPushDevice", error);
+  }
+
+  async unregisterPushDevice(userId: string, token: string): Promise<void> {
+    const { error } = (await this.db.from("push_devices").delete().eq("token", token).eq("user_id", userId)) as DbResult;
+    if (error) throw new RepositoryError("unregisterPushDevice", error);
+  }
+
+  async pushTokensForOrder(orderId: string): Promise<string[]> {
+    const { data, error } = (await this.db.from("orders").select("customer_id").eq("id", orderId).maybeSingle()) as DbResult;
+    if (error) throw new RepositoryError("pushTokensForOrder:order", error);
+    const customerId = (data as Raw | null)?.customer_id;
+    if (typeof customerId !== "string") return [];
+    const res = (await this.db.from("push_devices").select("token").eq("user_id", customerId).limit(20)) as DbResult;
+    if (res.error) throw new RepositoryError("pushTokensForOrder", res.error);
+    return ((res.data ?? []) as Raw[]).map((r) => String(r.token));
+  }
+
+  async deletePushToken(token: string): Promise<void> {
+    const { error } = (await this.db.from("push_devices").delete().eq("token", token)) as DbResult;
+    if (error) throw new RepositoryError("deletePushToken", error);
+  }
+
+  async deleteCustomerAccount(userId: string): Promise<DeleteAccountResult> {
+    const result = (await this.rpc("delete_customer_account", { p_user_id: userId })) as { ok: boolean; code?: string };
+    if (!result.ok) return { ok: false, code: deleteAccountCode(result.code) };
+    // Free the email for a future sign-up and block sign-in for good. The
+    // profile is already disabled, so the API refuses this user either way.
+    const { error } = await this.db.auth.admin.updateUserById(userId, {
+      email: `deleted-${userId}@deleted.invalid`,
+      email_confirm: true,
+      ban_duration: "876000h",
+      user_metadata: { display_name: "deleted", name: null, full_name: null },
+    });
+    if (error) throw new RepositoryError("deleteCustomerAccount:auth", { code: (error as { code?: string }).code });
+    return { ok: true };
   }
 
   async walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string) {

@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 import type { AppRole } from "../../shared/types";
+import { NATIVE_APP_ORIGIN } from "../config";
 import { ApiError } from "./errors";
 import { clientIp, repoOf, type HonoEnv } from "./context";
 import type { RateBucket } from "./rate-limit";
@@ -18,17 +19,37 @@ export const apiSecurityHeaders: MiddlewareHandler<HonoEnv> = async (c, next) =>
 };
 
 /**
+ * CORS for exactly one other origin: the iOS app's web view
+ * (capacitor://localhost), which calls the API with bearer tokens. Browsers
+ * on any other origin still get no CORS headers and cannot read responses.
+ */
+export const nativeAppCors: MiddlewareHandler<HonoEnv> = async (c, next) => {
+  if (c.req.header("origin") !== NATIVE_APP_ORIGIN) return next();
+  if (c.req.method === "OPTIONS") {
+    return c.body(null, 204, {
+      "Access-Control-Allow-Origin": NATIVE_APP_ORIGIN,
+      "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE",
+      "Access-Control-Allow-Headers": "authorization, content-type",
+      "Access-Control-Max-Age": "600",
+      Vary: "Origin",
+    });
+  }
+  await next();
+  c.header("Access-Control-Allow-Origin", NATIVE_APP_ORIGIN);
+  c.header("Vary", "Origin");
+};
+
+/**
  * Same-origin enforcement for state-changing browser requests. The API uses
  * bearer tokens (not cookies) so classic CSRF does not apply; this is defense
- * in depth. No CORS headers are ever emitted, so other origins cannot read
- * API responses.
+ * in depth. Only the iOS app's origin gets CORS headers (nativeAppCors).
  */
 export const sameOriginWrites: MiddlewareHandler<HonoEnv> = async (c, next) => {
   const method = c.req.method;
   if (method !== "GET" && method !== "HEAD") {
     const origin = c.req.header("origin");
     const { appUrl } = c.get("deps").config;
-    if (origin && appUrl && origin !== appUrl) {
+    if (origin && appUrl && origin !== appUrl && origin !== NATIVE_APP_ORIGIN) {
       throw new ApiError(403, "FORBIDDEN");
     }
   }

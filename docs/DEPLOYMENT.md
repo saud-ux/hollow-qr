@@ -75,3 +75,8 @@ pnpm check && pnpm test:smoke
 
 - Open `/api/health`. It shows `walletMode` and `walletReady`.
 - Worker logs (`observability` is enabled) print a `config.issues` warning listing anything missing. It never prints secret values.
+
+## 6. iOS app
+
+See [IOS_APP.md](IOS_APP.md) for the app, its secrets and the TestFlight workflows, and [APP_STORE.md](APP_STORE.md) for the store listing.
+The app needs the migration `20261007000000_app_push_and_account_deletion.sql` and the `APNS_KEY_ID` / `APNS_AUTH_KEY` Worker secrets.

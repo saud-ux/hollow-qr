@@ -36,6 +36,9 @@ export interface Bindings {
   APPLE_TEAM_IDENTIFIER?: string;
   APPLE_PASS_TYPE_IDENTIFIER?: string;
   DUPLICATE_WINDOW_SECONDS?: string;
+  /** iOS app: bundle id (APNs topic) and the APNs auth key's 10-character id. */
+  APPLE_APP_BUNDLE_ID?: string;
+  APNS_KEY_ID?: string;
 
   // --- secrets ------------------------------------------------------------
   SUPABASE_SERVICE_ROLE_KEY?: string;
@@ -45,6 +48,8 @@ export interface Bindings {
   APPLE_PASS_PRIVATE_KEY_BASE64?: string;
   APPLE_PASS_PRIVATE_KEY_PASSPHRASE?: string;
   APPLE_WWDR_CERTIFICATE_BASE64?: string;
+  /** Contents of the APNs AuthKey_XXXXXXXXXX.p8 file (PEM, or base64 of it). */
+  APNS_AUTH_KEY?: string;
 
   // --- bindings -----------------------------------------------------------
   ASSETS?: FetcherLike;

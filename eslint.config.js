@@ -5,7 +5,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist", ".wrangler", "node_modules", "src/server/wallet/generated/**", "public/**", "reference-assets/**"],
+    ignores: ["dist", ".wrangler", "node_modules", "src/server/wallet/generated/**", "public/**", "reference-assets/**", "ios/**"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

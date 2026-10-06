@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { ConfigError } from "./config";
 import type { AppDeps, HonoEnv } from "./http/context";
 import { ApiError } from "./http/errors";
-import { apiSecurityHeaders, sameOriginWrites } from "./http/middleware";
+import { apiSecurityHeaders, nativeAppCors, sameOriginWrites } from "./http/middleware";
 import { MENU_IMAGE_MAX_BYTES } from "../shared/ordering";
 import { adminRoutes } from "./routes/admin";
 import { adminMenuRoutes } from "./routes/admin-menu";
@@ -27,6 +27,7 @@ export function createApp(deps: AppDeps) {
     await next();
   });
   app.use("*", apiSecurityHeaders);
+  app.use("/api/*", nativeAppCors);
 
   // Request size limits: JSON APIs are tiny; menu images and Wallet logs larger.
   const tooLarge = () => {

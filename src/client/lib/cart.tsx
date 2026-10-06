@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { MAX_LINE_QUANTITY, MAX_ORDER_LINES } from "../../shared/ordering";
+import { tapFeedback } from "./native";
 
 export interface CartLine {
   menuItemId: string;
@@ -66,7 +67,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       lines,
       count: lines.reduce((n, l) => n + l.quantity, 0),
       quantityOf: (id) => lines.find((l) => l.menuItemId === id)?.quantity ?? 0,
-      add: (id) => setQuantity(id, (lines.find((l) => l.menuItemId === id)?.quantity ?? 0) + 1),
+      add: (id) => {
+        tapFeedback();
+        setQuantity(id, (lines.find((l) => l.menuItemId === id)?.quantity ?? 0) + 1);
+      },
       setQuantity,
       setNote: (id, note) => setLines((prev) => prev.map((l) => (l.menuItemId === id ? { ...l, note: note.slice(0, 120) } : l))),
       remove: (id) => setLines((prev) => prev.filter((l) => l.menuItemId !== id)),

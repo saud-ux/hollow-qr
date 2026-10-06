@@ -22,6 +22,7 @@ import type {
   CreateStaffParams,
   CreateStaffResult,
   DashboardStatsRow,
+  DeleteAccountResult,
   ListOrdersParams,
   MenuItemInput,
   OrderRpcResult,
@@ -29,6 +30,7 @@ import type {
   RemoveStaffResult,
   Repository,
 } from "../../src/server/data/repository";
+import { deleteAccountCode } from "../../src/server/data/repository";
 
 type Raw = Record<string, unknown>;
 
@@ -233,6 +235,33 @@ export class PgliteRepository implements Repository {
       since === null ? null : since.toString(),
     ]);
     return res.rows.map((r) => ({ serial: String(r.pass_serial), tag: BigInt(String(r.update_tag)) }));
+  }
+  async registerPushDevice(userId: string, token: string) {
+    await this.db.query(
+      `insert into public.push_devices (token, user_id) values ($1, $2)
+       on conflict (token) do update set user_id = excluded.user_id`,
+      [token, userId],
+    );
+  }
+  async unregisterPushDevice(userId: string, token: string) {
+    await this.db.query("delete from public.push_devices where token = $1 and user_id = $2", [token, userId]);
+  }
+  async pushTokensForOrder(orderId: string) {
+    const res = await this.db.query<Raw>(
+      `select d.token from public.push_devices d join public.orders o on o.customer_id = d.user_id where o.id = $1 limit 20`,
+      [orderId],
+    );
+    return res.rows.map((r) => String(r.token));
+  }
+  async deletePushToken(token: string) {
+    await this.db.query("delete from public.push_devices where token = $1", [token]);
+  }
+  async deleteCustomerAccount(userId: string): Promise<DeleteAccountResult> {
+    const r = await this.one("select public.delete_customer_account($1) as result", [userId]);
+    const result = r!.result as { ok: boolean; code?: string };
+    if (!result.ok) return { ok: false, code: deleteAccountCode(result.code) };
+    await this.db.query("update auth.users set email = $2 where id = $1", [userId, `deleted-${userId}@deleted.invalid`]);
+    return { ok: true };
   }
   async walletPushTargets(serial: string) {
     const res = await this.db.query<Raw>(
