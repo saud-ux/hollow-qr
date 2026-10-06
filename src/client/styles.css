@@ -293,7 +293,8 @@ select {
 .customer {
   max-width: 520px;
   margin: 0 auto;
-  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  /* Clear the notch / Dynamic Island in the iOS app and in Safari home-screen mode. */
+  padding: calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
