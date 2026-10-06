@@ -4,7 +4,9 @@
  */
 import { Capacitor, registerPlugin } from "@capacitor/core";
 
-export const isNative = Capacitor.isNativePlatform();
+// `?app` previews the app mode in a desktop browser during development only.
+const devPreview = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("app");
+export const isNative = Capacitor.isNativePlatform() || devPreview;
 
 /** The Worker the app talks to. The website uses relative /api paths. */
 const NATIVE_API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "https://hollow-rewards.hollowzulfi.workers.dev";
@@ -106,13 +108,7 @@ export function currentPushToken(): string | null {
   return isNative ? storedPushToken() : null;
 }
 
-export async function initNativeShell(): Promise<void> {
+export function initNativeShell(): void {
   if (!isNative) return;
   document.documentElement.classList.add("native");
-  try {
-    const { StatusBar, Style } = await import("@capacitor/status-bar");
-    await StatusBar.setStyle({ style: Style.Light });
-  } catch {
-    // not fatal
-  }
 }

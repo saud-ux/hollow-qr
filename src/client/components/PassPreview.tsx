@@ -1,6 +1,7 @@
 import { MAX_STAMPS, QR_CAPTION } from "../../shared/constants";
 import { cupsLabel } from "../../shared/format";
 import type { CustomerCard } from "../../shared/types";
+import { CupStrip } from "./CupStrip";
 import { QrCode } from "./QrCode";
 
 /**
@@ -23,7 +24,11 @@ export function PassPreview({ card }: { card: CustomerCard }) {
           </span>
         </div>
       </div>
-      <img src={`/wallet-preview/${strip}.png`} alt="" className="pass__strip" />
+      {cancelled ? (
+        <img src={`/wallet-preview/${strip}.png`} alt="" className="pass__strip" />
+      ) : (
+        <CupStrip count={card.stampCount} memberId={card.memberId} stamp="all" className="pass__strip" />
+      )}
       <div className="pass__fields">
         <div className="pass__field">
           <span className="pass__label" dir="ltr">HOLLOW REWARDS</span>

@@ -6,6 +6,8 @@ import type { CustomerCard } from "../../shared/types";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { Wordmark } from "./Brand";
+import { CupStrip } from "./CupStrip";
+import { ThemeToggle } from "./ThemeToggle";
 
 /**
  * Ordering screens share the look of the Wallet card: a cream header with the
@@ -20,14 +22,17 @@ export function ShopLayout({ children, bottom }: { children: ReactNode; bottom?:
         <Link to="/menu" className="shop__brand" aria-label="HOLLOW، المنيو">
           <Wordmark />
         </Link>
-        {card && card.membershipStatus === "active" && (
-          <Link to="/wallet" className="shop__cups" dir="ltr" aria-label={`${card.stampCount} من ${MAX_STAMPS} أكواب`}>
-            <span className="pass-label">CUPS</span>
-            <span className="shop__cups-value">
-              {card.stampCount} / {MAX_STAMPS}
-            </span>
-          </Link>
-        )}
+        <div className="shop__header-end">
+          {card && card.membershipStatus === "active" && (
+            <Link to="/wallet" className="shop__cups" dir="ltr" aria-label={`${card.stampCount} من ${MAX_STAMPS} أكواب`}>
+              <span className="pass-label">CUPS</span>
+              <span className="shop__cups-value">
+                {card.stampCount} / {MAX_STAMPS}
+              </span>
+            </Link>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
       <main className="shop__main">{children}</main>
       <div className="shop__dock">
@@ -79,7 +84,7 @@ export function LoyaltyBand({ card }: { card: CustomerCard | null }) {
   const remaining = MAX_STAMPS - card.stampCount;
   return (
     <Link to="/wallet" className="band band--link">
-      <img src={`/wallet-preview/strip-${Math.min(card.stampCount, MAX_STAMPS)}.png`} alt="" className="band__strip" />
+      <CupStrip count={card.stampCount} memberId={card.memberId} stamp="new" className="band__strip" />
       <span className="band__caption">
         <span className="pass-label pass-label--light">المكافأة</span>
         <span className={card.rewardAvailable ? "band__reward" : undefined}>
@@ -103,7 +108,7 @@ export function ItemImage({ item, className = "" }: { item: Pick<MenuItem, "imag
       {item.category === "drink" ? (
         <img src="/wallet-preview/cup-filled.png" alt="" className="item-img__cup" />
       ) : (
-        <img src="/brand/wordmark-cream.png" alt="" className="item-img__mark" />
+        <img src="/brand/wordmark-espresso.png" alt="" className="item-img__mark" />
       )}
     </span>
   );

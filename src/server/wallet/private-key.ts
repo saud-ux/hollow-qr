@@ -132,7 +132,15 @@ export async function importPassPrivateKey(bytes: Uint8Array<ArrayBuffer>, passp
         return await importPkcs8(wrapPkcs1(block.der));
       case "ENCRYPTED PRIVATE KEY":
         if (!passphrase) throw new SigningMaterialError("APPLE_PASS_PRIVATE_KEY_PASSPHRASE is required for an encrypted key");
-        return await importPkcs8(await decryptPbes2(block.der, passphrase));
+        {
+          const decrypted = await decryptPbes2(block.der, passphrase);
+          try {
+            return await importPkcs8(decrypted);
+          } catch {
+            // A wrong passphrase occasionally yields valid padding but garbage bytes.
+            throw new SigningMaterialError("could not decrypt the private key (wrong APPLE_PASS_PRIVATE_KEY_PASSPHRASE?)");
+          }
+        }
       default:
         throw new SigningMaterialError(`unsupported private key type: ${block.label}`);
     }

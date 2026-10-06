@@ -10,6 +10,13 @@ import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { isAppleMobile } from "../../lib/hooks";
 import { addPassNatively, isNative, successFeedback } from "../../lib/native";
+import { getThemeChoice, setThemeChoice, type ThemeChoice } from "../../lib/theme";
+
+const THEMES: { value: ThemeChoice; label: string }[] = [
+  { value: "system", label: "تلقائي" },
+  { value: "light", label: "فاتح" },
+  { value: "dark", label: "داكن" },
+];
 
 export function WalletPage() {
   const { session, loading, me, meError, refreshMe, signOut } = useAuth();
@@ -22,6 +29,7 @@ export function WalletPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [theme, setTheme] = useState<ThemeChoice>(getThemeChoice);
 
   // Keep the preview fresh after staff updates (on focus / every 30 s).
   useEffect(() => {
@@ -107,9 +115,11 @@ export function WalletPage() {
               <p>{card.walletMode === "production" && card.walletReady ? "أضفها الآن إلى Apple Wallet" : "اعرض رمز QR للموظف عند الدفع"}</p>
             </section>
           )}
-          {!welcome && <h1 className="page-title">بطاقتي {card.displayName}</h1>}
+          {!welcome && <h1 className="page-title">بطاقتي</h1>}
 
           {card.membershipStatus === "cancelled" && <Alert tone="error">عضويتك غير نشطة حاليًا. تواصل مع HOLLOW للمساعدة.</Alert>}
+
+          <PassPreview card={card} />
 
           {card.walletMode === "production" && card.walletReady && (
             <div className="wallet-actions">
@@ -119,24 +129,50 @@ export function WalletPage() {
               {walletError && <Alert tone="error">{walletError}</Alert>}
             </div>
           )}
-
-          <PassPreview card={card} />
           <p className="muted small center">اعرض رمز QR للموظف عند الدفع.</p>
         </>
       )}
-      <div className="center">
-        <button type="button" className="btn btn--ghost" onClick={() => void signOut()}>
+      <nav className="settings" aria-label="الحساب">
+        {isNative && (
+          <div className="settings__row settings__row--theme">
+            المظهر
+            <div className="theme-switch" role="radiogroup" aria-label="المظهر">
+              {THEMES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === t.value}
+                  className={`theme-switch__opt ${theme === t.value ? "is-on" : ""}`}
+                  onClick={() => {
+                    setThemeChoice(t.value);
+                    setTheme(t.value);
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <Link to="/support" className="settings__row">
+          الدعم والمساعدة
+          <ChevronIcon />
+        </Link>
+        <Link to="/privacy" className="settings__row">
+          سياسة الخصوصية
+          <ChevronIcon />
+        </Link>
+        <button type="button" className="settings__row" onClick={() => void signOut()}>
           تسجيل الخروج
         </button>
-      </div>
-      {me?.user.role === "customer" && (
-        <div className="danger-zone">
-          <button type="button" className="btn btn--ghost btn--small btn--danger-text" onClick={() => setDeleteOpen(true)}>
+        {me?.user.role === "customer" && (
+          <button type="button" className="settings__row settings__row--danger" onClick={() => setDeleteOpen(true)}>
             حذف الحساب
           </button>
-          {deleteError && <Alert tone="error">{deleteError}</Alert>}
-        </div>
-      )}
+        )}
+      </nav>
+      {deleteError && <Alert tone="error">{deleteError}</Alert>}
       <ConfirmDialog
         open={deleteOpen}
         title="حذف حسابك نهائيًا؟"
@@ -152,5 +188,13 @@ export function WalletPage() {
         onCancel={() => setDeleteOpen(false)}
       />
     </CustomerLayout>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m15 6-6 6 6 6" />
+    </svg>
   );
 }

@@ -314,7 +314,7 @@ function OrderTicket({
         </span>
       </header>
 
-      {arrived && <div className="ticket-card__arrived">العميل وصل عند المقهى!</div>}
+      {arrived && <div className="ticket-card__arrived">العميل وصل عند الكوفي!</div>}
 
       <ul className="ticket-card__items">
         {o.items.map((line, i) => (

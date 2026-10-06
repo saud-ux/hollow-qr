@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, Navigate, useParams } from "react-router";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { FULFILLMENT_LABELS_AR, isActiveStatus, STATUS_LABELS_AR, type Order, type OrderStatus } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
 import { Alert, Spinner } from "../../components/Field";
 import { ShopLayout } from "../../components/Shop";
 import { apiGet, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { useCart } from "../../lib/cart";
 import { formatDateTime } from "../../lib/dates";
 import { riyals } from "../../lib/menu";
+import { animateTracker } from "../../lib/motion";
 
 const POLL_MS = 8_000;
 
@@ -26,21 +28,21 @@ function steps(order: Order): { status: OrderStatus; label: string }[] {
 function headline(order: Order): string {
   switch (order.status) {
     case "new":
-      return "وصل طلبك للمقهى، بننتظر تأكيده";
+      return "وصل طلبك للكوفي، بننتظر تأكيده";
     case "preparing":
       return "نحضّر طلبك الآن";
     case "ready":
       return order.fulfillment === "pickup"
         ? "طلبك جاهز، استلمه من الكاشير"
         : order.fulfillment === "curbside"
-          ? "طلبك جاهز، اضغط «وصلت» إذا كنت عند المقهى"
+          ? "طلبك جاهز، اضغط «وصلت» إذا كنت عند الكوفي"
           : "طلبك جاهز وبيطلع مع المندوب";
     case "out_for_delivery":
       return "المندوب في الطريق إليك";
     case "completed":
       return "بالعافية! تم تسليم طلبك";
     case "cancelled":
-      return order.cancelledBy === "customer" ? "ألغيت هذا الطلب" : "تم إلغاء الطلب من المقهى";
+      return order.cancelledBy === "customer" ? "ألغيت هذا الطلب" : "تم إلغاء الطلب من الكوفي";
   }
 }
 
@@ -51,6 +53,10 @@ export function OrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const ticketRef = useRef<HTMLElement>(null);
+  const cart = useCart();
+  const navigate = useNavigate();
+  const shownStep = useRef<{ id: string; index: number } | null>(null);
 
   const load = useCallback(
     () =>
@@ -71,6 +77,15 @@ export function OrderPage() {
     if (!session) return;
     void load();
   }, [session, load]);
+
+  // Play the tracker in on first open, then each time the café moves the order on.
+  const stepIndex = order ? steps(order).findIndex((s) => s.status === order.status) : -1;
+  useLayoutEffect(() => {
+    if (!order || stepIndex < 0) return;
+    const prev = shownStep.current?.id === order.id ? shownStep.current.index : -1;
+    shownStep.current = { id: order.id, index: stepIndex };
+    if (prev !== stepIndex) animateTracker(ticketRef.current, prev, stepIndex);
+  }, [order, stepIndex]);
 
   const active = order ? isActiveStatus(order.status) : false;
   useEffect(() => {
@@ -121,8 +136,9 @@ export function OrderPage() {
 
   return (
     <ShopLayout>
-      <section className={`ticket ${cancelled ? "ticket--cancelled" : ""}`} aria-live="polite">
+      <section ref={ticketRef} className={`ticket ${cancelled ? "ticket--cancelled" : ""}`} aria-live="polite">
         <div className="ticket__band">
+          <span className="ticket__sheen" aria-hidden="true" />
           <span className="pass-label pass-label--light">طلب رقم</span>
           <span className="ticket__number" dir="ltr">
             #{order.orderNumber}
@@ -135,7 +151,12 @@ export function OrderPage() {
             {flow.map((s, i) => (
               <li key={s.status} className={`steps__item ${i < currentIndex ? "is-done" : ""} ${i === currentIndex ? "is-current" : ""}`}>
                 <span className="steps__dot" aria-hidden="true" />
-                <span>{s.label}</span>
+                <span className="steps__label">{s.label}</span>
+                {i < flow.length - 1 && (
+                  <span className="steps__line" aria-hidden="true">
+                    <i />
+                  </span>
+                )}
               </li>
             ))}
           </ol>
@@ -155,7 +176,7 @@ export function OrderPage() {
           ) : (
             <>
               <p>
-                <strong>وصلت عند المقهى؟</strong>
+                <strong>وصلت عند الكوفي؟</strong>
                 <small>اضغط الزر ونطلع لك الطلب عند السيارة ({order.carDescription})</small>
               </p>
               <button type="button" className="btn btn--reward btn--block btn--lg" onClick={() => void action("arrived")} disabled={busy}>
@@ -218,6 +239,23 @@ export function OrderPage() {
           إلغاء الطلب
         </button>
       )}
+      {!active && order.items.length > 0 && (
+        <button
+          type="button"
+          className="btn btn--primary btn--block btn--lg reorder-btn"
+          onClick={() => {
+            // Same drinks, same notes; the cart flags anything no longer available.
+            for (const line of order.items) {
+              cart.setQuantity(line.menuItemId, cart.quantityOf(line.menuItemId) + line.quantity);
+              if (line.note) cart.setNote(line.menuItemId, line.note);
+            }
+            void navigate("/cart");
+          }}
+        >
+          <RepeatIcon />
+          اطلب نفس الطلب مرة ثانية
+        </button>
+      )}
       <Link to="/menu" className="btn btn--secondary btn--block">
         طلب جديد
       </Link>
@@ -233,5 +271,16 @@ export function OrderPage() {
         onCancel={() => setConfirmCancel(false)}
       />
     </ShopLayout>
+  );
+}
+
+function RepeatIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 2l3 3-3 3" />
+      <path d="M4 11V9a4 4 0 0 1 4-4h12" />
+      <path d="M7 22l-3-3 3-3" />
+      <path d="M20 13v2a4 4 0 0 1-4 4H4" />
+    </svg>
   );
 }

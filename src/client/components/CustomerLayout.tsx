@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { isNative } from "../lib/native";
 import { TentArt, Wordmark } from "./Brand";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function CustomerLayout({ children, hero = false, dock }: { children: ReactNode; hero?: boolean; dock?: ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export function CustomerLayout({ children, hero = false, dock }: { children: Rea
         <Link to={isNative ? "/menu" : "/"} className="customer__brand" aria-label="HOLLOW Rewards، الصفحة الرئيسية">
           <Wordmark />
         </Link>
+        <ThemeToggle className="customer__theme" />
         {hero && <TentArt className="customer__tent" />}
       </header>
       <main className="customer__main">{children}</main>

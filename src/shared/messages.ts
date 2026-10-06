@@ -30,7 +30,7 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   LINK_EXPIRED: "انتهت صلاحية الرابط، أعد المحاولة",
   EMAIL_EXISTS: "هذا البريد مسجل مسبقًا",
   CONFIG_ERROR: "الخدمة غير مهيأة بالكامل",
-  SHOP_CLOSED: "المقهى لا يستقبل طلبات الآن",
+  SHOP_CLOSED: "الكوفي لا يستقبل طلبات الآن",
   FULFILLMENT_UNAVAILABLE: "طريقة الاستلام هذه غير متاحة حاليًا",
   EMPTY_ORDER: "السلة فارغة",
   ITEM_UNAVAILABLE: "أحد الأصناف في سلتك غير متوفر الآن",

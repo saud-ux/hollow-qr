@@ -180,8 +180,9 @@ export function CartPage() {
       <ShopLayout>
         <h1 className="page-title">السلة</h1>
         <div className="empty">
-          <img src="/wallet-preview/cup-empty.png" alt="" className="empty__cup" />
-          <p>سلتك فارغة</p>
+          <img src="/brand/tent-espresso.png" alt="" className="empty__art" />
+          <h2 className="empty__title">سلتك فارغة</h2>
+          <p className="empty__sub">اختر مشروبك من المنيو ونجهّزه لك.</p>
           <Link to="/menu" className="btn btn--primary">
             تصفّح المنيو
           </Link>
@@ -365,13 +366,15 @@ export function CartPage() {
 
         {formError && <Alert tone="error">{formError}</Alert>}
         {session ? (
-          <button
-            type="submit"
-            className="btn btn--primary btn--block btn--lg"
-            disabled={busy || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum}
-          >
-            {busy ? "جارٍ إرسال الطلب…" : `تأكيد الطلب · ${riyals(total)}`}
-          </button>
+          <div className="checkout__submit">
+            <button
+              type="submit"
+              className="btn btn--primary btn--block btn--lg"
+              disabled={busy || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum}
+            >
+              {busy ? "جارٍ إرسال الطلب…" : `تأكيد الطلب · ${riyals(total)}`}
+            </button>
+          </div>
         ) : (
           <div className="signin-cta">
             <p>سجّل الدخول لإكمال الطلب وجمع أكوابك</p>

@@ -8,10 +8,10 @@ const config: CapacitorConfig = {
   appId: "com.hollowzulfi.coffee",
   appName: "HOLLOW",
   webDir: "dist/client",
-  backgroundColor: "#2b1e16",
+  backgroundColor: "#f4ede0",
   ios: {
     contentInset: "never",
-    backgroundColor: "#2b1e16",
+    backgroundColor: "#f4ede0",
     preferredContentMode: "mobile",
     scheme: "HOLLOW",
   },
@@ -19,7 +19,7 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 700,
       launchAutoHide: true,
-      backgroundColor: "#2b1e16",
+      backgroundColor: "#f4ede0",
       showSpinner: false,
     },
     PushNotifications: {
