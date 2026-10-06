@@ -26,7 +26,7 @@ export function PrivacyPage() {
         </p>
 
         <Section title="من نحن">
-          <p>HOLLOW مقهى في الزلفي. هذه السياسة تشرح البيانات التي نجمعها في موقعنا وتطبيق HOLLOW Coffee، ولماذا، وكيف تحذفها.</p>
+          <p>HOLLOW كوفي في الزلفي. هذه السياسة تشرح البيانات التي نجمعها في موقعنا وتطبيق HOLLOW Coffee، ولماذا، وكيف تحذفها.</p>
         </Section>
         <Section title="البيانات التي نجمعها">
           <ul>

@@ -26,21 +26,21 @@ function steps(order: Order): { status: OrderStatus; label: string }[] {
 function headline(order: Order): string {
   switch (order.status) {
     case "new":
-      return "وصل طلبك للمقهى، بننتظر تأكيده";
+      return "وصل طلبك للكوفي، بننتظر تأكيده";
     case "preparing":
       return "نحضّر طلبك الآن";
     case "ready":
       return order.fulfillment === "pickup"
         ? "طلبك جاهز، استلمه من الكاشير"
         : order.fulfillment === "curbside"
-          ? "طلبك جاهز، اضغط «وصلت» إذا كنت عند المقهى"
+          ? "طلبك جاهز، اضغط «وصلت» إذا كنت عند الكوفي"
           : "طلبك جاهز وبيطلع مع المندوب";
     case "out_for_delivery":
       return "المندوب في الطريق إليك";
     case "completed":
       return "بالعافية! تم تسليم طلبك";
     case "cancelled":
-      return order.cancelledBy === "customer" ? "ألغيت هذا الطلب" : "تم إلغاء الطلب من المقهى";
+      return order.cancelledBy === "customer" ? "ألغيت هذا الطلب" : "تم إلغاء الطلب من الكوفي";
   }
 }
 
@@ -155,7 +155,7 @@ export function OrderPage() {
           ) : (
             <>
               <p>
-                <strong>وصلت عند المقهى؟</strong>
+                <strong>وصلت عند الكوفي؟</strong>
                 <small>اضغط الزر ونطلع لك الطلب عند السيارة ({order.carDescription})</small>
               </p>
               <button type="button" className="btn btn--reward btn--block btn--lg" onClick={() => void action("arrived")} disabled={busy}>
