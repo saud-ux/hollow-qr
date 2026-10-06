@@ -1538,6 +1538,15 @@ select {
 .choice--on small {
   color: #cdb68a;
 }
+.choice--off {
+  cursor: not-allowed;
+  border-style: dashed;
+  background: transparent;
+  color: var(--label);
+}
+.choice--off svg {
+  opacity: 0.4;
+}
 .choice input {
   position: absolute;
   opacity: 0;
