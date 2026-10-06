@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router";
 import { FULFILLMENT_LABELS_AR, isActiveStatus, STATUS_LABELS_AR, type Order, type OrderStatus } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
@@ -8,6 +8,7 @@ import { apiGet, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { formatDateTime } from "../../lib/dates";
 import { riyals } from "../../lib/menu";
+import { animateTracker } from "../../lib/motion";
 
 const POLL_MS = 8_000;
 
@@ -51,6 +52,8 @@ export function OrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const ticketRef = useRef<HTMLElement>(null);
+  const shownStep = useRef<{ id: string; index: number } | null>(null);
 
   const load = useCallback(
     () =>
@@ -71,6 +74,15 @@ export function OrderPage() {
     if (!session) return;
     void load();
   }, [session, load]);
+
+  // Play the tracker in on first open, then each time the café moves the order on.
+  const stepIndex = order ? steps(order).findIndex((s) => s.status === order.status) : -1;
+  useLayoutEffect(() => {
+    if (!order || stepIndex < 0) return;
+    const prev = shownStep.current?.id === order.id ? shownStep.current.index : -1;
+    shownStep.current = { id: order.id, index: stepIndex };
+    if (prev !== stepIndex) animateTracker(ticketRef.current, prev, stepIndex);
+  }, [order, stepIndex]);
 
   const active = order ? isActiveStatus(order.status) : false;
   useEffect(() => {
@@ -121,8 +133,9 @@ export function OrderPage() {
 
   return (
     <ShopLayout>
-      <section className={`ticket ${cancelled ? "ticket--cancelled" : ""}`} aria-live="polite">
+      <section ref={ticketRef} className={`ticket ${cancelled ? "ticket--cancelled" : ""}`} aria-live="polite">
         <div className="ticket__band">
+          <span className="ticket__sheen" aria-hidden="true" />
           <span className="pass-label pass-label--light">طلب رقم</span>
           <span className="ticket__number" dir="ltr">
             #{order.orderNumber}
@@ -135,7 +148,12 @@ export function OrderPage() {
             {flow.map((s, i) => (
               <li key={s.status} className={`steps__item ${i < currentIndex ? "is-done" : ""} ${i === currentIndex ? "is-current" : ""}`}>
                 <span className="steps__dot" aria-hidden="true" />
-                <span>{s.label}</span>
+                <span className="steps__label">{s.label}</span>
+                {i < flow.length - 1 && (
+                  <span className="steps__line" aria-hidden="true">
+                    <i />
+                  </span>
+                )}
               </li>
             ))}
           </ol>

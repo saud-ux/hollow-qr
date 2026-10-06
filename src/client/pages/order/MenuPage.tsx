@@ -1,9 +1,11 @@
+import { useRef } from "react";
 import { Link } from "react-router";
 import { CATEGORY_LABELS_AR, type MenuCategory, type MenuItem, type MenuResponse } from "../../../shared/ordering";
 import { Alert, Spinner } from "../../components/Field";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
+import { flyToCart } from "../../lib/motion";
 import { riyals, useMenu } from "../../lib/menu";
 import { closedNote } from "./hours";
 
@@ -48,8 +50,9 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
   const cart = useCart();
   const qty = cart.quantityOf(item.id);
   const soldOut = !item.isAvailable;
+  const cardRef = useRef<HTMLLIElement>(null);
   return (
-    <li className={`menu-card ${soldOut ? "menu-card--soldout" : ""}`}>
+    <li ref={cardRef} className={`menu-card ${soldOut ? "menu-card--soldout" : ""}`}>
       <ItemImage item={item} className="menu-card__img" />
       <div className="menu-card__body">
         <h3 className="menu-card__name">{item.nameAr}</h3>
@@ -69,7 +72,10 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
             <button
               type="button"
               className="add-btn"
-              onClick={() => cart.add(item.id)}
+              onClick={() => {
+                flyToCart(cardRef.current?.querySelector(".menu-card__img") ?? null);
+                cart.add(item.id);
+              }}
               disabled={!canOrder}
               aria-label={`إضافة ${item.nameAr} إلى السلة`}
             >

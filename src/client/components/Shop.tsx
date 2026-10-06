@@ -6,6 +6,7 @@ import type { CustomerCard } from "../../shared/types";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { Wordmark } from "./Brand";
+import { CupStrip } from "./CupStrip";
 
 /**
  * Ordering screens share the look of the Wallet card: a cream header with the
@@ -79,7 +80,7 @@ export function LoyaltyBand({ card }: { card: CustomerCard | null }) {
   const remaining = MAX_STAMPS - card.stampCount;
   return (
     <Link to="/wallet" className="band band--link">
-      <img src={`/wallet-preview/strip-${Math.min(card.stampCount, MAX_STAMPS)}.png`} alt="" className="band__strip" />
+      <CupStrip count={card.stampCount} memberId={card.memberId} stamp="new" className="band__strip" />
       <span className="band__caption">
         <span className="pass-label pass-label--light">المكافأة</span>
         <span className={card.rewardAvailable ? "band__reward" : undefined}>

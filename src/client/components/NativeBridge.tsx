@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { apiPost } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { initMotion } from "../lib/motion";
 import { initNativePush, initNativeShell, isNative, refreshPushIfAllowed } from "../lib/native";
 
 /** iOS app glue: push registration and notification taps. Renders nothing. */
@@ -17,6 +18,7 @@ export function NativeBridge() {
   useEffect(() => {
     if (!isNative) return;
     void initNativeShell();
+    initMotion();
     void initNativePush({
       register: (token) => {
         if (signedIn.current) void apiPost("/api/me/push-devices", { token }).catch(() => undefined);

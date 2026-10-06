@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { Spinner } from "./components/Field";
 import { NativeBridge } from "./components/NativeBridge";
+import { RouteTransitions } from "./components/RouteTransitions";
 import { StaffGuard } from "./components/StaffGuard";
 import { isNative } from "./lib/native";
 import { ForgotPasswordPage } from "./pages/customer/ForgotPasswordPage";
@@ -38,20 +39,24 @@ export function App() {
 /** The iOS app is for customers: it opens on the menu and has no staff screens. */
 function NativeRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/menu" replace />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/wallet" element={<WalletPage />} />
-      <Route path="/menu" element={<MenuPage />} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/orders" element={<OrdersPage />} />
-      <Route path="/orders/:id" element={<OrderPage />} />
-      <Route path="/privacy" element={<PrivacyPage />} />
-      <Route path="/support" element={<SupportPage />} />
-      <Route path="*" element={<Navigate to="/menu" replace />} />
-    </Routes>
+    <RouteTransitions
+      render={(location) => (
+        <Routes location={location}>
+          <Route path="/" element={<Navigate to="/menu" replace />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/wallet" element={<WalletPage />} />
+          <Route path="/menu" element={<MenuPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/:id" element={<OrderPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="*" element={<Navigate to="/menu" replace />} />
+        </Routes>
+      )}
+    />
   );
 }
 
