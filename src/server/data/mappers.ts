@@ -1,5 +1,5 @@
 /** Row mappers shared by every Repository implementation (snake_case -> camelCase). */
-import type { DayHours, LoyaltyResult, Order, OrderLine, ShopSettings } from "../../shared/ordering";
+import type { DayHours, LoyaltyResult, MenuOption, Order, OrderLine, ShopSettings } from "../../shared/ordering";
 import type { AccountRow, MenuItemRow, ProfileRow, SearchRow, TransactionRow } from "./repository";
 
 type Raw = Record<string, unknown>;
@@ -96,6 +96,20 @@ export function totalFrom(rows: Raw[]): number {
 
 const numOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
 
+function mapOptions(v: unknown): MenuOption[] {
+  const list = Array.isArray(v) ? (v as Raw[]) : (JSON.parse(str(v) || "[]") as Raw[]);
+  return list.map((o) => ({
+    id: str(o.id),
+    nameAr: str(o.name_ar),
+    noteAr: strOrNull(o.note_ar),
+    isAvailable: o.is_available === undefined ? true : Boolean(o.is_available),
+  }));
+}
+
+export function optionsColumn(options: MenuOption[]): Raw[] {
+  return options.map((o) => ({ id: o.id, name_ar: o.nameAr, note_ar: o.noteAr, is_available: o.isAvailable }));
+}
+
 export function mapMenuItem(r: Raw): MenuItemRow {
   return {
     id: str(r.id),
@@ -108,6 +122,8 @@ export function mapMenuItem(r: Raw): MenuItemRow {
     isAvailable: Boolean(r.is_available),
     isArchived: Boolean(r.is_archived),
     sortOrder: num(r.sort_order),
+    optionLabel: strOrNull(r.option_label),
+    options: mapOptions(r.options),
   };
 }
 
@@ -123,6 +139,8 @@ export function menuItemColumns(patch: Partial<MenuItemRow>): Raw {
   if (patch.isAvailable !== undefined) out.is_available = patch.isAvailable;
   if (patch.isArchived !== undefined) out.is_archived = patch.isArchived;
   if (patch.sortOrder !== undefined) out.sort_order = patch.sortOrder;
+  if (patch.optionLabel !== undefined) out.option_label = patch.optionLabel;
+  if (patch.options !== undefined) out.options = optionsColumn(patch.options);
   return out;
 }
 
@@ -163,6 +181,8 @@ function mapOrderLine(r: Raw): OrderLine {
     unitPriceHalalas: num(r.unit_price_halalas),
     quantity: num(r.quantity),
     note: strOrNull(r.note),
+    optionId: strOrNull(r.option_id),
+    optionNameAr: strOrNull(r.option_name_ar),
   };
 }
 

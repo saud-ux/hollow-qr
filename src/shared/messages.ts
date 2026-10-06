@@ -34,6 +34,8 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   FULFILLMENT_UNAVAILABLE: "طريقة الاستلام هذه غير متاحة حاليًا",
   EMPTY_ORDER: "السلة فارغة",
   ITEM_UNAVAILABLE: "أحد الأصناف في سلتك غير متوفر الآن",
+  OPTION_REQUIRED: "اختر المحصول للقهوة المقطرة",
+  OPTION_UNAVAILABLE: "المحصول اللي اخترته خلص، اختر محصولًا ثانيًا",
   TOO_MANY_ITEMS: "عدد الأصناف أكبر من المسموح",
   BELOW_MINIMUM: "قيمة الطلب أقل من الحد الأدنى للتوصيل",
   REWARD_NEEDS_DRINK: "أضف مشروبًا لاستخدام مشروبك المجاني",

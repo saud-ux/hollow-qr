@@ -78,7 +78,7 @@ export function OrdersPage() {
                       <i style={{ width: `${progress(o)}%` }} />
                     </span>
                     <span className="order-live__meta">
-                      <span>{o.items.map((i) => `${i.quantity}× ${i.nameAr}`).join("، ")}</span>
+                      <span>{o.items.map((i) => `${i.quantity}× ${i.nameAr}${i.optionNameAr ? ` (${i.optionNameAr})` : ""}`).join("، ")}</span>
                       <span>{riyals(o.totalHalalas)}</span>
                     </span>
                   </Link>
@@ -102,7 +102,7 @@ export function OrdersPage() {
                       #{o.orderNumber}
                     </span>
                     <span className="order-row__main">
-                      <span className="order-row__items">{o.items.map((i) => `${i.quantity}× ${i.nameAr}`).join("، ")}</span>
+                      <span className="order-row__items">{o.items.map((i) => `${i.quantity}× ${i.nameAr}${i.optionNameAr ? ` (${i.optionNameAr})` : ""}`).join("، ")}</span>
                       <small>{formatDateTime(o.createdAt)}</small>
                     </span>
                     <span className="order-row__side">

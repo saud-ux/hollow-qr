@@ -151,13 +151,13 @@ export class PgliteRepository implements Repository {
     const cols = menuItemColumns(input);
     const keys = Object.keys(cols);
     const r = await this.one(
-      `insert into public.menu_items (${keys.join(", ")}) values (${keys.map((_, i) => `$${i + 1}`).join(", ")}) returning *`,
-      keys.map((k) => cols[k]),
+      `insert into public.menu_items (${keys.join(", ")}) values (${keys.map((k, i) => `$${i + 1}${k === "options" ? "::jsonb" : ""}`).join(", ")}) returning *`,
+      keys.map((k) => (k === "options" ? JSON.stringify(cols[k]) : cols[k])),
     );
     return mapMenuItem(r!);
   }
   async updateMenuItem(id: string, patch: Partial<MenuItemInput> & { imagePath?: string | null }) {
-    const { sql, values } = assignments(menuItemColumns(patch));
+    const { sql, values } = assignments(menuItemColumns(patch), ["options"]);
     if (!sql) return this.getMenuItem(id);
     const r = await this.one(`update public.menu_items set ${sql} where id = $${values.length + 1} returning *`, [...values, id]);
     return r ? mapMenuItem(r) : null;
@@ -187,7 +187,7 @@ export class PgliteRepository implements Repository {
       "select public.place_order($1, $2::jsonb, $3::public.fulfillment_type, $4, $5, $6, $7, $8, $9, $10, $11, $12) as r",
       [
         p.customerId,
-        JSON.stringify(p.items.map((i) => ({ menu_item_id: i.menuItemId, quantity: i.quantity, note: i.note }))),
+        JSON.stringify(p.items.map((i) => ({ menu_item_id: i.menuItemId, quantity: i.quantity, note: i.note, option_id: i.optionId }))),
         p.fulfillment,
         p.phone,
         p.carDescription,

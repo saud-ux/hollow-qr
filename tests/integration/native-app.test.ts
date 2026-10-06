@@ -63,7 +63,7 @@ beforeAll(async () => {
   });
   expect(settings.status).toBe(200);
   const menu = (await (await app.request("/api/menu")).json()) as MenuResponse;
-  drinkId = menu.items.find((i) => i.category === "drink")!.id;
+  drinkId = menu.items.find((i) => i.category === "drink" && i.options.length === 0)!.id;
 });
 
 describe("CORS for the iOS app", () => {

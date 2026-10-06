@@ -322,6 +322,7 @@ function OrderTicket({
             <span className="ticket-card__qty">{line.quantity}</span>
             <span>
               {line.nameAr}
+              {line.optionNameAr && <span className="ticket-card__option">{line.optionNameAr}</span>}
               {line.note && <span className="ticket-card__note">{line.note}</span>}
             </span>
           </li>

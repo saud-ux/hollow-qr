@@ -206,6 +206,7 @@ export function OrderPage() {
             <li key={i}>
               <span>
                 {line.quantity} × {line.nameAr}
+                {line.optionNameAr && <small className="receipt__option">{line.optionNameAr}</small>}
                 {line.note && <small className="receipt__note">{line.note}</small>}
               </span>
               <span>{riyals(line.unitPriceHalalas * line.quantity)}</span>
@@ -246,8 +247,8 @@ export function OrderPage() {
           onClick={() => {
             // Same drinks, same notes; the cart flags anything no longer available.
             for (const line of order.items) {
-              cart.setQuantity(line.menuItemId, cart.quantityOf(line.menuItemId) + line.quantity);
-              if (line.note) cart.setNote(line.menuItemId, line.note);
+              cart.add(line.menuItemId, line.optionId, line.quantity);
+              if (line.note) cart.setNote(line.menuItemId, line.note, line.optionId);
             }
             void navigate("/cart");
           }}

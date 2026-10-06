@@ -5,7 +5,9 @@ import {
   WEEKDAY_LABELS_AR,
   type DayHours,
   type MenuCategory,
+  MAX_MENU_OPTIONS,
   type MenuItem,
+  type MenuOption,
   type ShopSettings,
 } from "../../../shared/ordering";
 import { Dialog } from "../../components/Dialog";
@@ -169,7 +171,11 @@ type Draft = {
   sortOrder: string;
   isAvailable: boolean;
   isArchived: boolean;
+  optionLabel: string;
+  options: MenuOption[];
 };
+
+const newOptionId = () => `opt-${Math.random().toString(36).slice(2, 8)}`;
 
 const emptyDraft = (category: MenuCategory = "drink"): Draft => ({
   id: null,
@@ -181,6 +187,8 @@ const emptyDraft = (category: MenuCategory = "drink"): Draft => ({
   sortOrder: "500",
   isAvailable: true,
   isArchived: false,
+  optionLabel: "",
+  options: [],
 });
 
 function MenuPanel() {
@@ -208,6 +216,16 @@ function MenuPanel() {
     try {
       const { item: updated } = await apiSend<{ item: MenuItem }>("PATCH", `/api/admin/menu/${item.id}`, { isAvailable: !item.isAvailable });
       replace(updated);
+    } catch (err) {
+      setError(errorText(err));
+    }
+  }
+
+  // Turn one origin on or off without opening the editor.
+  async function toggleOption(item: MenuItem, optionId: string) {
+    const options = item.options.map((o) => (o.id === optionId ? { ...o, isAvailable: !o.isAvailable } : o));
+    try {
+      replace((await apiSend<{ item: MenuItem }>("PATCH", `/api/admin/menu/${item.id}`, { options })).item);
     } catch (err) {
       setError(errorText(err));
     }
@@ -244,6 +262,9 @@ function MenuPanel() {
     if (!draft.nameAr.trim()) return setDraftError("اكتب اسم الصنف");
     if (price === null) return setDraftError("اكتب السعر بالأرقام (مثال: 15 أو 15.5)");
     if (!Number.isFinite(sortOrder) || sortOrder < 0) return setDraftError("الترتيب رقم من 0 فأكثر");
+    const options = draft.options
+      .map((o) => ({ ...o, nameAr: o.nameAr.trim(), noteAr: o.noteAr?.trim() || null }))
+      .filter((o) => o.nameAr);
     const body = {
       nameAr: draft.nameAr.trim(),
       nameEn: draft.nameEn.trim() || null,
@@ -253,6 +274,8 @@ function MenuPanel() {
       sortOrder,
       isAvailable: draft.isAvailable,
       isArchived: draft.isArchived,
+      optionLabel: options.length ? draft.optionLabel.trim() || "النوع" : null,
+      options,
     };
     setBusy(true);
     setDraftError(null);
@@ -282,6 +305,8 @@ function MenuPanel() {
       sortOrder: String(i.sortOrder),
       isAvailable: i.isAvailable,
       isArchived: i.isArchived,
+      optionLabel: i.optionLabel ?? "",
+      options: i.options,
     });
 
   return (
@@ -310,6 +335,7 @@ function MenuPanel() {
                     onEdit={() => edit(i)}
                     onUpload={(f) => void upload(i, f)}
                     onRemoveImage={() => void removeImage(i)}
+                    onToggleOption={(id) => void toggleOption(i, id)}
                   />
                 ))}
               </ul>
@@ -323,7 +349,16 @@ function MenuPanel() {
             {items
               .filter((i) => i.isArchived)
               .map((i) => (
-                <MenuRow key={i.id} item={i} uploading={false} onToggle={() => void quickToggle(i)} onEdit={() => edit(i)} onUpload={(f) => void upload(i, f)} onRemoveImage={() => void removeImage(i)} />
+                <MenuRow
+                  key={i.id}
+                  item={i}
+                  uploading={false}
+                  onToggle={() => void quickToggle(i)}
+                  onEdit={() => edit(i)}
+                  onUpload={(f) => void upload(i, f)}
+                  onRemoveImage={() => void removeImage(i)}
+                  onToggleOption={(id) => void toggleOption(i, id)}
+                />
               ))}
           </ul>
         </details>
@@ -351,6 +386,65 @@ function MenuPanel() {
             <Field label="الترتيب" inputMode="numeric" dir="ltr" value={draft.sortOrder} onChange={(e) => setDraft({ ...draft, sortOrder: e.target.value })} hint="الأصغر يظهر أولًا" />
             <Toggle label="متوفر للطلب" checked={draft.isAvailable} onChange={(v) => setDraft({ ...draft, isAvailable: v })} />
             {draft.id && <Toggle label="إخفاء من المنيو" checked={draft.isArchived} onChange={(v) => setDraft({ ...draft, isArchived: v })} />}
+            <fieldset className="options-editor">
+              <legend>خيارات يختار منها العميل (مثل المحصول)</legend>
+              {draft.options.length > 0 && (
+                <Field
+                  label="عنوان الاختيار"
+                  value={draft.optionLabel}
+                  onChange={(e) => setDraft({ ...draft, optionLabel: e.target.value })}
+                  maxLength={40}
+                  placeholder="المحصول"
+                />
+              )}
+              {draft.options.map((o, idx) => (
+                <div key={o.id} className="options-editor__row">
+                  <input
+                    className="options-editor__name"
+                    value={o.nameAr}
+                    onChange={(e) => setDraft({ ...draft, options: draft.options.map((x, j) => (j === idx ? { ...x, nameAr: e.target.value } : x)) })}
+                    placeholder="الاسم، مثل: إثيوبي"
+                    maxLength={40}
+                    aria-label="اسم الخيار"
+                  />
+                  <input
+                    className="options-editor__note"
+                    value={o.noteAr ?? ""}
+                    onChange={(e) => setDraft({ ...draft, options: draft.options.map((x, j) => (j === idx ? { ...x, noteAr: e.target.value } : x)) })}
+                    placeholder="وصف الطعم، مثل: فواكه وأزهار"
+                    maxLength={80}
+                    aria-label="وصف الطعم"
+                  />
+                  <Toggle
+                    label={o.isAvailable ? "متوفر" : "نفد"}
+                    checked={o.isAvailable}
+                    onChange={(v) => setDraft({ ...draft, options: draft.options.map((x, j) => (j === idx ? { ...x, isAvailable: v } : x)) })}
+                  />
+                  <button
+                    type="button"
+                    className="link-btn link-btn--danger"
+                    onClick={() => setDraft({ ...draft, options: draft.options.filter((_, j) => j !== idx) })}
+                  >
+                    حذف
+                  </button>
+                </div>
+              ))}
+              {draft.options.length < MAX_MENU_OPTIONS && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      optionLabel: draft.optionLabel || "المحصول",
+                      options: [...draft.options, { id: newOptionId(), nameAr: "", noteAr: null, isAvailable: true }],
+                    })
+                  }
+                >
+                  + إضافة خيار
+                </button>
+              )}
+            </fieldset>
             {draftError && <Alert tone="error">{draftError}</Alert>}
             <div className="dialog__actions">
               <button type="submit" className="btn btn--primary" disabled={busy}>
@@ -374,6 +468,7 @@ function MenuRow({
   onEdit,
   onUpload,
   onRemoveImage,
+  onToggleOption,
 }: {
   item: MenuItem;
   uploading: boolean;
@@ -381,6 +476,7 @@ function MenuRow({
   onEdit: () => void;
   onUpload: (file: File | undefined) => void;
   onRemoveImage: () => void;
+  onToggleOption: (optionId: string) => void;
 }) {
   return (
     <li className={`admin-menu__row ${item.isAvailable ? "" : "is-off"}`}>
@@ -404,6 +500,22 @@ function MenuRow({
           <button type="button" className="link-btn" onClick={onRemoveImage}>
             حذف الصورة
           </button>
+        )}
+        {item.options.length > 0 && (
+          <div className="admin-origins" aria-label={item.optionLabel ?? "الخيارات"}>
+            {item.options.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                className={`admin-origin ${o.isAvailable ? "" : "is-out"}`}
+                aria-pressed={o.isAvailable}
+                onClick={() => onToggleOption(o.id)}
+                title={o.isAvailable ? "اضغط إذا نفد" : "اضغط إذا توفر"}
+              >
+                {o.nameAr} · {o.isAvailable ? "متوفر" : "نفد"}
+              </button>
+            ))}
+          </div>
         )}
       </div>
       <div className="admin-menu__actions">

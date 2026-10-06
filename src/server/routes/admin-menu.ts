@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { BUSINESS_TIME_ZONE } from "../../shared/constants";
-import { isValidHhMm, MENU_IMAGE_MAX_BYTES } from "../../shared/ordering";
+import { isValidHhMm, MAX_MENU_OPTIONS, MENU_IMAGE_MAX_BYTES } from "../../shared/ordering";
 import { ApiError } from "../http/errors";
 import { repoOf, type HonoEnv } from "../http/context";
 import { rateLimit, requireRole, requireUser } from "../http/middleware";
@@ -30,6 +30,31 @@ const itemFields = {
   isAvailable: z.boolean(),
   isArchived: z.boolean(),
   sortOrder: z.number().int().min(0).max(100_000),
+  optionLabel: z
+    .string()
+    .trim()
+    .max(40)
+    .nullable()
+    .transform((v) => (v ? v : null)),
+  options: z
+    .array(
+      z.object({
+        id: z
+          .string()
+          .trim()
+          .regex(/^[a-z0-9-]{1,40}$/),
+        nameAr: z.string().trim().min(1).max(40),
+        noteAr: z
+          .string()
+          .trim()
+          .max(80)
+          .nullable()
+          .transform((v) => (v ? v : null)),
+        isAvailable: z.boolean(),
+      }),
+    )
+    .max(MAX_MENU_OPTIONS)
+    .refine((list) => new Set(list.map((o) => o.id)).size === list.length, "option ids must be unique"),
 };
 
 const createItemSchema = z.object({
@@ -39,6 +64,8 @@ const createItemSchema = z.object({
   isAvailable: itemFields.isAvailable.optional().default(true),
   isArchived: itemFields.isArchived.optional().default(false),
   sortOrder: itemFields.sortOrder.optional().default(500),
+  optionLabel: itemFields.optionLabel.optional().default(null),
+  options: itemFields.options.optional().default([]),
 });
 const updateItemSchema = z.object(itemFields).partial();
 

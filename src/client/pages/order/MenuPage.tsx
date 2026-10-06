@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { CATEGORY_LABELS_AR, isActiveStatus, STATUS_LABELS_AR, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
+import { CATEGORY_LABELS_AR, isActiveStatus, isOrderable, STATUS_LABELS_AR, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
 import { Alert } from "../../components/Field";
+import { ProductSheet } from "../../components/ProductSheet";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
 import { apiGet } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -132,12 +133,17 @@ function MenuSkeleton() {
 
 function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
   const cart = useCart();
-  const qty = cart.quantityOf(item.id);
-  const soldOut = !item.isAvailable;
+  const hasOptions = item.options.length > 0;
+  const qty = hasOptions ? cart.totalOf(item.id) : cart.quantityOf(item.id);
+  const soldOut = !isOrderable(item);
   const cardRef = useRef<HTMLLIElement>(null);
+  const [open, setOpen] = useState(false);
   return (
     <li ref={cardRef} className={`menu-card ${soldOut ? "menu-card--soldout" : ""}`}>
-      <ItemImage item={item} className="menu-card__img" />
+      <button type="button" className="menu-card__photo" onClick={() => setOpen(true)} aria-label={`عرض ${item.nameAr}`}>
+        <ItemImage item={item} className="menu-card__img" />
+        {hasOptions && <span className="menu-card__tag">{item.options.length} محاصيل</span>}
+      </button>
       <div className="menu-card__body">
         <h3 className="menu-card__name">{item.nameAr}</h3>
         {item.nameEn && (
@@ -150,6 +156,17 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
           <span className="menu-card__price">{riyals(item.priceHalalas)}</span>
           {soldOut ? (
             <span className="badge badge--muted">نفد</span>
+          ) : hasOptions ? (
+            // Choosing an origin happens in the sheet.
+            <button
+              type="button"
+              className="add-btn"
+              onClick={() => setOpen(true)}
+              disabled={!canOrder}
+              aria-label={`اختر ${item.optionLabel ?? "النوع"} وأضف ${item.nameAr}`}
+            >
+              {qty > 0 ? <span className="add-btn__count">{qty}</span> : "+"}
+            </button>
           ) : qty > 0 ? (
             <QtyStepper quantity={qty} onChange={(q) => cart.setQuantity(item.id, q)} label={item.nameAr} />
           ) : (
@@ -168,6 +185,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
           )}
         </div>
       </div>
+      {open && <ProductSheet item={item} canOrder={canOrder} onClose={() => setOpen(false)} />}
     </li>
   );
 }
