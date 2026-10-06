@@ -32,13 +32,31 @@ function syncStatusBar(theme: Resolved) {
     .catch(() => undefined);
 }
 
+const listeners = new Set<(theme: Resolved) => void>();
+
 function apply() {
   const theme = resolved(getThemeChoice());
   document.documentElement.dataset.theme = theme;
   syncStatusBar(theme);
+  listeners.forEach((listener) => listener(theme));
+}
+
+export function currentTheme(): Resolved {
+  return resolved(getThemeChoice());
+}
+
+export function onThemeChange(listener: (theme: Resolved) => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
 export function setThemeChoice(choice: ThemeChoice): void {
+  // Colors cross-fade briefly instead of snapping (skipped with Reduce Motion).
+  const root = document.documentElement;
+  if (root.classList.contains("motion")) {
+    root.classList.add("theme-fade");
+    setTimeout(() => root.classList.remove("theme-fade"), 450);
+  }
   try {
     if (choice === "system") localStorage.removeItem(KEY);
     else localStorage.setItem(KEY, choice);
@@ -56,4 +74,9 @@ export function initTheme(): void {
   media?.addEventListener("change", () => {
     if (getThemeChoice() === "system") apply();
   });
+}
+
+/** The header button: flips between light and dark from whatever is showing now. */
+export function toggleTheme(): void {
+  setThemeChoice(currentTheme() === "dark" ? "light" : "dark");
 }

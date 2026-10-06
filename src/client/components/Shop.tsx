@@ -7,6 +7,7 @@ import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { Wordmark } from "./Brand";
 import { CupStrip } from "./CupStrip";
+import { ThemeToggle } from "./ThemeToggle";
 
 /**
  * Ordering screens share the look of the Wallet card: a cream header with the
@@ -21,14 +22,17 @@ export function ShopLayout({ children, bottom }: { children: ReactNode; bottom?:
         <Link to="/menu" className="shop__brand" aria-label="HOLLOW، المنيو">
           <Wordmark />
         </Link>
-        {card && card.membershipStatus === "active" && (
-          <Link to="/wallet" className="shop__cups" dir="ltr" aria-label={`${card.stampCount} من ${MAX_STAMPS} أكواب`}>
-            <span className="pass-label">CUPS</span>
-            <span className="shop__cups-value">
-              {card.stampCount} / {MAX_STAMPS}
-            </span>
-          </Link>
-        )}
+        <div className="shop__header-end">
+          {card && card.membershipStatus === "active" && (
+            <Link to="/wallet" className="shop__cups" dir="ltr" aria-label={`${card.stampCount} من ${MAX_STAMPS} أكواب`}>
+              <span className="pass-label">CUPS</span>
+              <span className="shop__cups-value">
+                {card.stampCount} / {MAX_STAMPS}
+              </span>
+            </Link>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
       <main className="shop__main">{children}</main>
       <div className="shop__dock">

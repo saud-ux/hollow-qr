@@ -2735,7 +2735,7 @@ html.native[data-theme="dark"] :is(.customer__footer, .tabbar__item) {
 html.native[data-theme="dark"] .steps__item:not(.is-done, .is-current) {
   color: #8f7e70;
 }
-html.native[data-theme="dark"] :is(.shop__header, .tabbar, .menu-card, .sheet, .ticket, .order-row, .menu-chip, .settings) {
+html.native[data-theme="dark"] :is(.shop__header, .tabbar, .menu-card, .sheet, .ticket, .order-row, .menu-chip, .settings, .theme-toggle) {
   border-color: #33271e;
 }
 html.native[data-theme="dark"] .menu-section__title::after {
@@ -2822,4 +2822,39 @@ html.native[data-theme="dark"] .pass {
 .theme-switch__opt.is-on {
   background: var(--paper);
   box-shadow: 0 1px 4px rgb(0 0 0 / 18%);
+}
+
+/* Sun / moon button in the header (app only). */
+.shop__header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.theme-toggle {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #e2d5bf;
+  background: var(--paper);
+  color: var(--espresso);
+  cursor: pointer;
+}
+.customer__header {
+  position: relative;
+}
+.customer__theme {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 0;
+}
+html.theme-fade,
+html.theme-fade * {
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease,
+    border-color 0.35s ease !important;
 }
