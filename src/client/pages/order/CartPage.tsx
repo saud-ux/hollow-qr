@@ -86,9 +86,10 @@ export function CartPage() {
   }, [menu, cart]);
 
   const settings = menu?.shop.settings;
-  const options = (["pickup", "curbside", "delivery"] as FulfillmentType[]).filter((f) =>
-    !settings ? true : f === "pickup" ? settings.pickupEnabled : f === "curbside" ? settings.curbsideEnabled : settings.deliveryEnabled,
-  );
+  const isEnabled = (f: FulfillmentType) =>
+    !settings ? true : f === "pickup" ? settings.pickupEnabled : f === "curbside" ? settings.curbsideEnabled : settings.deliveryEnabled;
+  const allOptions: FulfillmentType[] = ["pickup", "curbside", "delivery"];
+  const options = allOptions.filter(isEnabled);
   // Fall back to the first enabled option if the admin turned one off.
   const fulfillment: FulfillmentType = options.includes(chosen) ? chosen : (options[0] ?? "pickup");
 
@@ -308,19 +309,29 @@ export function CartPage() {
             طريقة الاستلام
           </h2>
           <div className="choice-grid" role="radiogroup" aria-labelledby="fulfillment">
-            {options.map((f) => {
+            {allOptions.map((f) => {
               const Icon = FULFILLMENT_ICONS[f];
+              // A method the café turned off stays visible so customers know it exists.
+              const off = !isEnabled(f);
               return (
-                <label key={f} className={`choice ${fulfillment === f ? "choice--on" : ""}`}>
-                  <input type="radio" name="fulfillment" value={f} checked={fulfillment === f} onChange={() => setFulfillment(f)} />
+                <label key={f} className={`choice ${fulfillment === f && !off ? "choice--on" : ""} ${off ? "choice--off" : ""}`}>
+                  <input
+                    type="radio"
+                    name="fulfillment"
+                    value={f}
+                    checked={fulfillment === f && !off}
+                    disabled={off}
+                    onChange={() => setFulfillment(f)}
+                  />
                   <Icon />
                   <span>{FULFILLMENT_LABELS_AR[f]}</span>
-                  {f === "delivery" && settings && <small>{riyals(settings.deliveryFeeHalalas)}</small>}
+                  {off ? <small>غير متاحة الآن</small> : f === "delivery" && settings && <small>{riyals(settings.deliveryFeeHalalas)}</small>}
                 </label>
               );
             })}
           </div>
-          {fulfillment === "curbside" && (
+          {options.length === 0 && <p className="muted small">الاستلام متوقف مؤقتًا، جرّب بعد شوي</p>}
+          {options.length > 0 && fulfillment === "curbside" && (
             <Field
               label="السيارة"
               value={car}
@@ -331,7 +342,7 @@ export function CartPage() {
               error={errors.car}
             />
           )}
-          {fulfillment === "delivery" && (
+          {options.length > 0 && fulfillment === "delivery" && (
             <div className="delivery-fields">
               <div className={`field ${errors.address ? "field--error" : ""}`}>
                 <label htmlFor="address">عنوان التوصيل</label>
@@ -412,7 +423,7 @@ export function CartPage() {
             <button
               type="submit"
               className="btn btn--primary btn--block btn--lg"
-              disabled={busy || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum}
+              disabled={busy || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
             >
               {busy ? "جارٍ إرسال الطلب…" : `تأكيد الطلب · ${riyals(total)}`}
             </button>
