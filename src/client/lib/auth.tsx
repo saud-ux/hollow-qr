@@ -1,7 +1,8 @@
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { MeResponse } from "../../shared/types";
-import { apiGet, setTokenGetter } from "./api";
+import { apiGet, apiPost, setTokenGetter } from "./api";
+import { currentPushToken } from "./native";
 
 interface AuthState {
   supabase: SupabaseClient;
@@ -78,6 +79,11 @@ export function AuthProvider({ supabase, children }: { supabase: SupabaseClient;
   }, [userId]);
 
   const signOut = useCallback(async () => {
+    // iOS app: stop this device receiving the signed-out user's order updates.
+    const pushToken = currentPushToken();
+    if (pushToken && sessionRef.current) {
+      await apiPost("/api/me/push-devices/remove", { token: pushToken }).catch(() => undefined);
+    }
     await supabase.auth.signOut();
     setMe(null);
   }, [supabase]);

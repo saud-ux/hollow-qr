@@ -11,6 +11,7 @@ import {
 import { Alert, Field, Spinner } from "../../components/Field";
 import { CarIcon, ItemImage, QtyStepper, ScooterIcon, ShopLayout, StoreIcon } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
+import { enablePush, successFeedback } from "../../lib/native";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { newIdempotencyKey } from "../../lib/hooks";
@@ -150,6 +151,10 @@ export function CartPage() {
       if (fulfillment === "curbside") remember(CAR_KEY, car.trim());
       if (fulfillment === "delivery") remember(ADDRESS_KEY, address.trim());
       cart.clear();
+      successFeedback();
+      // iOS app: ask for notifications right after the first order, when
+      // "we'll tell you when it's ready" makes sense.
+      void enablePush().catch(() => undefined);
       void navigate(`/orders/${order.id}`, { replace: true });
     } catch (err) {
       // A rejected order is final for this key; a new attempt gets a new one.

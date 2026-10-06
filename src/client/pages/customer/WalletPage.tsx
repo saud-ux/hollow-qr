@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useSearchParams } from "react-router";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { AddToWalletButton } from "../../components/AddToWalletButton";
 import { CustomerLayout } from "../../components/CustomerLayout";
+import { ConfirmDialog } from "../../components/Dialog";
 import { Alert, Spinner } from "../../components/Field";
 import { PassPreview } from "../../components/PassPreview";
 import { TabBar } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { isAppleMobile } from "../../lib/hooks";
+import { addPassNatively, isNative, successFeedback } from "../../lib/native";
 
 export function WalletPage() {
   const { session, loading, me, meError, refreshMe, signOut } = useAuth();
@@ -15,6 +17,11 @@ export function WalletPage() {
   const welcome = params.get("welcome") === "1";
   const [walletBusy, setWalletBusy] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
+  const [walletNote, setWalletNote] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Keep the preview fresh after staff updates (on focus / every 30 s).
   useEffect(() => {
@@ -39,14 +46,37 @@ export function WalletPage() {
   async function addToWallet() {
     setWalletBusy(true);
     setWalletError(null);
+    setWalletNote(null);
     try {
       const { url } = await apiPost<{ url: string }>("/api/wallet/pass-link");
+      if (isNative) {
+        // The app shows Apple's "Add to Wallet" sheet itself.
+        const result = await addPassNatively(url);
+        if (result.alreadyInWallet) setWalletNote("بطاقتك موجودة في Apple Wallet");
+        else if (result.added) successFeedback();
+        return;
+      }
       // Navigating (not fetch) lets iOS Safari hand the .pkpass to Wallet.
       window.location.href = url;
     } catch (err) {
       setWalletError(errorText(err));
     } finally {
       setWalletBusy(false);
+    }
+  }
+
+  async function deleteAccount() {
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await apiPost("/api/me/delete", { confirm: "DELETE" });
+      setDeleteOpen(false);
+      await signOut().catch(() => undefined);
+      void navigate(isNative ? "/menu" : "/", { replace: true });
+    } catch (err) {
+      setDeleteError(errorText(err));
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -85,6 +115,7 @@ export function WalletPage() {
             <div className="wallet-actions">
               <AddToWalletButton onClick={() => void addToWallet()} busy={walletBusy} />
               {!isAppleMobile() && <p className="muted small">لإضافة البطاقة افتح هذه الصفحة من Safari على iPhone.</p>}
+              {walletNote && <p className="muted small">{walletNote}</p>}
               {walletError && <Alert tone="error">{walletError}</Alert>}
             </div>
           )}
@@ -98,6 +129,28 @@ export function WalletPage() {
           تسجيل الخروج
         </button>
       </div>
+      {me?.user.role === "customer" && (
+        <div className="danger-zone">
+          <button type="button" className="btn btn--ghost btn--small btn--danger-text" onClick={() => setDeleteOpen(true)}>
+            حذف الحساب
+          </button>
+          {deleteError && <Alert tone="error">{deleteError}</Alert>}
+        </div>
+      )}
+      <ConfirmDialog
+        open={deleteOpen}
+        title="حذف حسابك نهائيًا؟"
+        message={
+          <p>
+            نحذف اسمك وبريدك وأرقامك وعناوينك، وتُلغى بطاقة الولاء وما فيها من أكواب ومكافآت. لا يمكن التراجع عن هذا.
+          </p>
+        }
+        confirmLabel="احذف حسابي"
+        tone="danger"
+        busy={deleteBusy}
+        onConfirm={() => void deleteAccount()}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </CustomerLayout>
   );
 }

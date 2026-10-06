@@ -329,6 +329,59 @@ select {
 .hero {
   text-align: center;
 }
+.customer__links {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 6px;
+}
+.customer__links a {
+  color: inherit;
+}
+
+/* Privacy / support pages */
+.info h2 {
+  font-size: 1.05rem;
+  margin: 0 0 8px;
+}
+.info__section {
+  margin-bottom: 12px;
+}
+.info__section p,
+.info__section ul,
+.info__section dl {
+  margin: 0;
+}
+.info__section ul {
+  padding-inline-start: 20px;
+}
+.info__section dt {
+  font-weight: 700;
+  margin-top: 10px;
+}
+.info__section dt:first-child {
+  margin-top: 0;
+}
+.info__section dd {
+  margin: 2px 0 0;
+}
+.info__section a {
+  color: var(--brown);
+  overflow-wrap: anywhere;
+}
+.info__en {
+  margin-top: 32px;
+  text-align: left;
+}
+
+/* Account deletion */
+.danger-zone {
+  margin-top: 28px;
+  text-align: center;
+}
+.btn--danger-text {
+  color: #a1352a;
+}
 .hero__title {
   font-size: 1.6rem;
   margin: 8px 0 4px;

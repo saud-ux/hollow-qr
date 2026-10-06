@@ -1,5 +1,6 @@
 import { errorMessageAr } from "../../shared/messages";
 import type { ApiErrorBody } from "../../shared/types";
+import { apiUrl } from "./native";
 
 export class ApiClientError extends Error {
   constructor(
@@ -27,7 +28,7 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   let res: Response;
   try {
-    res = await fetch(path, { ...init, headers, credentials: "same-origin" });
+    res = await fetch(apiUrl(path), { ...init, headers, credentials: "same-origin" });
   } catch {
     throw new ApiClientError(0, "NETWORK", "تعذّر الاتصال بالخادم، تحقق من الإنترنت");
   }
