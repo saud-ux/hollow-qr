@@ -4,7 +4,7 @@
  * app: the tent and wordmark on cream, or on dark brown in dark mode, so
  * opening the app never flashes a different color.
  *
- *   pnpm app:icons                      # cream HOLLOW wordmark on espresso
+ *   pnpm app:icons                      # the HOLLOW tent in cream on espresso
  *   pnpm app:icons --icon my-icon.png   # use your own square artwork
  *
  * Apple rejects icons with transparency, so the result is always flattened
@@ -28,10 +28,12 @@ function arg(name) {
   return i > 0 ? process.argv[i + 1] : undefined;
 }
 
-async function onEspresso(size, art, artWidth) {
-  const logo = await sharp(art).resize({ width: artWidth }).toBuffer();
-  const composed = await sharp({ create: { width: size, height: size, channels: 3, background: ESPRESSO } })
-    .composite([{ input: logo, gravity: "center" }])
+/** The tent line drawing in cream, centred on espresso (iOS rounds the corners itself). */
+async function tentIcon() {
+  const tent = await sharp(TENT).resize({ width: 780 }).negate({ alpha: false }).tint("#f1e8da").toBuffer();
+  const meta = await sharp(tent).metadata();
+  const composed = await sharp({ create: { width: 1024, height: 1024, channels: 3, background: ESPRESSO } })
+    .composite([{ input: tent, top: Math.round((1024 - meta.height) / 2), left: Math.round((1024 - meta.width) / 2) }])
     .png()
     .toBuffer();
   return sharp(composed).removeAlpha().png();
@@ -40,7 +42,7 @@ async function onEspresso(size, art, artWidth) {
 const custom = arg("icon");
 const icon = custom
   ? sharp(custom).resize(1024, 1024, { fit: "cover" }).flatten({ background: ESPRESSO }).removeAlpha().png()
-  : await onEspresso(1024, WORDMARK, 760);
+  : await tentIcon();
 await icon.toFile(join(ASSETS, "AppIcon.appiconset", "AppIcon-512@2x.png"));
 
 /** Tent above the wordmark, centred in the strip a portrait iPhone shows of the square image. */
@@ -69,4 +71,4 @@ for (const name of ["splash-2732x2732.png", "splash-2732x2732-1.png", "splash-27
   await sharp(lightSplash).toFile(join(ASSETS, "Splash.imageset", name));
   await sharp(darkSplash).toFile(join(ASSETS, "Splash.imageset", name.replace("splash-", "splash-dark-")));
 }
-console.log(`App icon ${custom ? `from ${custom}` : "(wordmark)"} and launch images written.`);
+console.log(`App icon ${custom ? `from ${custom}` : "(tent)"} and launch images written.`);
