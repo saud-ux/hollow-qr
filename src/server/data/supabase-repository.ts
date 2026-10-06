@@ -1,10 +1,16 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Order, OrderStatus, ShopSettings } from "../../shared/ordering";
+import type { Broadcast, NotificationPrefs, Order, OrderStatus, RatingOverview, ShopSettings } from "../../shared/ordering";
 import { MENU_IMAGE_BUCKET } from "../../shared/ordering";
 import {
   mapAccount,
+  mapBroadcast,
   mapMenuItem,
+  mapNotificationPrefs,
   mapOrder,
+  mapOrderSummary,
+  mapRatingOverview,
+  notificationPrefsColumns,
+  rateOrderResult,
   mapProfile,
   mapSearchRow,
   mapShopSettings,
@@ -25,11 +31,14 @@ import type {
   MenuItemInput,
   MenuItemRow,
   OrderRpcResult,
+  OrderSummary,
   PlaceOrderParams,
   ProfileRow,
   PushTarget,
+  RateOrderResult,
   RemoveStaffResult,
   Repository,
+  StaffAlertKind,
 } from "./repository";
 import { deleteAccountCode } from "./repository";
 
@@ -39,7 +48,7 @@ type DbError = { message: string; code?: string } | null;
 type DbResult = { data: unknown; error: DbError; count?: number | null };
 
 const MENU_SELECT =
-  "id, name_ar, name_en, description_ar, category, price_halalas, image_path, is_available, is_archived, sort_order, option_label, options";
+  "id, name_ar, name_en, description_ar, category, price_halalas, image_path, is_available, is_archived, sort_order, option_label, options, calories";
 const SETTINGS_SELECT =
   "ordering_paused, pickup_enabled, curbside_enabled, delivery_enabled, delivery_fee_halalas, delivery_min_order_halalas, weekly_hours";
 
@@ -349,9 +358,104 @@ export class SupabaseRepository implements Repository {
     if (error) throw new RepositoryError("deletePushToken", error);
   }
 
+  async staffPushTokens(kind: StaffAlertKind): Promise<string[]> {
+    const data = await this.rpc("staff_push_tokens", { p_kind: kind });
+    return (Array.isArray(data) ? data : []).map(String);
+  }
+
+  async offerPushTokens(after: string | null, limit: number): Promise<string[]> {
+    const data = await this.rpc("offer_push_tokens", { p_after: after, p_limit: limit });
+    return (Array.isArray(data) ? data : []).map(String);
+  }
+
+  async offerPushCount(): Promise<number> {
+    return Number(await this.rpc("offer_push_count", {}));
+  }
+
+  async getNotificationPrefs(userId: string): Promise<NotificationPrefs> {
+    const { data, error } = (await this.db
+      .from("notification_prefs")
+      .select("offers, new_orders, daily_summary")
+      .eq("user_id", userId)
+      .maybeSingle()) as DbResult;
+    if (error) throw new RepositoryError("getNotificationPrefs", error);
+    return mapNotificationPrefs(data as Raw | null);
+  }
+
+  async setNotificationPrefs(userId: string, patch: Partial<NotificationPrefs>): Promise<NotificationPrefs> {
+    const merged = { ...(await this.getNotificationPrefs(userId)), ...patch };
+    const { data, error } = (await this.db
+      .from("notification_prefs")
+      .upsert({ user_id: userId, ...notificationPrefsColumns(merged) }, { onConflict: "user_id" })
+      .select("offers, new_orders, daily_summary")
+      .single()) as DbResult;
+    if (error) throw new RepositoryError("setNotificationPrefs", error);
+    return mapNotificationPrefs(data as Raw);
+  }
+
+  async createBroadcast(input: { title: string; body: string; sentBy: string; recipients: number }): Promise<Broadcast> {
+    const { data, error } = (await this.db
+      .from("push_broadcasts")
+      .insert({ title: input.title, body: input.body, sent_by: input.sentBy, recipients: input.recipients })
+      .select("id, title, body, recipients, sent, created_at")
+      .single()) as DbResult;
+    if (error) throw new RepositoryError("createBroadcast", error);
+    return mapBroadcast(data as Raw);
+  }
+
+  async getBroadcast(id: string): Promise<Broadcast | null> {
+    const { data, error } = (await this.db
+      .from("push_broadcasts")
+      .select("id, title, body, recipients, sent, created_at")
+      .eq("id", id)
+      .maybeSingle()) as DbResult;
+    if (error) throw new RepositoryError("getBroadcast", error);
+    return data ? mapBroadcast(data as Raw) : null;
+  }
+
+  async setBroadcastSent(id: string, sent: number): Promise<void> {
+    const { error } = (await this.db.from("push_broadcasts").update({ sent }).eq("id", id)) as DbResult;
+    if (error) throw new RepositoryError("setBroadcastSent", error);
+  }
+
+  async listBroadcasts(limit: number): Promise<Broadcast[]> {
+    const { data, error } = (await this.db
+      .from("push_broadcasts")
+      .select("id, title, body, recipients, sent, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit)) as DbResult;
+    if (error) throw new RepositoryError("listBroadcasts", error);
+    return ((data ?? []) as Raw[]).map(mapBroadcast);
+  }
+
+  async rateOrder(customerId: string, orderId: string, rating: number, comment: string | null): Promise<RateOrderResult> {
+    const result = (await this.rpc("rate_order", {
+      p_customer_id: customerId,
+      p_order_id: orderId,
+      p_rating: rating,
+      p_comment: comment,
+    })) as { ok: boolean; code?: string };
+    return rateOrderResult(result);
+  }
+
+  async ratingOverview(limit: number): Promise<RatingOverview> {
+    return mapRatingOverview((await this.rpc("rating_overview", { p_limit: limit })) as Raw);
+  }
+
+  async orderSummary(from: Date, to: Date): Promise<OrderSummary> {
+    return mapOrderSummary((await this.rpc("order_summary", { p_from: from.toISOString(), p_to: to.toISOString() })) as Raw);
+  }
+
+  async claimDailySummary(businessDate: string): Promise<boolean> {
+    return Boolean(await this.rpc("claim_daily_summary", { p_date: businessDate }));
+  }
+
   async deleteCustomerAccount(userId: string): Promise<DeleteAccountResult> {
     const result = (await this.rpc("delete_customer_account", { p_user_id: userId })) as { ok: boolean; code?: string };
     if (!result.ok) return { ok: false, code: deleteAccountCode(result.code) };
+    // Rating comments are free text: drop them with the rest of the personal data.
+    const comments = (await this.db.from("orders").update({ rating_comment: null }).eq("customer_id", userId)) as DbResult;
+    if (comments.error) throw new RepositoryError("deleteCustomerAccount:ratings", comments.error);
     // Free the email for a future sign-up and block sign-in for good. The
     // profile is already disabled, so the API refuses this user either way.
     const { error } = await this.db.auth.admin.updateUserById(userId, {

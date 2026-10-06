@@ -5,8 +5,14 @@
 import type { PGlite } from "@electric-sql/pglite";
 import {
   mapAccount,
+  mapBroadcast,
   mapMenuItem,
+  mapNotificationPrefs,
   mapOrder,
+  mapOrderSummary,
+  mapRatingOverview,
+  notificationPrefsColumns,
+  rateOrderResult,
   mapProfile,
   mapSearchRow,
   mapShopSettings,
@@ -15,7 +21,7 @@ import {
   shopSettingsColumns,
   totalFrom,
 } from "../../src/server/data/mappers";
-import type { OrderStatus, ShopSettings } from "../../src/shared/ordering";
+import type { NotificationPrefs, OrderStatus, ShopSettings } from "../../src/shared/ordering";
 import type {
   ApplyActionParams,
   ApplyActionResult,
@@ -29,6 +35,7 @@ import type {
   PlaceOrderParams,
   RemoveStaffResult,
   Repository,
+  StaffAlertKind,
 } from "../../src/server/data/repository";
 import { deleteAccountCode } from "../../src/server/data/repository";
 
@@ -256,10 +263,68 @@ export class PgliteRepository implements Repository {
   async deletePushToken(token: string) {
     await this.db.query("delete from public.push_devices where token = $1", [token]);
   }
+  async staffPushTokens(kind: StaffAlertKind) {
+    const res = await this.db.query<Raw>("select token from public.staff_push_tokens($1) as token", [kind]);
+    return res.rows.map((r) => String(r.token));
+  }
+  async offerPushTokens(after: string | null, limit: number) {
+    const res = await this.db.query<Raw>("select token from public.offer_push_tokens($1, $2) as token", [after, limit]);
+    return res.rows.map((r) => String(r.token));
+  }
+  async offerPushCount() {
+    return Number((await this.one("select public.offer_push_count() as n", []))!.n);
+  }
+  async getNotificationPrefs(userId: string) {
+    return mapNotificationPrefs(await this.one("select * from public.notification_prefs where user_id = $1", [userId]));
+  }
+  async setNotificationPrefs(userId: string, patch: Partial<NotificationPrefs>) {
+    const cols = notificationPrefsColumns({ ...(await this.getNotificationPrefs(userId)), ...patch });
+    const r = await this.one(
+      `insert into public.notification_prefs (user_id, offers, new_orders, daily_summary) values ($1, $2, $3, $4)
+       on conflict (user_id) do update set offers = excluded.offers, new_orders = excluded.new_orders, daily_summary = excluded.daily_summary
+       returning *`,
+      [userId, cols.offers, cols.new_orders, cols.daily_summary],
+    );
+    return mapNotificationPrefs(r);
+  }
+  async createBroadcast(input: { title: string; body: string; sentBy: string; recipients: number }) {
+    const r = await this.one("insert into public.push_broadcasts (title, body, sent_by, recipients) values ($1, $2, $3, $4) returning *", [
+      input.title,
+      input.body,
+      input.sentBy,
+      input.recipients,
+    ]);
+    return mapBroadcast(r!);
+  }
+  async getBroadcast(id: string) {
+    const r = await this.one("select * from public.push_broadcasts where id = $1", [id]);
+    return r ? mapBroadcast(r) : null;
+  }
+  async setBroadcastSent(id: string, sent: number) {
+    await this.db.query("update public.push_broadcasts set sent = $2 where id = $1", [id, sent]);
+  }
+  async listBroadcasts(limit: number) {
+    const res = await this.db.query<Raw>("select * from public.push_broadcasts order by created_at desc limit $1", [limit]);
+    return res.rows.map(mapBroadcast);
+  }
+  async rateOrder(customerId: string, orderId: string, rating: number, comment: string | null) {
+    const r = await this.one("select public.rate_order($1, $2, $3, $4) as result", [customerId, orderId, rating, comment]);
+    return rateOrderResult(r!.result as { ok: boolean; code?: string });
+  }
+  async ratingOverview(limit: number) {
+    return mapRatingOverview((await this.one("select public.rating_overview($1) as result", [limit]))!.result as Raw);
+  }
+  async orderSummary(from: Date, to: Date) {
+    return mapOrderSummary((await this.one("select public.order_summary($1, $2) as result", [from.toISOString(), to.toISOString()]))!.result as Raw);
+  }
+  async claimDailySummary(businessDate: string) {
+    return Boolean((await this.one("select public.claim_daily_summary($1) as claimed", [businessDate]))!.claimed);
+  }
   async deleteCustomerAccount(userId: string): Promise<DeleteAccountResult> {
     const r = await this.one("select public.delete_customer_account($1) as result", [userId]);
     const result = r!.result as { ok: boolean; code?: string };
     if (!result.ok) return { ok: false, code: deleteAccountCode(result.code) };
+    await this.db.query("update public.orders set rating_comment = null where customer_id = $1", [userId]);
     await this.db.query("update auth.users set email = $2 where id = $1", [userId, `deleted-${userId}@deleted.invalid`]);
     return { ok: true };
   }
