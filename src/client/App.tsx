@@ -8,8 +8,14 @@ import { QrLandingPage } from "./pages/customer/QrLandingPage";
 import { RegisterPage } from "./pages/customer/RegisterPage";
 import { ResetPasswordPage } from "./pages/customer/ResetPasswordPage";
 import { WalletPage } from "./pages/customer/WalletPage";
+import { CartPage } from "./pages/order/CartPage";
+import { MenuPage } from "./pages/order/MenuPage";
+import { OrderPage } from "./pages/order/OrderPage";
+import { OrdersPage } from "./pages/order/OrdersPage";
 
 // Staff screens (QR scanner etc.) are code-split so customers never download them.
+const AdminMenuPage = lazy(() => import("./pages/staff/AdminMenuPage").then((m) => ({ default: m.AdminMenuPage })));
+const StaffOrdersPage = lazy(() => import("./pages/staff/StaffOrdersPage").then((m) => ({ default: m.StaffOrdersPage })));
 const AdminPage = lazy(() => import("./pages/staff/AdminPage").then((m) => ({ default: m.AdminPage })));
 const CustomerPage = lazy(() => import("./pages/staff/CustomerPage").then((m) => ({ default: m.CustomerPage })));
 const StaffHomePage = lazy(() => import("./pages/staff/StaffHomePage").then((m) => ({ default: m.StaffHomePage })));
@@ -26,6 +32,10 @@ export function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/menu" element={<MenuPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/orders/:id" element={<OrderPage />} />
         <Route path="/c/:token" element={<QrLandingPage />} />
         <Route path="/staff/login" element={<StaffLoginPage />} />
         <Route
@@ -41,6 +51,22 @@ export function App() {
           element={
             <StaffGuard>
               <CustomerPage />
+            </StaffGuard>
+          }
+        />
+        <Route
+          path="/staff/orders"
+          element={
+            <StaffGuard>
+              <StaffOrdersPage />
+            </StaffGuard>
+          }
+        />
+        <Route
+          path="/staff/admin/menu"
+          element={
+            <StaffGuard adminOnly>
+              <AdminMenuPage />
             </StaffGuard>
           }
         />

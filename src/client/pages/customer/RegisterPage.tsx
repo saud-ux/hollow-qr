@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { normalizeEmail } from "../../../shared/format";
 import { CustomerLayout } from "../../components/CustomerLayout";
 import { Alert, Field } from "../../components/Field";
@@ -7,6 +7,7 @@ import { Turnstile } from "../../components/Turnstile";
 import { useAuth } from "../../lib/auth";
 import { useCaptcha } from "../../lib/captcha";
 import { useConfig } from "../../lib/config";
+import { safeNext, withNext } from "../../lib/next";
 import { authErrorAr, validateConfirm, validateEmail, validateName, validatePassword } from "../../lib/validation";
 
 type Errors = Partial<Record<"name" | "email" | "password" | "confirm", string | null>>;
@@ -16,6 +17,10 @@ export function RegisterPage() {
   const config = useConfig();
   const navigate = useNavigate();
   const captcha = useCaptcha();
+  const [params] = useSearchParams();
+  // After signing up from the cart, go back to finish the order.
+  const after = safeNext(params, "/wallet?welcome=1");
+  const loginLink = params.has("next") ? withNext("/login", after) : "/login";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +31,7 @@ export function RegisterPage() {
   const [checkEmail, setCheckEmail] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  if (session && !busy) return <Navigate to="/wallet" replace />;
+  if (session && !busy) return <Navigate to={params.has("next") ? after : "/wallet"} replace />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,7 +56,7 @@ export function RegisterPage() {
         password,
         options: {
           data: { display_name: name.trim() },
-          emailRedirectTo: `${config.appUrl}/wallet?welcome=1`,
+          emailRedirectTo: `${config.appUrl}${after}`,
           ...captcha.options,
         },
       });
@@ -71,7 +76,7 @@ export function RegisterPage() {
         setCheckEmail(true);
         return;
       }
-      void navigate("/wallet?welcome=1", { replace: true });
+      void navigate(after, { replace: true });
     } finally {
       setBusy(false);
       captcha.reset();
@@ -84,7 +89,7 @@ export function RegisterPage() {
         <section className="card center">
           <h1>تم إنشاء بطاقتك بنجاح</h1>
           <p>أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتح الرابط لتفعيل حسابك ثم أضف بطاقتك إلى Apple Wallet.</p>
-          <Link to="/login" className="btn btn--secondary">
+          <Link to={loginLink} className="btn btn--secondary">
             تسجيل الدخول
           </Link>
         </section>
@@ -138,7 +143,7 @@ export function RegisterPage() {
         {captcha.enabled && <Turnstile siteKey={captcha.siteKey} onToken={captcha.setToken} resetKey={captcha.resetKey} />}
         {existing && (
           <Alert tone="warning">
-            هذا البريد مسجل مسبقًا. <Link to="/login">سجّل الدخول</Link> للوصول إلى بطاقتك، أو{" "}
+            هذا البريد مسجل مسبقًا. <Link to={loginLink}>سجّل الدخول</Link> للوصول إلى بطاقتك، أو{" "}
             <Link to="/forgot-password">استعد كلمة المرور</Link>.
           </Alert>
         )}
@@ -147,7 +152,7 @@ export function RegisterPage() {
           {busy ? "جارٍ الإنشاء…" : "انضم الآن"}
         </button>
         <p className="form__alt">
-          لديك حساب؟ <Link to="/login">تسجيل الدخول</Link>
+          لديك حساب؟ <Link to={loginLink}>تسجيل الدخول</Link>
         </p>
       </form>
     </CustomerLayout>

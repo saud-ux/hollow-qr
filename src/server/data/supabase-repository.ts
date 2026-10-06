@@ -1,5 +1,18 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { mapAccount, mapProfile, mapSearchRow, mapTransaction, totalFrom } from "./mappers";
+import type { Order, OrderStatus, ShopSettings } from "../../shared/ordering";
+import { MENU_IMAGE_BUCKET } from "../../shared/ordering";
+import {
+  mapAccount,
+  mapMenuItem,
+  mapOrder,
+  mapProfile,
+  mapSearchRow,
+  mapShopSettings,
+  mapTransaction,
+  menuItemColumns,
+  shopSettingsColumns,
+  totalFrom,
+} from "./mappers";
 import type {
   AccountRow,
   ApplyActionParams,
@@ -7,6 +20,11 @@ import type {
   CreateStaffParams,
   CreateStaffResult,
   DashboardStatsRow,
+  ListOrdersParams,
+  MenuItemInput,
+  MenuItemRow,
+  OrderRpcResult,
+  PlaceOrderParams,
   ProfileRow,
   PushTarget,
   RemoveStaffResult,
@@ -17,6 +35,10 @@ type Raw = Record<string, unknown>;
 type DbError = { message: string; code?: string } | null;
 /** supabase-js returns `any` data for an untyped schema; narrow it explicitly. */
 type DbResult = { data: unknown; error: DbError; count?: number | null };
+
+const MENU_SELECT = "id, name_ar, name_en, description_ar, category, price_halalas, image_path, is_available, is_archived, sort_order";
+const SETTINGS_SELECT =
+  "ordering_paused, pickup_enabled, curbside_enabled, delivery_enabled, delivery_fee_halalas, delivery_min_order_halalas, weekly_hours";
 
 const ACCOUNT_SELECT =
   "id, user_id, member_id, stamp_count, reward_available, membership_status, pass_serial, qr_token_id, wallet_updated_at, last_mutation_at, cancelled_at, created_at, profiles!inner(display_name, email)";
@@ -181,6 +203,120 @@ export class SupabaseRepository implements Repository {
       .is("disabled_at", null)) as DbResult;
     if (error) throw new RepositoryError("removeStaffUser", error);
     return { ok: true };
+  }
+
+  async listMenuItems(includeArchived: boolean): Promise<MenuItemRow[]> {
+    let query = this.db.from("menu_items").select(MENU_SELECT);
+    if (!includeArchived) query = query.eq("is_archived", false);
+    const { data, error } = (await query
+      .order("category", { ascending: true })
+      .order("sort_order", { ascending: true })
+      .order("name_ar", { ascending: true })
+      .limit(500)) as DbResult;
+    if (error) throw new RepositoryError("listMenuItems", error);
+    return ((data ?? []) as Raw[]).map(mapMenuItem);
+  }
+
+  async getMenuItem(id: string): Promise<MenuItemRow | null> {
+    const { data, error } = (await this.db.from("menu_items").select(MENU_SELECT).eq("id", id).maybeSingle()) as DbResult;
+    if (error) throw new RepositoryError("getMenuItem", error);
+    return data ? mapMenuItem(data as Raw) : null;
+  }
+
+  async createMenuItem(input: MenuItemInput): Promise<MenuItemRow> {
+    const { data, error } = (await this.db.from("menu_items").insert(menuItemColumns(input)).select(MENU_SELECT).single()) as DbResult;
+    if (error) throw new RepositoryError("createMenuItem", error);
+    return mapMenuItem(data as Raw);
+  }
+
+  async updateMenuItem(id: string, patch: Partial<MenuItemInput> & { imagePath?: string | null }): Promise<MenuItemRow | null> {
+    const { data, error } = (await this.db
+      .from("menu_items")
+      .update(menuItemColumns(patch))
+      .eq("id", id)
+      .select(MENU_SELECT)
+      .maybeSingle()) as DbResult;
+    if (error) throw new RepositoryError("updateMenuItem", error);
+    return data ? mapMenuItem(data as Raw) : null;
+  }
+
+  async uploadMenuImage(path: string, bytes: Uint8Array, contentType: string): Promise<void> {
+    const { error } = await this.db.storage.from(MENU_IMAGE_BUCKET).upload(path, bytes, {
+      contentType,
+      upsert: false,
+      cacheControl: "31536000",
+    });
+    if (error) throw new RepositoryError("uploadMenuImage", { code: (error as { statusCode?: string }).statusCode });
+  }
+
+  async deleteMenuImage(path: string): Promise<void> {
+    const { error } = await this.db.storage.from(MENU_IMAGE_BUCKET).remove([path]);
+    if (error) throw new RepositoryError("deleteMenuImage", { code: (error as { statusCode?: string }).statusCode });
+  }
+
+  async getShopSettings(): Promise<ShopSettings> {
+    const { data, error } = (await this.db.from("shop_settings").select(SETTINGS_SELECT).eq("id", 1).single()) as DbResult;
+    if (error) throw new RepositoryError("getShopSettings", error);
+    return mapShopSettings(data as Raw);
+  }
+
+  async updateShopSettings(patch: Partial<ShopSettings>): Promise<ShopSettings> {
+    const { data, error } = (await this.db
+      .from("shop_settings")
+      .update(shopSettingsColumns(patch))
+      .eq("id", 1)
+      .select(SETTINGS_SELECT)
+      .single()) as DbResult;
+    if (error) throw new RepositoryError("updateShopSettings", error);
+    return mapShopSettings(data as Raw);
+  }
+
+  async isShopOpen(timeZone: string): Promise<boolean> {
+    return Boolean(await this.rpc("shop_is_open", { p_at: new Date().toISOString(), p_time_zone: timeZone }));
+  }
+
+  async placeOrder(p: PlaceOrderParams): Promise<OrderRpcResult> {
+    const data = await this.rpc("place_order", {
+      p_customer_id: p.customerId,
+      p_items: p.items.map((i) => ({ menu_item_id: i.menuItemId, quantity: i.quantity, note: i.note })),
+      p_fulfillment: p.fulfillment,
+      p_phone: p.phone,
+      p_car_description: p.carDescription,
+      p_delivery_address: p.deliveryAddress,
+      p_delivery_lat: p.deliveryLat,
+      p_delivery_lng: p.deliveryLng,
+      p_note: p.note,
+      p_use_reward: p.useReward,
+      p_idempotency_key: p.idempotencyKey,
+      p_time_zone: p.timeZone,
+    });
+    return data as OrderRpcResult;
+  }
+
+  async setOrderStatus(actorId: string, orderId: string, status: OrderStatus, cancelReason: string | null): Promise<OrderRpcResult> {
+    const data = await this.rpc("set_order_status", {
+      p_actor_id: actorId,
+      p_order_id: orderId,
+      p_status: status,
+      p_cancel_reason: cancelReason,
+    });
+    return data as OrderRpcResult;
+  }
+
+  async customerOrderAction(customerId: string, orderId: string, action: "cancel" | "arrived"): Promise<OrderRpcResult> {
+    const data = await this.rpc("customer_order_action", { p_customer_id: customerId, p_order_id: orderId, p_action: action });
+    return data as OrderRpcResult;
+  }
+
+  async listOrders(p: ListOrdersParams): Promise<Order[]> {
+    const data = await this.rpc("list_orders", {
+      p_customer_id: p.customerId ?? null,
+      p_order_id: p.orderId ?? null,
+      p_scope: p.scope,
+      p_recent_minutes: p.recentMinutes ?? 120,
+      p_limit: p.limit ?? 50,
+    });
+    return ((data ?? []) as Raw[]).map(mapOrder);
   }
 
   async walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string) {

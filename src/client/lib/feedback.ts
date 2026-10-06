@@ -51,3 +51,15 @@ export function errorFeedback(): void {
   beep(330, 220);
   vibrate(200);
 }
+
+/** New-order alert: a louder three-note chime, loud enough for a busy bar. */
+export function orderChime(): void {
+  const notes = [784, 988, 1318];
+  notes.forEach((f, i) => setTimeout(() => beep(f, 260), i * 230));
+  setTimeout(() => notes.forEach((f, i) => setTimeout(() => beep(f, 260), i * 230)), 900);
+  vibrate([120, 80, 120]);
+}
+
+export function isAudioReady(): boolean {
+  return audioCtx !== null && audioCtx.state === "running";
+}

@@ -3,6 +3,7 @@
  * (PostgREST + RPC) with the service-role key; tests use a PGlite-backed
  * implementation that runs the very same SQL migrations.
  */
+import type { FulfillmentType, MenuCategory, Order, OrderStatus, ShopSettings } from "../../shared/ordering";
 import type { AppRole, LoyaltyAction, MembershipStatus } from "../../shared/types";
 
 export interface ProfileRow {
@@ -126,6 +127,58 @@ export interface CreateStaffParams {
 export type CreateStaffResult = { ok: true; userId: string } | { ok: false; code: "EMAIL_EXISTS" | "WEAK_PASSWORD" };
 export type RemoveStaffResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_STAFF" | "ALREADY_REMOVED" };
 
+export interface MenuItemRow {
+  id: string;
+  nameAr: string;
+  nameEn: string | null;
+  descriptionAr: string | null;
+  category: MenuCategory;
+  priceHalalas: number;
+  imagePath: string | null;
+  isAvailable: boolean;
+  isArchived: boolean;
+  sortOrder: number;
+}
+
+export type MenuItemInput = Omit<MenuItemRow, "id" | "imagePath">;
+
+export interface PlaceOrderParams {
+  customerId: string;
+  items: { menuItemId: string; quantity: number; note: string | null }[];
+  fulfillment: FulfillmentType;
+  phone: string;
+  carDescription: string | null;
+  deliveryAddress: string | null;
+  deliveryLat: number | null;
+  deliveryLng: number | null;
+  note: string | null;
+  useReward: boolean;
+  idempotencyKey: string;
+  timeZone: string;
+}
+
+/** Raw jsonb results of the ordering SQL functions. */
+export interface OrderRpcResult {
+  ok: boolean;
+  code?: string;
+  replayed?: boolean;
+  order_id?: string;
+  status?: OrderStatus;
+  current?: OrderStatus;
+  minimum?: number;
+  menu_item_id?: string;
+  loyalty_changed?: boolean;
+  pass_serial?: string | null;
+}
+
+export interface ListOrdersParams {
+  customerId?: string | null;
+  orderId?: string | null;
+  scope: "active" | "all";
+  recentMinutes?: number;
+  limit?: number;
+}
+
 export interface Repository {
   getProfile(userId: string): Promise<ProfileRow | null>;
   ensureLoyaltyAccount(userId: string): Promise<void>;
@@ -144,6 +197,23 @@ export interface Repository {
   listStaff(): Promise<ProfileRow[]>;
   createStaffUser(params: CreateStaffParams): Promise<CreateStaffResult>;
   removeStaffUser(userId: string): Promise<RemoveStaffResult>;
+
+  listMenuItems(includeArchived: boolean): Promise<MenuItemRow[]>;
+  getMenuItem(id: string): Promise<MenuItemRow | null>;
+  createMenuItem(input: MenuItemInput): Promise<MenuItemRow>;
+  updateMenuItem(id: string, patch: Partial<MenuItemInput> & { imagePath?: string | null }): Promise<MenuItemRow | null>;
+  /** Stores an image in the public menu bucket. */
+  uploadMenuImage(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
+  deleteMenuImage(path: string): Promise<void>;
+
+  getShopSettings(): Promise<ShopSettings>;
+  updateShopSettings(patch: Partial<ShopSettings>): Promise<ShopSettings>;
+  isShopOpen(timeZone: string): Promise<boolean>;
+
+  placeOrder(params: PlaceOrderParams): Promise<OrderRpcResult>;
+  setOrderStatus(actorId: string, orderId: string, status: OrderStatus, cancelReason: string | null): Promise<OrderRpcResult>;
+  customerOrderAction(customerId: string, orderId: string, action: "cancel" | "arrived"): Promise<OrderRpcResult>;
+  listOrders(params: ListOrdersParams): Promise<Order[]>;
 
   walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string): Promise<"created" | "exists" | "unknown_pass">;
   walletUnregisterDevice(device: string, passTypeIdentifier: string, serial: string): Promise<void>;
