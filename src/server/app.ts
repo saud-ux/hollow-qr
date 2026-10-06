@@ -1,14 +1,18 @@
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { ConfigError } from "./config";
 import type { AppDeps, HonoEnv } from "./http/context";
 import { ApiError } from "./http/errors";
 import { apiSecurityHeaders, sameOriginWrites } from "./http/middleware";
+import { MENU_IMAGE_MAX_BYTES } from "../shared/ordering";
 import { adminRoutes } from "./routes/admin";
+import { adminMenuRoutes } from "./routes/admin-menu";
 import { meRoutes } from "./routes/me";
+import { orderRoutes } from "./routes/orders";
 import { publicRoutes } from "./routes/public";
 import { staffRoutes } from "./routes/staff";
+import { staffOrderRoutes } from "./routes/staff-orders";
 import { walletServiceRoutes } from "./routes/wallet-service";
 
 /**
@@ -24,15 +28,26 @@ export function createApp(deps: AppDeps) {
   });
   app.use("*", apiSecurityHeaders);
 
-  // Request size limits: JSON APIs are tiny; Wallet logs slightly larger.
-  app.use("/api/*", bodyLimit({ maxSize: 16 * 1024, onError: () => { throw new ApiError(413, "PAYLOAD_TOO_LARGE"); } }));
+  // Request size limits: JSON APIs are tiny; menu images and Wallet logs larger.
+  const tooLarge = () => {
+    throw new ApiError(413, "PAYLOAD_TOO_LARGE");
+  };
+  const jsonLimit: MiddlewareHandler<HonoEnv> = bodyLimit({ maxSize: 16 * 1024, onError: tooLarge });
+  const imageLimit: MiddlewareHandler<HonoEnv> = bodyLimit({ maxSize: MENU_IMAGE_MAX_BYTES, onError: tooLarge });
+  const IMAGE_UPLOAD = /^\/api\/admin\/menu\/[^/]+\/image$/;
+  const apiBodyLimit: MiddlewareHandler<HonoEnv> = (c, next) =>
+    IMAGE_UPLOAD.test(c.req.path) ? imageLimit(c, next) : jsonLimit(c, next);
+  app.use("/api/*", apiBodyLimit);
   app.use("/v1/*", bodyLimit({ maxSize: 64 * 1024, onError: () => { throw new ApiError(413, "PAYLOAD_TOO_LARGE"); } }));
   app.use("/api/*", sameOriginWrites);
 
   app.route("/api", publicRoutes);
   app.route("/api", meRoutes);
+  app.route("/api", orderRoutes);
   app.route("/api/staff", staffRoutes);
+  app.route("/api/staff", staffOrderRoutes);
   app.route("/api/admin", adminRoutes);
+  app.route("/api/admin", adminMenuRoutes);
   app.route("/v1", walletServiceRoutes);
 
   app.notFound((c) => c.json(new ApiError(404, "NOT_FOUND").toBody(), 404));

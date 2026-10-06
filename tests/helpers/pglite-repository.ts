@@ -3,13 +3,29 @@
  * SupabaseRepository query-for-query so API tests exercise the real SQL.
  */
 import type { PGlite } from "@electric-sql/pglite";
-import { mapAccount, mapProfile, mapSearchRow, mapTransaction, totalFrom } from "../../src/server/data/mappers";
+import {
+  mapAccount,
+  mapMenuItem,
+  mapOrder,
+  mapProfile,
+  mapSearchRow,
+  mapShopSettings,
+  mapTransaction,
+  menuItemColumns,
+  shopSettingsColumns,
+  totalFrom,
+} from "../../src/server/data/mappers";
+import type { OrderStatus, ShopSettings } from "../../src/shared/ordering";
 import type {
   ApplyActionParams,
   ApplyActionResult,
   CreateStaffParams,
   CreateStaffResult,
   DashboardStatsRow,
+  ListOrdersParams,
+  MenuItemInput,
+  OrderRpcResult,
+  PlaceOrderParams,
   RemoveStaffResult,
   Repository,
 } from "../../src/server/data/repository";
@@ -18,7 +34,19 @@ type Raw = Record<string, unknown>;
 
 const ACCOUNT_SQL = `select a.*, p.display_name, p.email from public.loyalty_accounts a join public.profiles p on p.id = a.user_id`;
 
+/** Builds "col = $n" assignments from a whitelisted column map. */
+function assignments(cols: Raw, jsonCols: string[] = []): { sql: string; values: unknown[] } {
+  const keys = Object.keys(cols);
+  return {
+    sql: keys.map((k, i) => `${k} = $${i + 1}${jsonCols.includes(k) ? "::jsonb" : ""}`).join(", "),
+    values: keys.map((k) => (jsonCols.includes(k) ? JSON.stringify(cols[k]) : cols[k])),
+  };
+}
+
 export class PgliteRepository implements Repository {
+  /** Stand-in for the Storage bucket: path -> content type. */
+  readonly images = new Map<string, string>();
+
   constructor(private readonly db: PGlite) {}
 
   private async one(sql: string, params: unknown[]): Promise<Raw | undefined> {
@@ -104,6 +132,91 @@ export class PgliteRepository implements Repository {
     if (profile.disabledAt !== null) return { ok: false, code: "ALREADY_REMOVED" };
     await this.db.query("update public.profiles set disabled_at = now() where id = $1 and role = 'staff' and disabled_at is null", [userId]);
     return { ok: true };
+  }
+
+  async listMenuItems(includeArchived: boolean) {
+    const res = await this.db.query<Raw>(
+      `select * from public.menu_items where $1 or not is_archived order by category, sort_order, name_ar`,
+      [includeArchived],
+    );
+    return res.rows.map(mapMenuItem);
+  }
+  async getMenuItem(id: string) {
+    const r = await this.one("select * from public.menu_items where id = $1", [id]);
+    return r ? mapMenuItem(r) : null;
+  }
+  async createMenuItem(input: MenuItemInput) {
+    const cols = menuItemColumns(input);
+    const keys = Object.keys(cols);
+    const r = await this.one(
+      `insert into public.menu_items (${keys.join(", ")}) values (${keys.map((_, i) => `$${i + 1}`).join(", ")}) returning *`,
+      keys.map((k) => cols[k]),
+    );
+    return mapMenuItem(r!);
+  }
+  async updateMenuItem(id: string, patch: Partial<MenuItemInput> & { imagePath?: string | null }) {
+    const { sql, values } = assignments(menuItemColumns(patch));
+    if (!sql) return this.getMenuItem(id);
+    const r = await this.one(`update public.menu_items set ${sql} where id = $${values.length + 1} returning *`, [...values, id]);
+    return r ? mapMenuItem(r) : null;
+  }
+  uploadMenuImage(path: string, _bytes: Uint8Array, contentType: string) {
+    this.images.set(path, contentType);
+    return Promise.resolve();
+  }
+  deleteMenuImage(path: string) {
+    this.images.delete(path);
+    return Promise.resolve();
+  }
+  async getShopSettings() {
+    return mapShopSettings((await this.one("select * from public.shop_settings where id = 1", []))!);
+  }
+  async updateShopSettings(patch: Partial<ShopSettings>) {
+    const { sql, values } = assignments(shopSettingsColumns(patch), ["weekly_hours"]);
+    if (sql) await this.db.query(`update public.shop_settings set ${sql} where id = 1`, values);
+    return this.getShopSettings();
+  }
+  async isShopOpen(timeZone: string) {
+    const r = await this.one("select public.shop_is_open(now(), $1) as open", [timeZone]);
+    return Boolean(r!.open);
+  }
+  async placeOrder(p: PlaceOrderParams): Promise<OrderRpcResult> {
+    const r = await this.one(
+      "select public.place_order($1, $2::jsonb, $3::public.fulfillment_type, $4, $5, $6, $7, $8, $9, $10, $11, $12) as r",
+      [
+        p.customerId,
+        JSON.stringify(p.items.map((i) => ({ menu_item_id: i.menuItemId, quantity: i.quantity, note: i.note }))),
+        p.fulfillment,
+        p.phone,
+        p.carDescription,
+        p.deliveryAddress,
+        p.deliveryLat,
+        p.deliveryLng,
+        p.note,
+        p.useReward,
+        p.idempotencyKey,
+        p.timeZone,
+      ],
+    );
+    return r!.r as OrderRpcResult;
+  }
+  async setOrderStatus(actorId: string, orderId: string, status: OrderStatus, cancelReason: string | null) {
+    const r = await this.one("select public.set_order_status($1, $2, $3::public.order_status, $4) as r", [actorId, orderId, status, cancelReason]);
+    return r!.r as OrderRpcResult;
+  }
+  async customerOrderAction(customerId: string, orderId: string, action: "cancel" | "arrived") {
+    const r = await this.one("select public.customer_order_action($1, $2, $3) as r", [customerId, orderId, action]);
+    return r!.r as OrderRpcResult;
+  }
+  async listOrders(p: ListOrdersParams) {
+    const r = await this.one("select public.list_orders($1, $2, $3, $4, $5) as r", [
+      p.customerId ?? null,
+      p.orderId ?? null,
+      p.scope,
+      p.recentMinutes ?? 120,
+      p.limit ?? 50,
+    ]);
+    return (r!.r as Raw[]).map(mapOrder);
   }
 
   async walletRegisterDevice(device: string, pushToken: string, passType: string, serial: string) {

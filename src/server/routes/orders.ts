@@ -1,0 +1,178 @@
+import { Hono } from "hono";
+import { z } from "zod";
+import { BUSINESS_TIME_ZONE } from "../../shared/constants";
+import {
+  MAX_LINE_QUANTITY,
+  MAX_ORDER_LINES,
+  MENU_IMAGE_BUCKET,
+  normalizeSaudiPhone,
+  type MenuItem,
+  type MenuResponse,
+  type Order,
+} from "../../shared/ordering";
+import type { AppConfig } from "../config";
+import type { MenuItemRow, OrderRpcResult } from "../data/repository";
+import { ApiError, type ErrorStatus } from "../http/errors";
+import { repoOf, type AppContext, type HonoEnv } from "../http/context";
+import { rateLimit, requireUser } from "../http/middleware";
+import { parseJsonBody, parseWith } from "../http/validation";
+
+export function menuImageUrl(config: Pick<AppConfig, "supabaseUrl">, path: string | null): string | null {
+  if (!path || !config.supabaseUrl) return null;
+  return `${config.supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/${MENU_IMAGE_BUCKET}/${path}`;
+}
+
+export function toMenuItem(config: Pick<AppConfig, "supabaseUrl">, row: MenuItemRow): MenuItem {
+  return {
+    id: row.id,
+    nameAr: row.nameAr,
+    nameEn: row.nameEn,
+    descriptionAr: row.descriptionAr,
+    category: row.category,
+    priceHalalas: row.priceHalalas,
+    imageUrl: menuImageUrl(config, row.imagePath),
+    isAvailable: row.isAvailable,
+    isArchived: row.isArchived,
+    sortOrder: row.sortOrder,
+  };
+}
+
+/** HTTP status for business-rule codes returned by the ordering SQL functions. */
+export function statusForOrderCode(code: string): ErrorStatus {
+  switch (code) {
+    case "FORBIDDEN":
+      return 403;
+    case "NOT_FOUND":
+      return 404;
+    case "EMPTY_ORDER":
+    case "TOO_MANY_ITEMS":
+      return 400;
+    default:
+      return 409;
+  }
+}
+
+export function throwOrderError(result: OrderRpcResult): never {
+  const code = result.code ?? "INTERNAL";
+  const details: Record<string, unknown> = {};
+  if (result.current) details.current = result.current;
+  if (result.minimum !== undefined) details.minimum = result.minimum;
+  if (result.menu_item_id) details.menuItemId = result.menu_item_id;
+  throw new ApiError(
+    statusForOrderCode(code),
+    code === "NOT_FOUND" ? "ORDER_NOT_FOUND" : code,
+    Object.keys(details).length ? details : undefined,
+  );
+}
+
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((v) => (v ? v : undefined));
+
+export const placeOrderSchema = z
+  .object({
+    items: z
+      .array(
+        z.object({
+          menuItemId: z.uuid(),
+          quantity: z.number().int().min(1).max(MAX_LINE_QUANTITY),
+          note: optionalText(120),
+        }),
+      )
+      .min(1)
+      .max(MAX_ORDER_LINES),
+    fulfillment: z.enum(["pickup", "curbside", "delivery"]),
+    phone: z.string().max(30),
+    carDescription: optionalText(80),
+    deliveryAddress: optionalText(300),
+    deliveryLat: z.number().min(-90).max(90).optional(),
+    deliveryLng: z.number().min(-180).max(180).optional(),
+    note: optionalText(300),
+    useReward: z.boolean().optional().default(false),
+    idempotencyKey: z.uuid(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.fulfillment === "curbside" && !v.carDescription) {
+      ctx.addIssue({ code: "custom", path: ["carDescription"], message: "required for curbside" });
+    }
+    if (v.fulfillment === "delivery" && !v.deliveryAddress) {
+      ctx.addIssue({ code: "custom", path: ["deliveryAddress"], message: "required for delivery" });
+    }
+    if ((v.deliveryLat === undefined) !== (v.deliveryLng === undefined)) {
+      ctx.addIssue({ code: "custom", path: ["deliveryLat"], message: "lat and lng go together" });
+    }
+  });
+
+async function ownOrder(c: AppContext, id: string): Promise<Order> {
+  const [order] = await repoOf(c).listOrders({ customerId: c.get("user").id, orderId: id, scope: "all", limit: 1 });
+  if (!order) throw new ApiError(404, "ORDER_NOT_FOUND");
+  return order;
+}
+
+const uuid = z.uuid();
+
+export const orderRoutes = new Hono<HonoEnv>()
+  // Public menu: anyone can browse before signing in.
+  .get("/menu", rateLimit("api"), async (c) => {
+    const { config } = c.get("deps");
+    const repo = repoOf(c);
+    const [rows, settings, isOpen] = await Promise.all([
+      repo.listMenuItems(false),
+      repo.getShopSettings(),
+      repo.isShopOpen(BUSINESS_TIME_ZONE),
+    ]);
+    const body: MenuResponse = { items: rows.map((r) => toMenuItem(config, r)), shop: { isOpen, settings } };
+    c.header("Cache-Control", "no-store");
+    return c.json(body);
+  })
+
+  .post("/orders", requireUser, rateLimit("api", "user"), async (c) => {
+    const user = c.get("user");
+    const { config, logger } = c.get("deps");
+    if (config.requireEmailConfirmation && !user.emailConfirmed) throw new ApiError(403, "EMAIL_NOT_CONFIRMED");
+    const body = await parseJsonBody(c, placeOrderSchema);
+    const phone = normalizeSaudiPhone(body.phone);
+    if (!phone) throw new ApiError(400, "INVALID_PHONE");
+
+    const repo = repoOf(c);
+    const result = await repo.placeOrder({
+      customerId: user.id,
+      items: body.items.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity, note: i.note ?? null })),
+      fulfillment: body.fulfillment,
+      phone,
+      carDescription: body.carDescription ?? null,
+      deliveryAddress: body.deliveryAddress ?? null,
+      deliveryLat: body.deliveryLat ?? null,
+      deliveryLng: body.deliveryLng ?? null,
+      note: body.note ?? null,
+      useReward: body.useReward,
+      idempotencyKey: body.idempotencyKey,
+      timeZone: BUSINESS_TIME_ZONE,
+    });
+    if (!result.ok || !result.order_id) throwOrderError(result);
+    if (!result.replayed) logger.info("order.placed", { orderId: result.order_id, fulfillment: body.fulfillment });
+    return c.json({ order: await ownOrder(c, result.order_id) }, result.replayed ? 200 : 201);
+  })
+
+  .get("/orders", requireUser, rateLimit("api", "user"), async (c) => {
+    const orders = await repoOf(c).listOrders({ customerId: c.get("user").id, scope: "all", limit: 30 });
+    return c.json({ items: orders });
+  })
+
+  .get("/orders/:id", requireUser, rateLimit("api", "user"), async (c) => {
+    const id = parseWith(uuid, c.req.param("id"));
+    return c.json({ order: await ownOrder(c, id) });
+  })
+
+  .post("/orders/:id/:action{cancel|arrived}", requireUser, rateLimit("api", "user"), async (c) => {
+    const id = parseWith(uuid, c.req.param("id"));
+    const action = c.req.param("action") as "cancel" | "arrived";
+    const result = await repoOf(c).customerOrderAction(c.get("user").id, id, action);
+    if (!result.ok) throwOrderError(result);
+    c.get("deps").logger.info(`order.customer_${action}`, { orderId: id });
+    return c.json({ order: await ownOrder(c, id) });
+  });
