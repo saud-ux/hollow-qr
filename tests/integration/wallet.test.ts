@@ -86,8 +86,11 @@ describe("signed .pkpass generation", () => {
     expect(pass.authenticationToken).toBe(await passAuthToken(env.PASS_AUTH_SECRET!, account.pass_serial));
     expect(pass.barcodes[0]).toMatchObject({ format: "PKBarcodeFormatQR", altText: "SCAN AT CHECKOUT" });
     expect(pass.barcodes[0].message).toMatch(new RegExp(`^${APP_URL}/c/[A-Za-z0-9_-]{22}\\.[A-Za-z0-9_-]{22}$`));
-    expect(pass.storeCard.auxiliaryFields[0].value).toBe("عبدالعزيز");
-    expect(pass.storeCard.secondaryFields[0].value).toBe("0 / 5 Cups");
+    expect((pass.storeCard.secondaryFields as { key: string }[]).map((f) => f.key)).toEqual(["name", "member"]);
+    expect(pass.storeCard.secondaryFields[0].value).toBe("عبدالعزيز");
+    expect(pass.storeCard.auxiliaryFields).toBeUndefined();
+    // Progress and reward are drawn into the strip image; their fields move to the back.
+    expect(pass.storeCard.backFields[1]).toMatchObject({ key: "progress", value: "0 / 5 Cups" });
 
     // Manifest hashes match the files.
     const manifest = JSON.parse(new TextDecoder().decode(zip["manifest.json"])) as Record<string, string>;
@@ -127,8 +130,8 @@ describe("signed .pkpass generation", () => {
     await db.query("select public.apply_loyalty_action($1, $2, 'ADD_CUPS', 5)", [staffId, account.id]);
     let res = await app.request(`/v1/passes/${PASS_TYPE}/${account.pass_serial}`, { headers: auth });
     let pass = JSON.parse(new TextDecoder().decode(unzipSync(new Uint8Array(await res.arrayBuffer()))["pass.json"])) as Record<string, any>;
-    expect(pass.storeCard.secondaryFields[0].value).toBe("5 / 5 Cups");
-    expect(pass.storeCard.secondaryFields[1].value).toBe("لك مشروب مجاني");
+    expect(pass.storeCard.backFields[1].value).toBe("5 / 5 Cups");
+    expect(pass.storeCard.backFields[0]).toMatchObject({ key: "reward", value: "لك مشروب مجاني", changeMessage: "%@" });
 
     await db.query("select public.apply_loyalty_action($1, $2, 'CANCEL_MEMBERSHIP', null, null, null, true)", [adminId, account.id]);
     res = await app.request(`/v1/passes/${PASS_TYPE}/${account.pass_serial}`, { headers: auth });

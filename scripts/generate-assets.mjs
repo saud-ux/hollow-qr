@@ -14,13 +14,15 @@
  * Apple Wallet image sizes (points; @2x/@3x are 2x/3x pixels):
  *   icon  38 x 38      logo  <= 160 x 50      strip (store card) 375 x 144
  */
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import hbReady from "harfbuzzjs";
 import sharp from "sharp";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REF = join(ROOT, "reference-assets");
+const FONTS = join(REF, "fonts");
 const PUBLIC_BRAND = join(ROOT, "public", "brand");
 const PUBLIC_WALLET = join(ROOT, "public", "wallet-preview");
 const GENERATED_TS = join(ROOT, "src", "server", "wallet", "generated", "pass-images.ts");
@@ -148,8 +150,84 @@ async function writeWidgetAssets({ cupWordmark, cupTent }) {
   await writeFile(join(WIDGET_ASSETS, "Contents.json"), `${JSON.stringify({ info: { author: "xcode", version: 1 } }, null, 2)}\n`);
 }
 
-/** Store-card strip: five cups showing progress (375x144 pt). */
-function stripSvg({ filled, variant, wordmark, tent, tentBg, scale }) {
+/**
+ * Turns text into SVG outlines (HarfBuzz shaping, IBM Plex Sans Arabic from
+ * reference-assets/fonts), so text drawn into the Wallet strip looks the same
+ * whichever machine runs this script; no system fonts are involved.
+ */
+async function textOutliner() {
+  const hb = await hbReady;
+  const fonts = {};
+  for (const [weight, file] of Object.entries({ semibold: "IBMPlexSansArabic-SemiBold.ttf", bold: "IBMPlexSansArabic-Bold.ttf" })) {
+    const face = hb.createFace(hb.createBlob(await readFile(join(FONTS, file))), 0);
+    fonts[weight] = { font: hb.createFont(face), upem: face.upem };
+  }
+  /** Returns the outlines (origin on the baseline, at the left edge) and the width in points. */
+  return (text, { size, weight = "bold", tracking = 0 }) => {
+    // HarfBuzz shapes one direction run; a multi-digit number inside Arabic would come out reversed.
+    if (/[\u0600-\u06ff]/.test(text) && /\d{2,}/.test(text)) throw new Error(`mixed-direction text not supported: ${text}`);
+    const { font, upem } = fonts[weight];
+    const buffer = hb.createBuffer();
+    buffer.addText(text);
+    buffer.guessSegmentProperties();
+    hb.shape(font, buffer);
+    const glyphs = buffer.json();
+    buffer.destroy();
+    const k = size / upem;
+    let x = 0;
+    let paths = "";
+    for (const g of glyphs) {
+      const d = font.glyphToPath(g.g);
+      if (d) paths += `<path transform="translate(${((x + g.dx) * k).toFixed(2)} ${(-g.dy * k).toFixed(2)}) scale(${k.toFixed(5)} ${(-k).toFixed(5)})" d="${d}"/>`;
+      x += g.ax + tracking * upem;
+    }
+    return { paths, width: (x - tracking * upem) * k };
+  };
+}
+
+/**
+ * The words drawn into the Wallet strip for each state. They match
+ * cupsLabel() and rewardText() (src/shared/format.ts, src/server/wallet/pass-content.ts).
+ */
+function stripCaption(filled, variant) {
+  if (variant === "cancelled") return { reward: "العضوية غير نشطة" };
+  const left = 5 - filled;
+  const reward =
+    left === 0 ? "لك مشروب مجاني" : left === 1 ? "باقي كوب واحد للمشروب المجاني" : `باقي ${left} أكواب للمشروب المجاني`;
+  return { progress: `${filled} / 5 Cups`, reward, gold: left === 0 };
+}
+
+/** The progress line under the cups of the Wallet strip, like the in-app card. */
+function captionSvg({ caption, text, W, x0, muted }) {
+  const label = muted ? rgb(COLORS.grey) : "rgb(201,164,110)";
+  const value = muted ? rgb(COLORS.grey) : rgb(COLORS.cream);
+  const at = (t, x, y, fill) => `<g transform="translate(${x.toFixed(2)} ${y})" fill="${fill}">${t.paths}</g>`;
+  const right = W - x0;
+  let out = "";
+  const rewardLabel = text("المكافأة", { size: 11, weight: "semibold" });
+  out += at(rewardLabel, right - rewardLabel.width, 105, label);
+  let progressWidth = 0;
+  if (caption.progress) {
+    out += at(text("HOLLOW REWARDS", { size: 10, weight: "semibold", tracking: 0.06 }), x0, 105, label);
+    const progress = text(caption.progress, { size: 16 });
+    progressWidth = progress.width;
+    out += at(progress, x0, 129, value);
+  }
+  // Shrink the reward line if it would run into the progress value.
+  const room = right - x0 - progressWidth - (progressWidth ? 18 : 0);
+  let reward = text(caption.reward, { size: 16 });
+  if (reward.width > room) reward = text(caption.reward, { size: (16 * room) / reward.width });
+  out += at(reward, right - reward.width, 129, caption.gold ? rgb([217, 181, 74]) : value);
+  return out;
+}
+
+/**
+ * Store-card strip: five cups showing progress (375x144 pt).
+ * With `text` (the Wallet pass) the cups move up, the tent sits in the middle
+ * and the progress line is drawn under the cups; without it (the in-app card,
+ * which cuts its cups out of these strips) the layout stays as it was.
+ */
+function stripSvg({ filled, variant, wordmark, tent, tentBg, scale, text }) {
   const W = 375;
   const H = 144;
   const cupW = 54;
@@ -157,7 +235,7 @@ function stripSvg({ filled, variant, wordmark, tent, tentBg, scale }) {
   const gap = 13;
   const total = 5 * cupW + 4 * gap;
   const x0 = (W - total) / 2;
-  const y0 = (H - cupH) / 2 + 4;
+  const y0 = text ? 12 : (H - cupH) / 2 + 4;
   const reward = variant === "reward";
   const cancelled = variant === "cancelled";
   let cups = "";
@@ -165,30 +243,40 @@ function stripSvg({ filled, variant, wordmark, tent, tentBg, scale }) {
     const state = cancelled ? (i < filled ? "cancelled" : "empty") : i < filled ? "filled" : "empty";
     const x = x0 + i * (cupW + gap);
     cups += `<g transform="translate(${x} ${y0}) scale(${cupW / 60} ${cupH / 80})">${cupSvg({ state, wordmark, tent })}</g>`;
-    if (reward) {
+    // The gold shadows under the cups are left off the Wallet strip.
+    if (reward && !text) {
       cups += `<ellipse cx="${x + cupW / 2}" cy="${y0 + cupH + 3}" rx="${cupW / 2.6}" ry="3" fill="${rgb(COLORS.gold, 0.55)}"/>`;
     }
   }
   const glow = reward
-    ? `<radialGradient id="g" cx="50%" cy="55%" r="65%"><stop offset="0" stop-color="${rgb(COLORS.gold, 0.45)}"/><stop offset="1" stop-color="${rgb(COLORS.gold, 0)}"/></radialGradient>
+    ? `<radialGradient id="g" cx="50%" cy="${text ? 35 : 55}%" r="65%"><stop offset="0" stop-color="${rgb(COLORS.gold, 0.45)}"/><stop offset="1" stop-color="${rgb(COLORS.gold, 0)}"/></radialGradient>
        <rect width="${W}" height="${H}" fill="url(#g)"/>`
     : "";
   const sparkles = reward
-    ? [
-        [x0 - 4, 26],
-        [W - x0 + 2, 30],
-        [W / 2, 18],
-      ]
+    ? (text
+        ? [
+            [x0 - 12, 22],
+            [W - x0 + 10, 30],
+          ]
+        : [
+            [x0 - 4, 26],
+            [W - x0 + 2, 30],
+            [W / 2, 18],
+          ]
+      )
         .map(([x, y]) => `<path transform="translate(${x} ${y})" d="M0 -6 L1.6 -1.6 L6 0 L1.6 1.6 L0 6 L-1.6 1.6 L-6 0 L-1.6 -1.6 Z" fill="${rgb(COLORS.gold)}"/>`)
         .join("")
     : "";
   const bg = cancelled ? rgb([60, 56, 52]) : rgb(COLORS.espresso);
+  const tentW = 300;
+  const tentH = (tentW * tentBg.h) / tentBg.w;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W * scale}" height="${H * scale}" viewBox="0 0 ${W} ${H}">
     <rect width="${W}" height="${H}" fill="${bg}"/>
-    <image href="${tentBg.uri}" x="${W - 210}" y="${H - 104}" width="230" height="${(230 * tentBg.h) / tentBg.w}" opacity="0.06"/>
+    ${text ? `<image href="${tentBg.uri}" x="${(W - tentW) / 2}" y="${(H - tentH) / 2}" width="${tentW}" height="${tentH}" opacity="0.08"/>` : `<image href="${tentBg.uri}" x="${W - 210}" y="${H - 104}" width="230" height="${(230 * tentBg.h) / tentBg.w}" opacity="0.06"/>`}
     ${glow}
     ${cups}
     ${sparkles}
+    ${text ? captionSvg({ caption: stripCaption(filled, variant), text, W, x0, muted: cancelled }) : ""}
   </svg>`;
 }
 
@@ -236,7 +324,9 @@ async function main() {
   await writeFile(join(PUBLIC_BRAND, "icon-512.png"), await png(iconSvg({ tentCream, scale: 512 / 38 })));
 
   // ---- Wallet images ----
+  const text = await textOutliner();
   const passImages = {};
+  const previewStrips = {};
   for (const scale of [1, 2, 3]) {
     const suffix = scale === 1 ? "" : `@${scale}x`;
     passImages[`icon${suffix}.png`] = await png(iconSvg({ tentCream, scale }));
@@ -250,21 +340,17 @@ async function main() {
 
     for (let filled = 0; filled <= 5; filled++) {
       const variant = filled === 5 ? "reward" : "progress";
-      passImages[`strip-${filled}${suffix}.png`] = await png(
-        stripSvg({ filled, variant, wordmark: cupWordmark, tent: cupTent, tentBg: tentCream, scale }),
-      );
+      const strip = { filled, variant, wordmark: cupWordmark, tent: cupTent, tentBg: tentCream, scale };
+      passImages[`strip-${filled}${suffix}.png`] = await png(stripSvg({ ...strip, text }));
+      if (scale === 2) previewStrips[`strip-${filled}.png`] = await png(stripSvg(strip));
     }
-    passImages[`strip-cancelled${suffix}.png`] = await png(
-      stripSvg({ filled: 5, variant: "cancelled", wordmark: cupWordmark, tent: cupTent, tentBg: tentCream, scale }),
-    );
+    const cancelled = { filled: 5, variant: "cancelled", wordmark: cupWordmark, tent: cupTent, tentBg: tentCream, scale };
+    passImages[`strip-cancelled${suffix}.png`] = await png(stripSvg({ ...cancelled, text }));
+    if (scale === 2) previewStrips["strip-cancelled.png"] = await png(stripSvg(cancelled));
   }
 
-  // Web preview uses the very same strip images as the real pass.
-  for (const [name, buf] of Object.entries(passImages)) {
-    if (name.startsWith("strip-") && name.includes("@2x")) {
-      await writeFile(join(PUBLIC_WALLET, name.replace("@2x", "")), buf);
-    }
-  }
+  // The in-app card draws its own text, so it gets the same cups without the words.
+  for (const [name, buf] of Object.entries(previewStrips)) await writeFile(join(PUBLIC_WALLET, name), buf);
   // The app cuts each cup out of a strip and stamps it in. They come from this
   // plain strip (five cups, no reward glow) so no glow is cut out with the cup;
   // the full reward strip then fades in over them.
