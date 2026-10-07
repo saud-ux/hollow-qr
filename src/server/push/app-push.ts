@@ -20,9 +20,29 @@ export interface AppPushMessage {
   data?: Record<string, string>;
 }
 
+/** What the lock-screen order tracker shows; must match ContentState in OrderActivity.swift. */
+export interface LiveActivityState {
+  status: string;
+  label: string;
+  /** 0-based position of `status` in the order's steps. */
+  step: number;
+  steps: number;
+}
+
+export interface LiveActivityUpdate {
+  event: "update" | "end";
+  state: LiveActivityState;
+  /** For "end": when iOS removes it from the lock screen. */
+  dismissAt?: Date;
+  /** Lights the screen and shows the update expanded, like a notification. */
+  alert?: { title: string; body: string };
+}
+
 export interface AppPushSender {
   readonly kind: "apns" | "mock" | "disabled";
   send(deviceToken: string, message: AppPushMessage): Promise<PushOutcome>;
+  /** Updates or ends a Live Activity through its own push token. */
+  sendLiveActivity(activityToken: string, update: LiveActivityUpdate): Promise<PushOutcome>;
 }
 
 export class AppPushKeyError extends Error {
@@ -91,23 +111,40 @@ export class ApnsTokenSender implements AppPushSender {
     return value;
   }
 
-  async send(deviceToken: string, message: AppPushMessage): Promise<PushOutcome> {
-    if (!/^[0-9a-f]{64,200}$/.test(deviceToken)) return "invalid-token";
+  send(deviceToken: string, message: AppPushMessage): Promise<PushOutcome> {
+    if (!/^[0-9a-f]{64,200}$/.test(deviceToken)) return Promise.resolve("invalid-token");
+    const headers: Record<string, string> = { "apns-topic": this.options.bundleId, "apns-push-type": "alert" };
+    if (message.collapseId) headers["apns-collapse-id"] = message.collapseId.slice(0, 64);
+    const payload = {
+      aps: { alert: { title: message.title, body: message.body }, sound: "default" },
+      ...message.data,
+    };
+    return this.post(deviceToken, headers, payload);
+  }
+
+  sendLiveActivity(activityToken: string, update: LiveActivityUpdate): Promise<PushOutcome> {
+    if (!/^[0-9a-f]{32,400}$/.test(activityToken)) return Promise.resolve("invalid-token");
+    const aps: Record<string, unknown> = {
+      timestamp: Math.floor(this.now() / 1000),
+      event: update.event,
+      "content-state": update.state,
+    };
+    if (update.dismissAt) aps["dismissal-date"] = Math.floor(update.dismissAt.getTime() / 1000);
+    if (update.alert) aps.alert = { title: update.alert.title, body: update.alert.body, sound: "default" };
+    const headers = { "apns-topic": `${this.options.bundleId}.push-type.liveactivity`, "apns-push-type": "liveactivity" };
+    return this.post(activityToken, headers, { aps });
+  }
+
+  private async post(token: string, extraHeaders: Record<string, string>, payload: unknown): Promise<PushOutcome> {
     try {
       const headers: Record<string, string> = {
         authorization: `bearer ${await this.providerToken()}`,
-        "apns-topic": this.options.bundleId,
-        "apns-push-type": "alert",
         "apns-priority": "10",
         "content-type": "application/json",
-      };
-      if (message.collapseId) headers["apns-collapse-id"] = message.collapseId.slice(0, 64);
-      const payload = {
-        aps: { alert: { title: message.title, body: message.body }, sound: "default" },
-        ...message.data,
+        ...extraHeaders,
       };
       const host = this.options.host ?? APNS_PRODUCTION_HOST;
-      const res = await this.fetcher(`${host}/3/device/${deviceToken}`, { method: "POST", headers, body: JSON.stringify(payload) });
+      const res = await this.fetcher(`${host}/3/device/${token}`, { method: "POST", headers, body: JSON.stringify(payload) });
       if (res.status === 200) return "sent";
       let reason = "";
       try {
@@ -133,6 +170,7 @@ export class ApnsTokenSender implements AppPushSender {
 export class MockAppPushSender implements AppPushSender {
   readonly kind = "mock" as const;
   readonly sent: { token: string; message: AppPushMessage }[] = [];
+  readonly liveSent: { token: string; update: LiveActivityUpdate }[] = [];
 
   constructor(private readonly logger: Logger) {}
 
@@ -141,12 +179,20 @@ export class MockAppPushSender implements AppPushSender {
     this.logger.info("app_push.mock", { title: message.title });
     return Promise.resolve("sent");
   }
+
+  sendLiveActivity(token: string, update: LiveActivityUpdate): Promise<PushOutcome> {
+    this.liveSent.push({ token, update });
+    return Promise.resolve("sent");
+  }
 }
 
 /** Production without an APNs key: ordering works, the app just isn't notified. */
 export class DisabledAppPushSender implements AppPushSender {
   readonly kind = "disabled" as const;
   send(): Promise<PushOutcome> {
+    return Promise.resolve("skipped");
+  }
+  sendLiveActivity(): Promise<PushOutcome> {
     return Promise.resolve("skipped");
   }
 }

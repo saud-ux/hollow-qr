@@ -88,3 +88,24 @@ export async function verifyPassDownload(
   if (!timingSafeEqualStr(signature, expected)) return "invalid";
   return expiresAtSec < nowSec ? "expired" : "ok";
 }
+
+/**
+ * Widget token "<userId>.<exp>.<sig>", sig = HMAC(PASS_AUTH_SECRET,
+ * 'hollow-widget:v1:'+userId+':'+exp). Lets the iOS home-screen widget read
+ * the card and the current order without the app's session. Read-only, and
+ * renewed each time the app opens.
+ */
+export async function createWidgetToken(secret: string, userId: string, expiresAtSec: number): Promise<string> {
+  const sig = await hmacBase64Url(secret, `hollow-widget:v1:${userId}:${expiresAtSec}`);
+  return `${userId}.${expiresAtSec}.${sig}`;
+}
+
+/** Returns the user id when the token is authentic and not expired, else null. */
+export async function verifyWidgetToken(secret: string, token: string, nowSec: number): Promise<string | null> {
+  const match = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(\d{1,12})\.([A-Za-z0-9_-]{20,100})$/.exec(token.trim());
+  if (!match) return null;
+  const [, userId, exp, sig] = match as unknown as [string, string, string, string];
+  const expected = await hmacBase64Url(secret, `hollow-widget:v1:${userId}:${exp}`);
+  if (!timingSafeEqualStr(sig, expected)) return null;
+  return Number(exp) < nowSec ? null : userId;
+}

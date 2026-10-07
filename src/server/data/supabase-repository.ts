@@ -360,6 +360,26 @@ export class SupabaseRepository implements Repository {
     if (error) throw new RepositoryError("deletePushToken", error);
   }
 
+  async saveLiveActivity(orderId: string, token: string, lang: PushLang): Promise<void> {
+    const { error } = (await this.db
+      .from("live_activities")
+      .upsert({ push_token: token, order_id: orderId, lang }, { onConflict: "push_token" })) as DbResult;
+    if (error) throw new RepositoryError("saveLiveActivity", error);
+  }
+
+  async liveActivitiesForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]> {
+    const { data, error } = (await this.db.from("live_activities").select("push_token, lang").eq("order_id", orderId).limit(10)) as DbResult;
+    if (error) throw new RepositoryError("liveActivitiesForOrder", error);
+    return ((data ?? []) as Raw[]).map((r) => ({ token: String(r.push_token), lang: r.lang === "en" ? "en" : "ar" }));
+  }
+
+  async deleteLiveActivities(orderId: string, token?: string): Promise<void> {
+    let query = this.db.from("live_activities").delete().eq("order_id", orderId);
+    if (token) query = query.eq("push_token", token);
+    const { error } = (await query) as DbResult;
+    if (error) throw new RepositoryError("deleteLiveActivities", error);
+  }
+
   async staffPushTokens(kind: StaffAlertKind): Promise<string[]> {
     const data = await this.rpc("staff_push_tokens", { p_kind: kind });
     return (Array.isArray(data) ? data : []).map(String);

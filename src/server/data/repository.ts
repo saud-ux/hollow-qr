@@ -257,6 +257,11 @@ export interface Repository {
   /** The order customer's devices, each with the language its app is in. */
   pushTokensForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]>;
   deletePushToken(token: string): Promise<void>;
+  /** Lock-screen order trackers (iOS Live Activities), one push token each. */
+  saveLiveActivity(orderId: string, token: string, lang: PushLang): Promise<void>;
+  liveActivitiesForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]>;
+  /** Drops one token, or every token of an order when `token` is omitted. */
+  deleteLiveActivities(orderId: string, token?: string): Promise<void>;
   /** Devices of staff/admins who want new-order alerts, or of admins who want the daily summary. */
   staffPushTokens(kind: StaffAlertKind): Promise<string[]>;
   /** Devices that opted in to offers, in token order (`after` is the last token of the previous batch). */

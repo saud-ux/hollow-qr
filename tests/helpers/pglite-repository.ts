@@ -265,6 +265,21 @@ export class PgliteRepository implements Repository {
   async deletePushToken(token: string) {
     await this.db.query("delete from public.push_devices where token = $1", [token]);
   }
+  async saveLiveActivity(orderId: string, token: string, lang: PushLang) {
+    await this.db.query(
+      `insert into public.live_activities (push_token, order_id, lang) values ($1, $2, $3)
+       on conflict (push_token) do update set order_id = excluded.order_id, lang = excluded.lang`,
+      [token, orderId, lang],
+    );
+  }
+  async liveActivitiesForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]> {
+    const res = await this.db.query<Raw>("select push_token, lang from public.live_activities where order_id = $1 limit 10", [orderId]);
+    return res.rows.map((r) => ({ token: String(r.push_token), lang: r.lang === "en" ? "en" : "ar" }));
+  }
+  async deleteLiveActivities(orderId: string, token?: string) {
+    if (token) await this.db.query("delete from public.live_activities where order_id = $1 and push_token = $2", [orderId, token]);
+    else await this.db.query("delete from public.live_activities where order_id = $1", [orderId]);
+  }
   async staffPushTokens(kind: StaffAlertKind) {
     const res = await this.db.query<Raw>("select token from public.staff_push_tokens($1) as token", [kind]);
     return res.rows.map((r) => String(r.token));
