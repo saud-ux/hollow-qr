@@ -2737,6 +2737,13 @@ select {
 .pass__fields:not(.pass__fields--aux) .pass__field > * {
   justify-self: start;
 }
+/* Name at the start, member ID at the far end, label and value lined up (as in Wallet). */
+.pass__fields--aux .pass__field > * {
+  justify-self: start;
+}
+.pass__fields--aux .pass__field:last-child > * {
+  justify-self: end;
+}
 
 /* ---------- Dark theme, iOS app only (see lib/theme.ts): follows the iPhone
    unless the customer picks light or dark on My card. The loyalty card stays
@@ -4019,4 +4026,34 @@ html.native[data-theme="dark"] .search-bar {
 }
 html.sheet-open .search-pill-row {
   visibility: hidden;
+}
+
+/* The café's social accounts, under the settings on the card page. */
+.social {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 22px;
+}
+.social__link {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid #e2d5bf;
+  color: var(--espresso);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.social__link:active {
+  transform: scale(0.94);
+}
+@media (hover: hover) {
+  .social__link:hover {
+    color: var(--label);
+  }
+}
+html.native[data-theme="dark"] .social__link {
+  border-color: #2e231b;
 }

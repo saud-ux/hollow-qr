@@ -223,9 +223,10 @@ function captionSvg({ caption, text, W, x0, muted }) {
 
 /**
  * Store-card strip: five cups showing progress (375x144 pt).
- * With `text` (the Wallet pass) the cups move up, the tent sits in the middle
- * and the progress line is drawn under the cups; without it (the in-app card,
- * which cuts its cups out of these strips) the layout stays as it was.
+ * The tent sits in the middle, behind the cups. With `text` (the Wallet pass)
+ * the cups are bigger and higher and the progress line is drawn under them;
+ * without it (the in-app card, which cuts its cups out of these strips and
+ * draws its own text) the cups stay centred.
  */
 function stripSvg({ filled, variant, wordmark, tent, tentBg, scale, text }) {
   const W = 375;
@@ -244,10 +245,6 @@ function stripSvg({ filled, variant, wordmark, tent, tentBg, scale, text }) {
     const state = cancelled ? (i < filled ? "cancelled" : "empty") : i < filled ? "filled" : "empty";
     const x = x0 + i * (cupW + gap);
     cups += `<g transform="translate(${x} ${y0}) scale(${cupW / 60} ${cupH / 80})">${cupSvg({ state, wordmark, tent })}</g>`;
-    // The gold shadows under the cups are left off the Wallet strip.
-    if (reward && !text) {
-      cups += `<ellipse cx="${x + cupW / 2}" cy="${y0 + cupH + 3}" rx="${cupW / 2.6}" ry="3" fill="${rgb(COLORS.gold, 0.55)}"/>`;
-    }
   }
   const glow = reward
     ? `<radialGradient id="g" cx="50%" cy="${text ? 35 : 55}%" r="65%"><stop offset="0" stop-color="${rgb(COLORS.gold, 0.45)}"/><stop offset="1" stop-color="${rgb(COLORS.gold, 0)}"/></radialGradient>
@@ -273,7 +270,7 @@ function stripSvg({ filled, variant, wordmark, tent, tentBg, scale, text }) {
   const tentH = (tentW * tentBg.h) / tentBg.w;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W * scale}" height="${H * scale}" viewBox="0 0 ${W} ${H}">
     <rect width="${W}" height="${H}" fill="${bg}"/>
-    ${text ? `<image href="${tentBg.uri}" x="${(W - tentW) / 2}" y="${(H - tentH) / 2}" width="${tentW}" height="${tentH}" opacity="0.08"/>` : `<image href="${tentBg.uri}" x="${W - 210}" y="${H - 104}" width="230" height="${(230 * tentBg.h) / tentBg.w}" opacity="0.06"/>`}
+    <image href="${tentBg.uri}" x="${(W - tentW) / 2}" y="${(H - tentH) / 2}" width="${tentW}" height="${tentH}" opacity="${text ? 0.08 : 0.07}"/>
     ${glow}
     ${cups}
     ${sparkles}
