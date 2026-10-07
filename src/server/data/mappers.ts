@@ -6,6 +6,7 @@ import type {
   MenuOption,
   NotificationPrefs,
   Order,
+  OrderHistoryPage,
   OrderLine,
   RatingOverview,
   SalesRange,
@@ -263,6 +264,20 @@ export function mapOrder(r: Raw): Order {
     rating: numOrNull(r.rating),
     ratingComment: strOrNull(r.rating_comment),
     ratedAt: isoOrNull(r.rated_at),
+  };
+}
+
+export function mapOrderHistory(r: Raw): Omit<OrderHistoryPage, "page" | "pageSize"> {
+  const counts = (r.counts ?? {}) as Raw;
+  return {
+    items: (Array.isArray(r.items) ? (r.items as Raw[]) : []).map((o) => ({
+      ...mapOrder(o),
+      accountId: strOrNull(o.account_id),
+      completedByName: strOrNull(o.completed_by_name),
+    })),
+    total: num(r.total),
+    counts: { all: num(counts.all), active: num(counts.active), completed: num(counts.completed), cancelled: num(counts.cancelled) },
+    revenueHalalas: num(r.revenue_halalas),
   };
 }
 

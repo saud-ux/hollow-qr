@@ -33,6 +33,12 @@ const ICONS = {
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
     </>
   ),
+  history: (
+    <>
+      <rect x="5" y="4" width="14" height="17" rx="2.5" />
+      <path d="M9.5 3h5v2.5h-5zM9 10.5h6M9 14h6M9 17.5h3.5" />
+    </>
+  ),
   menu: (
     <>
       <path d="M5 9h11v6a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V9Z" />
@@ -100,6 +106,7 @@ const DAILY: NavItem[] = [
 
 const ADMIN: NavItem[] = [
   { to: "/staff/admin", label: "المبيعات والإحصاءات", icon: "overview", end: true },
+  { to: "/staff/admin/orders", label: "كل الطلبات", icon: "history" },
   { to: "/staff/admin/menu", label: "المنيو", icon: "menu" },
   { to: "/staff/admin/settings", label: "أوقات الطلبات والتوصيل", icon: "settings" },
   { to: "/staff/admin/engage", label: "العروض والتقييمات", icon: "offers" },

@@ -191,6 +191,29 @@ export interface WidgetData {
 
 export type SalesRange = "today" | "7d" | "30d";
 
+/** Admin order history: which orders to list. "ended" = completed or cancelled. */
+export type OrderHistoryFilter = "all" | "active" | "ended" | "completed" | "cancelled";
+
+/** An order as the admin sees it in the history, with who handed it over. */
+export interface AdminOrder extends Order {
+  /** The customer's loyalty account, for the link to their page (null if deleted). */
+  accountId: string | null;
+  /** Staff member who marked it delivered. */
+  completedByName: string | null;
+}
+
+export interface OrderHistoryPage {
+  items: AdminOrder[];
+  /** Orders matching the filter (all pages). */
+  total: number;
+  page: number;
+  pageSize: number;
+  /** Per state, for the period and search (ignoring the state filter). */
+  counts: { all: number; active: number; completed: number; cancelled: number };
+  /** Sales of the completed orders in the filter. */
+  revenueHalalas: number;
+}
+
 /** Admin sales dashboard: completed orders in the range, and the same span just before it. */
 export interface SalesReport {
   range: SalesRange;

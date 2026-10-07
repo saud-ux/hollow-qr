@@ -10,6 +10,7 @@ import {
   mapOrder,
   mapOrderSummary,
   mapRatingOverview,
+  mapOrderHistory,
   mapSalesReport,
   notificationPrefsColumns,
   rateOrderResult,
@@ -30,6 +31,7 @@ import type {
   DashboardStatsRow,
   DeleteAccountResult,
   ListOrdersParams,
+  OrderHistoryParams,
   MenuItemInput,
   MenuItemRow,
   OrderRpcResult,
@@ -333,6 +335,18 @@ export class SupabaseRepository implements Repository {
       p_limit: p.limit ?? 50,
     });
     return ((data ?? []) as Raw[]).map(mapOrder);
+  }
+
+  async orderHistory(p: OrderHistoryParams) {
+    const data = await this.rpc("order_history", {
+      p_from: p.from?.toISOString() ?? null,
+      p_to: p.to?.toISOString() ?? null,
+      p_status: p.status,
+      p_search: p.search,
+      p_limit: p.limit,
+      p_offset: p.offset,
+    });
+    return mapOrderHistory(data as Raw);
   }
 
   async registerPushDevice(userId: string, token: string, lang: PushLang): Promise<void> {

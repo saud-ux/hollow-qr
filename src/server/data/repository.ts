@@ -10,6 +10,8 @@ import type {
   MenuOption,
   NotificationPrefs,
   Order,
+  OrderHistoryFilter,
+  OrderHistoryPage,
   OrderStatus,
   RatingOverview,
   SalesRange,
@@ -238,6 +240,17 @@ export interface ListOrdersParams {
   limit?: number;
 }
 
+export interface OrderHistoryParams {
+  /** Created in [from, to); null = no bound. */
+  from: Date | null;
+  to: Date | null;
+  status: OrderHistoryFilter;
+  /** Order number, customer name, phone or member ID. */
+  search: string | null;
+  limit: number;
+  offset: number;
+}
+
 export interface Repository {
   getProfile(userId: string): Promise<ProfileRow | null>;
   ensureLoyaltyAccount(userId: string): Promise<void>;
@@ -273,6 +286,8 @@ export interface Repository {
   setOrderStatus(actorId: string, orderId: string, status: OrderStatus, cancelReason: string | null): Promise<OrderRpcResult>;
   customerOrderAction(customerId: string, orderId: string, action: "cancel" | "arrived"): Promise<OrderRpcResult>;
   listOrders(params: ListOrdersParams): Promise<Order[]>;
+  /** Admin history: every order in a period, one page at a time. */
+  orderHistory(params: OrderHistoryParams): Promise<Omit<OrderHistoryPage, "page" | "pageSize">>;
 
   /** iOS app push tokens. A token moves to whoever signed in last on that device. */
   registerPushDevice(userId: string, token: string, lang: PushLang): Promise<void>;
