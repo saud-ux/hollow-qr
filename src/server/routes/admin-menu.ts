@@ -68,6 +68,7 @@ const itemFields = {
     .max(MAX_MENU_OPTIONS)
     .refine((list) => new Set(list.map((o) => o.id)).size === list.length, "option ids must be unique"),
   calories: z.number().int().min(0).max(5000).nullable(),
+  isBestSeller: z.boolean(),
 };
 
 const createItemSchema = z.object({
@@ -82,6 +83,7 @@ const createItemSchema = z.object({
   optionLabel: itemFields.optionLabel.optional().default(null),
   options: itemFields.options.optional().default([]),
   calories: itemFields.calories.optional().default(null),
+  isBestSeller: itemFields.isBestSeller.optional().default(false),
 });
 const updateItemSchema = z.object(itemFields).partial();
 

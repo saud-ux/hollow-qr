@@ -160,6 +160,8 @@ export interface MenuItemRow {
   optionLabelEn: string | null;
   options: MenuOption[];
   calories: number | null;
+  /** Marked by the owner; shown at the top of the menu. */
+  isBestSeller: boolean;
 }
 
 export type MenuItemInput = Omit<MenuItemRow, "id" | "imagePath">;

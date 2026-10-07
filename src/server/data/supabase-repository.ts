@@ -50,7 +50,7 @@ type DbError = { message: string; code?: string } | null;
 type DbResult = { data: unknown; error: DbError; count?: number | null };
 
 const MENU_SELECT =
-  "id, name_ar, name_en, description_ar, category, price_halalas, image_path, is_available, is_archived, sort_order, option_label, options, calories, description_en, option_label_en";
+  "id, name_ar, name_en, description_ar, category, price_halalas, image_path, is_available, is_archived, sort_order, option_label, options, calories, description_en, option_label_en, is_best_seller";
 const SETTINGS_SELECT =
   "ordering_paused, pickup_enabled, curbside_enabled, delivery_enabled, delivery_fee_halalas, delivery_min_order_halalas, weekly_hours";
 

@@ -176,6 +176,7 @@ type Draft = {
   optionLabelEn: string;
   options: MenuOption[];
   calories: string;
+  isBestSeller: boolean;
 };
 
 const newOptionId = () => `opt-${Math.random().toString(36).slice(2, 8)}`;
@@ -195,6 +196,7 @@ const emptyDraft = (category: MenuCategory = "drink"): Draft => ({
   optionLabelEn: "",
   calories: "",
   options: [],
+  isBestSeller: false,
 });
 
 function MenuPanel() {
@@ -221,6 +223,16 @@ function MenuPanel() {
   async function quickToggle(item: MenuItem) {
     try {
       const { item: updated } = await apiSend<{ item: MenuItem }>("PATCH", `/api/admin/menu/${item.id}`, { isAvailable: !item.isAvailable });
+      replace(updated);
+    } catch (err) {
+      setError(errorText(err));
+    }
+  }
+
+  // «الأفضل مبيعًا»: shown together at the top of the customer menu.
+  async function toggleBestSeller(item: MenuItem) {
+    try {
+      const { item: updated } = await apiSend<{ item: MenuItem }>("PATCH", `/api/admin/menu/${item.id}`, { isBestSeller: !item.isBestSeller });
       replace(updated);
     } catch (err) {
       setError(errorText(err));
@@ -296,6 +308,7 @@ function MenuPanel() {
       optionLabelEn: options.length ? draft.optionLabelEn.trim() || null : null,
       options,
       calories,
+      isBestSeller: draft.isBestSeller,
     };
     setBusy(true);
     setDraftError(null);
@@ -330,6 +343,7 @@ function MenuPanel() {
       optionLabelEn: i.optionLabelEn ?? "",
       options: i.options,
       calories: i.calories === null ? "" : String(i.calories),
+      isBestSeller: i.isBestSeller,
     });
 
   return (
@@ -359,6 +373,7 @@ function MenuPanel() {
                     onUpload={(f) => void upload(i, f)}
                     onRemoveImage={() => void removeImage(i)}
                     onToggleOption={(id) => void toggleOption(i, id)}
+                    onToggleBest={() => void toggleBestSeller(i)}
                   />
                 ))}
               </ul>
@@ -381,6 +396,7 @@ function MenuPanel() {
                   onUpload={(f) => void upload(i, f)}
                   onRemoveImage={() => void removeImage(i)}
                   onToggleOption={(id) => void toggleOption(i, id)}
+                  onToggleBest={() => void toggleBestSeller(i)}
                 />
               ))}
           </ul>
@@ -428,6 +444,7 @@ function MenuPanel() {
             />
             <Field label="الترتيب" inputMode="numeric" dir="ltr" value={draft.sortOrder} onChange={(e) => setDraft({ ...draft, sortOrder: e.target.value })} hint="الأصغر يظهر أولًا" />
             <Toggle label="متوفر للطلب" checked={draft.isAvailable} onChange={(v) => setDraft({ ...draft, isAvailable: v })} />
+            <Toggle label="الأفضل مبيعًا (يظهر أعلى المنيو)" checked={draft.isBestSeller} onChange={(v) => setDraft({ ...draft, isBestSeller: v })} />
             {draft.id && <Toggle label="إخفاء من المنيو" checked={draft.isArchived} onChange={(v) => setDraft({ ...draft, isArchived: v })} />}
             <fieldset className="options-editor">
               <legend>خيارات يختار منها العميل (مثل المحصول)</legend>
@@ -538,6 +555,7 @@ function MenuRow({
   onUpload,
   onRemoveImage,
   onToggleOption,
+  onToggleBest,
 }: {
   item: MenuItem;
   uploading: boolean;
@@ -546,6 +564,7 @@ function MenuRow({
   onUpload: (file: File | undefined) => void;
   onRemoveImage: () => void;
   onToggleOption: (optionId: string) => void;
+  onToggleBest: () => void;
 }) {
   return (
     <li className={`admin-menu__row ${item.isAvailable ? "" : "is-off"}`}>
@@ -589,6 +608,15 @@ function MenuRow({
       </div>
       <div className="admin-menu__actions">
         <Toggle label={item.isAvailable ? "متوفر" : "نفد"} checked={item.isAvailable} onChange={onToggle} />
+        <button
+          type="button"
+          className={`best-toggle ${item.isBestSeller ? "is-on" : ""}`}
+          aria-pressed={item.isBestSeller}
+          onClick={onToggleBest}
+          title={item.isBestSeller ? "اضغط لإزالته من الأفضل مبيعًا" : "اضغط لإضافته للأفضل مبيعًا"}
+        >
+          ★ الأفضل مبيعًا
+        </button>
         <button type="button" className="btn btn--small btn--ghost" onClick={onEdit}>
           تعديل
         </button>
