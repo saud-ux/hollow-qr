@@ -1,4 +1,23 @@
 /* HOLLOW Rewards — mobile-first, Arabic RTL */
+/* The new Saudi Riyal sign (U+20C1, SAMA 2025). Phones don't all have it in
+   their fonts yet, so this tiny font draws just that one character. */
+@font-face {
+  font-family: "Saudi Riyal";
+  src: url("/fonts/saudi-riyal.woff2") format("woff2");
+  font-weight: 100 600;
+  font-display: block;
+  unicode-range: U+20C1;
+  size-adjust: 118%;
+}
+@font-face {
+  font-family: "Saudi Riyal";
+  src: url("/fonts/saudi-riyal-bold.woff2") format("woff2");
+  font-weight: 700 900;
+  font-display: block;
+  unicode-range: U+20C1;
+  size-adjust: 118%;
+}
+
 :root {
   --cream: #f4ede0;
   --paper: #fbf8f2;
@@ -19,7 +38,7 @@
   --radius: 16px;
   --radius-sm: 10px;
   --shadow: 0 10px 30px rgb(43 30 22 / 12%);
-  --font: "SF Arabic", -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, "Noto Naskh Arabic", "Geeza Pro", sans-serif;
+  --font: "Saudi Riyal", "SF Arabic", -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, "Noto Naskh Arabic", "Geeza Pro", sans-serif;
   color-scheme: light;
 }
 
@@ -440,7 +459,7 @@ select {
   width: auto;
 }
 .wallet-btn__fallback {
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  font-family: "Saudi Riyal", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
   font-weight: 600;
   font-size: 1.05rem;
   padding: 0 22px;

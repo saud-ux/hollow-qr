@@ -126,8 +126,8 @@ function SettingsPanel() {
           <Toggle label="توصيل" checked={settings.deliveryEnabled} onChange={(v) => setSettings({ ...settings, deliveryEnabled: v })} />
         </div>
         <div className="form-row">
-          <Field label="رسوم التوصيل (ريال)" inputMode="decimal" dir="ltr" value={fee} onChange={(e) => setFee(e.target.value)} />
-          <Field label="الحد الأدنى للتوصيل (ريال)" inputMode="decimal" dir="ltr" value={minimum} onChange={(e) => setMinimum(e.target.value)} hint="0 = بدون حد أدنى" />
+          <Field label="رسوم التوصيل (⃁)" inputMode="decimal" dir="ltr" value={fee} onChange={(e) => setFee(e.target.value)} />
+          <Field label="الحد الأدنى للتوصيل (⃁)" inputMode="decimal" dir="ltr" value={minimum} onChange={(e) => setMinimum(e.target.value)} hint="0 = بدون حد أدنى" />
         </div>
 
         <fieldset className="hours">
@@ -439,7 +439,7 @@ function MenuPanel() {
                   <option value="dessert">حلا</option>
                 </select>
               </div>
-              <Field label="السعر (ريال)" inputMode="decimal" dir="ltr" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
+              <Field label="السعر (⃁)" inputMode="decimal" dir="ltr" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
             </div>
             <Field
               label="السعرات الحرارية (اختياري)"

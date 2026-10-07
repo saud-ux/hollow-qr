@@ -33,8 +33,12 @@ export function useMenu(refreshMs = 60_000) {
   return { menu, error, reload };
 }
 
+/** The Saudi Riyal sign; drawn by the bundled "Saudi Riyal" font (styles.css). */
+export const RIYAL = "\u20C1";
+
 export function riyals(halalas: number): string {
   const r = halalas / 100;
   const amount = Number.isInteger(r) ? String(r) : r.toFixed(2);
-  return currentLang() === "en" ? `SAR ${amount}` : `${amount} ريال`;
+  // The new riyal sign (U+20C1) goes on the left of the amount in both languages.
+  return currentLang() === "en" ? `${RIYAL} ${amount}` : `${amount} ${RIYAL}`;
 }
