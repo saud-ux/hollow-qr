@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { BROADCAST_BODY_MAX, BROADCAST_TITLE_MAX, type Broadcast, type RatingOverview } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
 import { Alert, Field } from "../../components/Field";
-import { apiGet, apiPost, errorText } from "../../lib/api";
+import { apiGet, errorText } from "../../lib/api";
+import { sendBroadcast } from "../../lib/broadcast";
 import { formatDateTime } from "../../lib/dates";
 
 /** Offers: a push to everyone who opted in to «العروض والجديد» in the app. */
@@ -27,18 +28,7 @@ export function OffersPanel() {
     setError(null);
     setDone(null);
     try {
-      const { broadcast } = await apiPost<{ broadcast: Broadcast }>("/api/admin/broadcasts", { title: title.trim(), body: body.trim() });
-      setProgress({ sent: 0, of: broadcast.recipients });
-      let after: string | null = null;
-      let sent = 0;
-      // One batch per request; the server says where to continue.
-      for (let round = 0; round < 200; round++) {
-        const r: { sent: number; next: string | null } = await apiPost(`/api/admin/broadcasts/${broadcast.id}/send`, { after });
-        sent = r.sent;
-        setProgress({ sent, of: broadcast.recipients });
-        if (!r.next) break;
-        after = r.next;
-      }
+      const sent = await sendBroadcast(title.trim(), body.trim(), (s, of) => setProgress({ sent: s, of }));
       setDone(`وصل الإشعار إلى ${sent} ${sent === 1 ? "جهاز" : "أجهزة"}`);
       setBody("");
       load();

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { isActiveStatus, isOrderable, MAX_LINE_QUANTITY, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
+import { isActiveStatus, isOrderable, MAX_LINE_QUANTITY, priceOf, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
 import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
 import { searchMenu } from "../../../shared/menu-search";
 import { Alert } from "../../components/Field";
 import { SearchField, SearchPill } from "../../components/MenuSearch";
 import { Rolling } from "../../components/Rolling";
+import { SalePrice } from "../../components/SalePrice";
 import { showToast } from "../../components/Toast";
 import { ProductSheet } from "../../components/ProductSheet";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
@@ -254,6 +255,11 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
         {hasOptions && <span className="menu-card__tag">{tr(`${item.options.length} محاصيل`, `${item.options.length} origins`)}</span>}
         {item.isBestSeller && <span className="menu-card__ribbon">{tr("الأفضل مبيعًا", "Best seller")}</span>}
         {!soldOut && item.stockQuantity != null && <span className="menu-card__low">{lowStockBadge(item.stockQuantity)}</span>}
+        {item.discountPercent !== null && (
+          <span className="menu-card__off">
+            <bdi dir="ltr">-{item.discountPercent}%</bdi>
+          </span>
+        )}
       </button>
       <div className="menu-card__body">
         <h3 className="menu-card__name">{itemName(item)}</h3>
@@ -265,7 +271,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
         {itemDescription(item) && <p className="menu-card__desc">{itemDescription(item)}</p>}
         <div className="menu-card__foot">
           <span className="menu-card__price">
-            {riyals(item.priceHalalas)}
+            <SalePrice item={item} />
             {item.calories !== null && <small className="kcal">{tr(`${item.calories} سعرة`, `${item.calories} kcal`)}</small>}
           </span>
           {soldOut ? (
@@ -316,7 +322,7 @@ export function CartBar({ menu }: { menu: MenuResponse | null }) {
   if (count === 0 || !menu) return null;
   const subtotal = lines.reduce((sum, l) => {
     const item = menu.items.find((i) => i.id === l.menuItemId);
-    return sum + (item ? item.priceHalalas * l.quantity : 0);
+    return sum + (item ? priceOf(item) * l.quantity : 0);
   }, 0);
   return (
     <Link to="/cart" className="cart-bar">

@@ -8,6 +8,9 @@ import {
   MAX_RATING_COMMENT,
   MENU_IMAGE_BUCKET,
   normalizeSaudiPhone,
+  discountedPrice,
+  isDiscountLive,
+  type Discount,
   type MenuItem,
   type MenuResponse,
   type Order,
@@ -54,7 +57,16 @@ export function toMenuItem(config: Pick<AppConfig, "supabaseUrl">, row: MenuItem
     calories: row.calories,
     isBestSeller: row.isBestSeller,
     stockQuantity: row.stockQuantity,
+    discountPercent: null,
+    salePriceHalalas: null,
   };
+}
+
+/** The discount's price on an item it covers (the order SQL prices it the same way). */
+export function withDiscount(item: MenuItem, discount: Discount | null, now: number): MenuItem {
+  if (!isDiscountLive(discount, now)) return item;
+  if (discount.scope === "items" && !discount.itemIds.includes(item.id)) return item;
+  return { ...item, discountPercent: discount.percent, salePriceHalalas: discountedPrice(item.priceHalalas, discount.percent) };
 }
 
 /** The menu as customers get it: a counted item at 0 is sold out, and the count shows only when it runs low. */
@@ -153,12 +165,17 @@ export const orderRoutes = new Hono<HonoEnv>()
   .get("/menu", rateLimit("api"), async (c) => {
     const { config } = c.get("deps");
     const repo = repoOf(c);
-    const [rows, settings, isOpen] = await Promise.all([
+    const [rows, settings, isOpen, discount] = await Promise.all([
       repo.listMenuItems(false),
       repo.getShopSettings(),
       repo.isShopOpen(BUSINESS_TIME_ZONE),
+      repo.getDiscount(),
     ]);
-    const body: MenuResponse = { items: rows.map((r) => forCustomers(toMenuItem(config, r))), shop: { isOpen, settings } };
+    const now = c.get("deps").now().getTime();
+    const body: MenuResponse = {
+      items: rows.map((r) => withDiscount(forCustomers(toMenuItem(config, r)), discount, now)),
+      shop: { isOpen, settings },
+    };
     c.header("Cache-Control", "no-store");
     return c.json(body);
   })

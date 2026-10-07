@@ -392,7 +392,10 @@ function OrderDetail({ order: o, onClose }: { order: AdminOrder | null; onClose:
                     {l.optionNameAr && <span className="ticket-card__option">{l.optionNameAr}</span>}
                     {l.note && <span className="ticket-card__note">{l.note}</span>}
                   </span>
-                  <span className="odet__price">{riyals(l.unitPriceHalalas * l.quantity)}</span>
+                  <span className="odet__price sale-price">
+                    <span className="price-now">{riyals(l.unitPriceHalalas * l.quantity)}</span>
+                    {l.listPriceHalalas !== null && <s className="price-was">{riyals(l.listPriceHalalas * l.quantity)}</s>}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -403,6 +406,11 @@ function OrderDetail({ order: o, onClose }: { order: AdminOrder | null; onClose:
             <h3>المبلغ</h3>
             <dl>
               <Row label="المجموع">{riyals(o.subtotalHalalas)}</Row>
+              {o.promoSavingsHalalas > 0 && (
+                <Row label={`خصم ${o.promoPercent}%`}>
+                  وفّر العميل {riyals(o.promoSavingsHalalas)} <small className="muted">(محسوب في المجموع)</small>
+                </Row>
+              )}
               {o.deliveryFeeHalalas > 0 && <Row label="رسوم التوصيل">{riyals(o.deliveryFeeHalalas)}</Row>}
               {o.discountHalalas > 0 && <Row label="خصم المشروب المجاني">− {riyals(o.discountHalalas)}</Row>}
               <Row label="الإجمالي">

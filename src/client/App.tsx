@@ -27,6 +27,7 @@ const AdminMenuPage = lazy(() => import("./pages/staff/AdminMenuPage").then((m) 
 const StaffOrdersPage = lazy(() => import("./pages/staff/StaffOrdersPage").then((m) => ({ default: m.StaffOrdersPage })));
 const AdminPage = lazy(() => import("./pages/staff/AdminPage").then((m) => ({ default: m.AdminPage })));
 const AdminTeamPage = lazy(() => import("./pages/staff/AdminPage").then((m) => ({ default: m.AdminTeamPage })));
+const AdminDiscountPage = lazy(() => import("./pages/staff/AdminDiscount").then((m) => ({ default: m.AdminDiscountPage })));
 const AdminOrdersPage = lazy(() => import("./pages/staff/AdminOrders").then((m) => ({ default: m.AdminOrdersPage })));
 const AdminEngagePage = lazy(() => import("./pages/staff/AdminPage").then((m) => ({ default: m.AdminEngagePage })));
 const AdminSettingsPage = lazy(() => import("./pages/staff/AdminMenuPage").then((m) => ({ default: m.AdminSettingsPage })));
@@ -143,6 +144,14 @@ function WebRoutes() {
           element={
             <StaffGuard adminOnly>
               <AdminOrdersPage />
+            </StaffGuard>
+          }
+        />
+        <Route
+          path="/staff/admin/discount"
+          element={
+            <StaffGuard adminOnly>
+              <AdminDiscountPage />
             </StaffGuard>
           }
         />
