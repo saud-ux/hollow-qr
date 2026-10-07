@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { CATEGORY_LABELS_AR, MAX_STOCK, type MenuItem } from "../../shared/ordering";
-import { apiGet, apiPost, errorText } from "../lib/api";
-import { Alert, Spinner } from "./Field";
+import { MAX_STOCK, type MenuItem } from "../../shared/ordering";
+import { apiPost, errorText } from "../lib/api";
 
 /**
  * How many of an item are left (staff and admin). Orders take from it the
@@ -125,44 +124,5 @@ export function StockCount({ item, onSaved }: { item: MenuItem; onSaved: (item: 
       </button>
       {error && <small className="field__error">{error}</small>}
     </div>
-  );
-}
-
-/** Admin page: «المخزون», every item on the menu with its count. */
-export function StockPanel() {
-  const [items, setItems] = useState<MenuItem[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    apiGet<{ items: MenuItem[] }>("/api/staff/menu")
-      .then((r) => setItems(r.items))
-      .catch((e: unknown) => setError(errorText(e)));
-  }, []);
-
-  const saved = (s: MenuItem) => setItems((list) => list?.map((i) => (i.id === s.id ? s : i)) ?? list);
-
-  return (
-    <section className="panel">
-      <h2>المخزون</h2>
-      <p className="muted small">حدّد كم باقي من الصنف. كل طلب ينقص منه وقت ما يوصل، والطلب الملغي يرجع للمخزون، ولما يوصل صفر يتقفل الصنف لين تضيف كمية. الأصناف «بدون عدّ» ما تخلص.</p>
-      {error && <Alert tone="error">{error}</Alert>}
-      {!items && !error && <Spinner />}
-      {items &&
-        (["drink", "dessert"] as const).map((category) => {
-          const list = items.filter((i) => i.category === category);
-          if (list.length === 0) return null;
-          return (
-            <div key={category} className="stock__group">
-              <h3 className="stock__title">{CATEGORY_LABELS_AR[category]}</h3>
-              {list.map((item) => (
-                <div key={item.id} className="stock__row stock__row--count">
-                  <span>{item.nameAr}</span>
-                  <StockCount item={item} onSaved={saved} />
-                </div>
-              ))}
-            </div>
-          );
-        })}
-    </section>
   );
 }

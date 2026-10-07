@@ -139,9 +139,9 @@ export function CustomerPage() {
 
   if (loadError) {
     return (
-      <StaffLayout>
+      <StaffLayout title="العميل">
         <Alert tone="error">{loadError}</Alert>
-        <Link to="/staff" className="btn btn--secondary">
+        <Link to="/staff/customers" className="btn btn--secondary">
           رجوع
         </Link>
       </StaffLayout>
@@ -149,7 +149,7 @@ export function CustomerPage() {
   }
   if (!customer) {
     return (
-      <StaffLayout>
+      <StaffLayout title="العميل">
         <Spinner />
       </StaffLayout>
     );
@@ -216,8 +216,8 @@ export function CustomerPage() {
   }
 
   return (
-    <StaffLayout>
-      <Link to="/staff" className="back-link">
+    <StaffLayout title="العميل">
+      <Link to="/staff/customers" className="back-link">
         → رجوع
       </Link>
 

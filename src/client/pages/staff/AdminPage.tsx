@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { normalizeEmail } from "../../../shared/format";
 import { ROLE_LABELS_AR } from "../../../shared/messages";
-import type { DashboardStats, Paginated, StaffMember, TransactionItem } from "../../../shared/types";
-import { ActivityList } from "../../components/ActivityList";
-import { CustomerSearch } from "../../components/CustomerSearch";
+import type { DashboardStats, StaffMember } from "../../../shared/types";
 import { ConfirmDialog } from "../../components/Dialog";
 import { Alert, Field } from "../../components/Field";
 import { StaffLayout } from "../../components/StaffLayout";
-import { StockPanel } from "../../components/StockCount";
 import { apiDownload, apiGet, apiPost, errorText } from "../../lib/api";
 import { formatDate } from "../../lib/dates";
 import { validateEmail, validateName, validatePassword } from "../../lib/validation";
@@ -150,10 +147,9 @@ function StaffManagement() {
   );
 }
 
+/** المبيعات والإحصاءات: the loyalty numbers, sales and the CSV exports. */
 export function AdminPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activity, setActivity] = useState<Paginated<TransactionItem> | null>(null);
-  const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
 
@@ -162,12 +158,6 @@ export function AdminPage() {
       .then(setStats)
       .catch((e: unknown) => setError(errorText(e)));
   }, []);
-
-  useEffect(() => {
-    apiGet<Paginated<TransactionItem>>(`/api/staff/activity?page=${page}&pageSize=15`)
-      .then(setActivity)
-      .catch(() => setActivity(null));
-  }, [page]);
 
   async function exportCsv(kind: "customers" | "transactions") {
     setExporting(kind);
@@ -182,28 +172,20 @@ export function AdminPage() {
   }
 
   return (
-    <StaffLayout>
-      <h1 className="page-title">لوحة الإدارة</h1>
+    <StaffLayout title="المبيعات والإحصاءات" wide>
       {error && <Alert tone="error">{error}</Alert>}
-      <section className="stats" aria-label="إحصاءات">
-        {STAT_LABELS.map(([key, label]) => (
-          <div key={key} className="stat">
-            <span className="stat__value">{stats ? String(stats[key]) : "…"}</span>
-            <span className="stat__label">{label}</span>
-          </div>
-        ))}
-      </section>
-
       <SalesPanel />
-      <StockPanel />
-      <OffersPanel />
-      <RatingsPanel />
-
       <section className="panel">
-        <h2>بحث عن عميل</h2>
-        <CustomerSearch placeholder="الاسم أو البريد أو رقم العضوية" />
+        <h2>بطاقة الولاء</h2>
+        <div className="stats" aria-label="إحصاءات">
+          {STAT_LABELS.map(([key, label]) => (
+            <div key={key} className="stat">
+              <span className="stat__value">{stats ? String(stats[key]) : "…"}</span>
+              <span className="stat__label">{label}</span>
+            </div>
+          ))}
+        </div>
       </section>
-
       <section className="panel">
         <h2>تصدير البيانات</h2>
         <div className="row">
@@ -215,33 +197,27 @@ export function AdminPage() {
           </button>
         </div>
       </section>
+    </StaffLayout>
+  );
+}
 
-      <section className="panel">
-        <h2>آخر النشاطات</h2>
-        {activity ? (
-          <>
-            <ActivityList items={activity.items} />
-            <div className="pager">
-              <button type="button" className="btn btn--small btn--ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                الأحدث
-              </button>
-              <span>{page}</span>
-              <button
-                type="button"
-                className="btn btn--small btn--ghost"
-                disabled={page * activity.pageSize >= activity.total}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                الأقدم
-              </button>
-            </div>
-          </>
-        ) : (
-          <p className="muted">جارٍ التحميل…</p>
-        )}
-      </section>
-
+/** الموظفين: add and remove staff accounts. */
+export function AdminTeamPage() {
+  return (
+    <StaffLayout title="الموظفين">
       <StaffManagement />
+    </StaffLayout>
+  );
+}
+
+/** العروض والتقييمات: offer notifications and what customers said. */
+export function AdminEngagePage() {
+  return (
+    <StaffLayout title="العروض والتقييمات" wide>
+      <div className="staff-cols">
+        <OffersPanel />
+        <RatingsPanel />
+      </div>
     </StaffLayout>
   );
 }

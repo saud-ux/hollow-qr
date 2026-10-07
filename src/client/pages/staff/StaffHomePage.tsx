@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { normalizeMemberId } from "../../../shared/format";
 import type { Paginated, StaffCustomerView, TransactionItem } from "../../../shared/types";
 import { ActivityList } from "../../components/ActivityList";
@@ -11,21 +11,29 @@ import { StaffLayout } from "../../components/StaffLayout";
 import { apiGet, apiPost, errorText } from "../../lib/api";
 import { errorFeedback, primeAudio, successFeedback } from "../../lib/feedback";
 
+/** العملاء: scan a card, type a member ID or search, and the latest card operations. */
 export function StaffHomePage() {
   const navigate = useNavigate();
-  const [scanning, setScanning] = useState(false);
+  const [params, setParams] = useSearchParams();
+  // The «مسح QR» button in the header lands here with ?scan=1.
+  const [scanning, setScanning] = useState(() => params.get("scan") === "1");
   const [resolving, setResolving] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [memberId, setMemberId] = useState("");
   const [manualError, setManualError] = useState<string | null>(null);
-  const [recent, setRecent] = useState<TransactionItem[] | null>(null);
+  const [activity, setActivity] = useState<Paginated<TransactionItem> | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
-    apiGet<Paginated<TransactionItem>>("/api/staff/activity?pageSize=8")
-      .then((r) => setRecent(r.items))
-      .catch(() => setRecent([]));
-  }, []);
+    if (params.has("scan")) setParams({}, { replace: true });
+  }, [params, setParams]);
+
+  useEffect(() => {
+    apiGet<Paginated<TransactionItem>>(`/api/staff/activity?page=${page}&pageSize=10`)
+      .then(setActivity)
+      .catch(() => setActivity(null));
+  }, [page]);
 
   const resolve = useCallback(
     async (code: string) => {
@@ -70,7 +78,7 @@ export function StaffHomePage() {
   }
 
   return (
-    <StaffLayout>
+    <StaffLayout title="العملاء">
       <div className="staff-home">
         <button
           type="button"
@@ -94,8 +102,25 @@ export function StaffHomePage() {
       </section>
 
       <section className="panel">
-        <h2>آخر العمليات</h2>
-        {recent === null ? <p className="muted">جارٍ التحميل…</p> : <ActivityList items={recent} />}
+        <h2>آخر العمليات على البطاقات</h2>
+        {activity ? (
+          <>
+            <ActivityList items={activity.items} />
+            {activity.total > activity.pageSize && (
+              <div className="pager">
+                <button type="button" className="btn btn--small btn--ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                  الأحدث
+                </button>
+                <span>{page}</span>
+                <button type="button" className="btn btn--small btn--ghost" disabled={page * activity.pageSize >= activity.total} onClick={() => setPage((p) => p + 1)}>
+                  الأقدم
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="muted">جارٍ التحميل…</p>
+        )}
       </section>
 
       {scanning && (
