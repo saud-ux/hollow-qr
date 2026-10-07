@@ -2387,14 +2387,14 @@ select {
 }
 .rt--active .rt-layer--current {
   z-index: 2;
-  box-shadow: 14px 0 36px rgb(43 30 22 / 20%);
 }
-.rt--back .rt-layer--current {
+/* A page sliding in from the right casts its shadow on the left. */
+.rt--push .rt-layer--current {
   box-shadow: -14px 0 36px rgb(43 30 22 / 20%);
 }
 .rt--pop .rt-layer--leaving {
   z-index: 2;
-  box-shadow: 14px 0 36px rgb(43 30 22 / 20%);
+  box-shadow: -14px 0 36px rgb(43 30 22 / 20%);
 }
 .rt--pop .rt-layer--current {
   z-index: 1;
@@ -4896,9 +4896,18 @@ html.staff-ui[data-theme="dark"] .ticket-card {
   background: linear-gradient(105deg, transparent 30%, rgb(255 226 140 / 40%) 48%, transparent 66%);
   transform: translateX(120%);
 }
-/* Opened from a menu card: the sheet fades in while its photo grows out of the card. */
+/* Opened from a menu card: the card itself grows into the sheet (morphCardSheet). */
 .motion .product-sheet.product-sheet--zoom {
-  animation: hollow-fade 220ms ease-out backwards;
+  animation: none;
+}
+/* Only the dimming fades in, so the growing card stays solid. */
+.motion .sheet-backdrop:has(.product-sheet--zoom) {
+  animation: hollow-dim 300ms ease-out both;
+}
+@keyframes hollow-dim {
+  from {
+    background-color: rgb(20 12 8 / 0%);
+  }
 }
 .rolling {
   position: relative;
@@ -5561,4 +5570,34 @@ html.staff-ui[data-theme="dark"] .disc-status.is-live {
 }
 html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
   background: rgb(201 162 39 / 12%);
+}
+
+/* Password fields: an eye at the end of the box shows or hides the password. */
+.field__password {
+  position: relative;
+}
+.field__password input {
+  padding-inline-end: 52px;
+}
+.field__eye {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 6px;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--label);
+  cursor: pointer;
+}
+.field__eye[aria-pressed="true"] {
+  color: var(--espresso);
+}
+.field__eye:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: -3px;
 }

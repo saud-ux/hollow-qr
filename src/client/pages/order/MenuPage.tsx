@@ -232,10 +232,10 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
   const room = stockRoom(item, cart.lines);
   const cardRef = useRef<HTMLLIElement>(null);
   const [open, setOpen] = useState(false);
-  // Where the photo sat when the sheet opened, so the sheet's photo can grow out of it.
-  const [origin, setOrigin] = useState<DOMRect | null>(null);
+  // The card the sheet grows out of (and folds back into).
+  const [origin, setOrigin] = useState<HTMLElement | null>(null);
   const openSheet = () => {
-    setOrigin(cardRef.current?.querySelector(".menu-card__img")?.getBoundingClientRect() ?? null);
+    setOrigin(cardRef.current);
     setOpen(true);
   };
   // + grows into the stepper when the first one goes in the cart.

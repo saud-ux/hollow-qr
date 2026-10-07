@@ -20,6 +20,7 @@ export function initMotion(): void {
   const apply = () => document.documentElement.classList.toggle("motion", motionOn());
   apply();
   reduceQuery?.addEventListener("change", apply);
+  watchTaps();
 }
 
 export const CINEMATIC = { duration: 850, easing: "cubic-bezier(.16,1,.3,1)" } as const;
@@ -40,40 +41,92 @@ export function play(el: Element | null | undefined, keyframes: Keyframe[], opti
 }
 
 // ---------------------------------------------------------------------------
-// Page transitions (cinematic). RTL: a new page pushes in from the left.
+// Page transitions. Opening something: the thing you tapped grows into the
+// new page, and going back shrinks the page into it again. With nothing to
+// grow from, the page slides in from the right. Tabs cross-fade.
 // ---------------------------------------------------------------------------
 
-export type TransitionKind = "push" | "back" | "pop";
+export type TransitionKind = "push" | "pop" | "tab";
 
-function revealContent(page: Element, delay: number): void {
-  const rows = [...page.querySelectorAll(".shop__main > *, .customer__main > *")].slice(0, 6);
-  rows.forEach((row, i) =>
-    void play(
-      row,
-      [
-        { opacity: 0, transform: "translateY(22px)", filter: "blur(6px)" },
-        { opacity: 1, transform: "none", filter: "blur(0px)" },
-      ],
-      { duration: CINEMATIC.duration * 0.9, easing: CINEMATIC.easing, delay: delay + i * 120 },
-    ),
+/** A box on screen, in viewport pixels. */
+export interface ScreenRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export const GROW = { duration: 560, easing: "cubic-bezier(.3,.7,.1,1)" } as const;
+const SLIDE = { duration: 420, easing: "cubic-bezier(.32,.72,0,1)" } as const;
+
+let lastTap: { el: Element; at: number } | null = null;
+
+/** Remembers what was tapped last, so the page it opens can grow out of it. */
+function watchTaps(): void {
+  document.addEventListener(
+    "click",
+    (e) => {
+      const el = e.target instanceof Element ? e.target.closest("a, button, [role='button'], [role='link'], .menu-card, .order-row") : null;
+      // The tab bar switches sections; nothing grows from it.
+      lastTap = el && !el.closest(".tabbar") ? { el, at: performance.now() } : null;
+    },
+    true,
   );
 }
 
-export function runPageTransition(outgoing: HTMLElement, incoming: HTMLElement, kind: TransitionKind): Promise<void> {
-  const sign = kind === "back" ? -1 : 1;
-  const rest = { transform: "translateX(0) scale(1)", filter: "blur(0px)", opacity: 1 };
-  const behind = { transform: `translateX(${12 * sign}%) scale(.9)`, filter: "blur(5px)", opacity: 0.35 };
-  const timing = { duration: CINEMATIC.duration, easing: CINEMATIC.easing };
-  if (kind === "pop") {
+/** Where the page that is opening now should grow from (taken once). */
+export function takeTapOrigin(): ScreenRect | null {
+  const tap = lastTap;
+  lastTap = null;
+  // Allows for a short wait (placing an order) between the tap and the page.
+  if (!tap || !tap.el.isConnected || performance.now() - tap.at > 1500) return null;
+  const r = tap.el.getBoundingClientRect();
+  if (r.width < 8 || r.height < 8 || r.width * r.height > innerWidth * innerHeight * 0.6) return null;
+  return { left: r.left, top: r.top, width: r.width, height: r.height };
+}
+
+const insetOf = (r: ScreenRect) =>
+  `inset(${r.top}px ${innerWidth - r.left - r.width}px ${innerHeight - r.top - r.height}px ${r.left}px round 16px)`;
+const FULL = "inset(0px 0px 0px 0px round 0px)";
+
+/** The new page's first blocks rise in while it opens. */
+function riseIn(page: Element, delay: number): void {
+  [...page.querySelectorAll(".shop__main > *, .customer__main > *")].slice(0, 6).forEach((row, i) =>
+    void play(row, [{ opacity: 0, transform: "translateY(14px)" }, { opacity: 1, transform: "none" }], { duration: 420, easing: CALM.easing, delay: delay + i * 50 }),
+  );
+}
+
+export function runPageTransition(outgoing: HTMLElement, incoming: HTMLElement, kind: TransitionKind, origin: ScreenRect | null): Promise<void> {
+  if (kind === "tab") {
     return Promise.all([
-      play(outgoing, [{ transform: "translateX(0)" }, { transform: "translateX(-100%)" }], { ...timing, fill: "forwards" }),
-      play(incoming, [behind, rest], timing),
+      play(incoming, [{ opacity: 0, transform: "scale(.985)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "ease-out" }),
+      play(outgoing, [{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease-out", fill: "forwards" }),
     ]).then(done);
   }
-  revealContent(incoming, CINEMATIC.duration * 0.35);
+  if (kind === "push" && origin) {
+    riseIn(incoming, GROW.duration * 0.3);
+    return Promise.all([
+      play(incoming, [{ clipPath: insetOf(origin) }, { clipPath: FULL }], GROW),
+      play(outgoing, [{ filter: "brightness(1)" }, { filter: "brightness(.88)" }], { ...GROW, fill: "forwards" }),
+    ]).then(done);
+  }
+  if (kind === "pop" && origin) {
+    // The page folds back into what was tapped, then fades into it.
+    return Promise.all([
+      play(outgoing, [{ clipPath: FULL, opacity: 1 }, { clipPath: insetOf(origin), opacity: 1, offset: 0.85 }, { clipPath: insetOf(origin), opacity: 0 }], { ...GROW, duration: 480, fill: "forwards" }),
+      play(incoming, [{ filter: "brightness(.88)" }, { filter: "brightness(1)" }], { ...GROW, duration: 480 }),
+    ]).then(done);
+  }
+  if (kind === "push") {
+    riseIn(incoming, SLIDE.duration * 0.25);
+    return Promise.all([
+      play(incoming, [{ transform: "translateX(100%)" }, { transform: "none" }], SLIDE),
+      play(outgoing, [{ transform: "none", filter: "brightness(1)" }, { transform: "translateX(-28%)", filter: "brightness(.82)" }], { ...SLIDE, fill: "forwards" }),
+    ]).then(done);
+  }
   return Promise.all([
-    play(outgoing, [rest, behind], { ...timing, fill: "forwards" }),
-    play(incoming, [{ transform: `translateX(${-100 * sign}%)` }, { transform: "translateX(0)" }], timing),
+    play(outgoing, [{ transform: "none" }, { transform: "translateX(100%)" }], { ...SLIDE, fill: "forwards" }),
+    play(incoming, [{ transform: "translateX(-28%)", filter: "brightness(.82)" }, { transform: "none", filter: "brightness(1)" }], SLIDE),
   ]).then(done);
 }
 
@@ -243,41 +296,65 @@ export function growStepper(stepper: Element | null, fromWidth: number): void {
   for (const child of stepper.children) void play(child, [{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay: 120 });
 }
 
-/** The product photo grows from where it sat on the menu card into the sheet. */
-export function openFromCard(origin: DOMRect | null, target: HTMLElement | null, rest: Element[]): void {
-  if (!origin || !target || !motionOn() || origin.width === 0) return;
-  const to = target.getBoundingClientRect();
-  if (to.width === 0) return;
-  const ghost = target.cloneNode(true) as HTMLElement;
-  Object.assign(ghost.style, {
-    position: "fixed",
-    left: `${origin.left}px`,
-    top: `${origin.top}px`,
-    width: `${origin.width}px`,
-    height: `${origin.height}px`,
-    margin: "0",
-    zIndex: "80",
-    pointerEvents: "none",
-    overflow: "hidden",
-    borderRadius: "14px",
+/**
+ * The tapped menu card grows into the product sheet: the sheet opens out of
+ * the card's box while the photo, name and price travel to their places.
+ * `forward: false` folds the sheet back into the card.
+ */
+export function morphCardSheet(card: Element | null, sheet: HTMLElement | null, forward: boolean): Promise<void> {
+  if (!card || !sheet || !motionOn() || !card.isConnected) return Promise.resolve();
+  const c = card.getBoundingClientRect();
+  const sh = sheet.getBoundingClientRect();
+  if (!c.width || !sh.width) return Promise.resolve();
+  const t: KeyframeAnimationOptions = { ...GROW, duration: forward ? GROW.duration : 440, fill: "both", direction: forward ? "normal" : "reverse" };
+  const runs: Animation[] = [];
+  const add = (el: Element | null | undefined, frames: Keyframe[], o = t) => {
+    if (el && typeof el.animate === "function") runs.push(el.animate(frames, o));
+  };
+  // Measure every shared piece before anything moves.
+  const rtl = getComputedStyle(sheet).direction === "rtl";
+  const pairs: [string, string, boolean][] = [
+    [".menu-card__img", ".product-sheet__photo", false],
+    [".menu-card__name", ".product-sheet__name", true],
+    [".menu-card__price .price-now", ".product-sheet__price .price-now", true],
+  ];
+  const shared = pairs.flatMap(([from, to, text]) => {
+    const src = card.querySelector(from);
+    const dst = sheet.querySelector(to);
+    if (!src || !dst) return [];
+    const a = src.getBoundingClientRect();
+    const b = dst.getBoundingClientRect();
+    return a.height && b.height ? [{ dst, a, b, text }] : [];
   });
-  document.body.appendChild(ghost);
-  target.style.visibility = "hidden";
-  const timing = { duration: 420, easing: CALM.easing, fill: "forwards" as const };
-  ghost
-    .animate(
-      [
-        { left: `${origin.left}px`, top: `${origin.top}px`, width: `${origin.width}px`, height: `${origin.height}px`, borderRadius: "14px" },
-        { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`, borderRadius: getComputedStyle(target).borderRadius || "0px" },
-      ],
-      timing,
-    )
-    .finished.then(done, done)
-    .finally(() => {
-      target.style.visibility = "";
-      ghost.remove();
-    });
-  rest.forEach((el, i) => void play(el, [{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }], { duration: 320, easing: CALM.easing, delay: 160 + i * 50 }));
+  // The sheet starts lifted up to the card's top edge and cut down to the card's
+  // box, then drops into place as it opens out to full size.
+  const lift = c.top - sh.top;
+  const clipFrom = `inset(0px ${sh.right - c.right}px ${Math.max(sh.height - c.height, 0)}px ${c.left - sh.left}px round 16px)`;
+  add(sheet, [
+    { transform: `translateY(${lift}px)`, clipPath: clipFrom },
+    { transform: "none", clipPath: "inset(0px 0px 0px 0px round 24px 24px 0px 0px)" },
+  ]);
+  // Shared pieces start where they sit on the card. Text keeps its reading edge.
+  for (const { dst, a, b, text } of shared) {
+    const origin = text ? (rtl ? "top right" : "top left") : "top left";
+    const dx = text ? (rtl ? a.right - b.right : a.left - b.left) : a.left - b.left;
+    const scale = text ? `scale(${a.height / b.height})` : `scale(${a.width / b.width}, ${a.height / b.height})`;
+    add(dst, [{ transformOrigin: origin, transform: `translate(${dx}px, ${a.top - b.top - lift}px) ${scale}` }, { transformOrigin: origin, transform: "none" }]);
+  }
+  // Everything else on the sheet rises in once the card has opened up.
+  const rest = [...sheet.querySelectorAll(".product-sheet__body > *:not(.product-sheet__head), .product-sheet__close, .product-sheet__head .pass-label, .product-sheet__price .price-was, .product-sheet__price .kcal")];
+  rest.forEach((el, i) => add(el, [{ opacity: 0, transform: "translateY(12px)" }, { opacity: 0, transform: "translateY(12px)", offset: Math.min(0.35 + i * 0.05, 0.6) }, { opacity: 1, transform: "none" }]));
+  // The card's own content steps aside (the sheet itself renders inside the card).
+  const cardParts = [...card.children].filter((el) => !el.contains(sheet));
+  for (const part of cardParts) add(part, [{ opacity: 1 }, { opacity: 0, offset: 0.02 }, { opacity: 0 }]);
+  if (!forward) add(sheet.parentElement, [{ backgroundColor: "rgb(20 12 8 / 45%)" }, { backgroundColor: "rgb(20 12 8 / 0%)" }], { duration: 440, easing: "ease-in", fill: "forwards" });
+  return Promise.all(runs.map((r) => r.finished.then(done, done))).then(() => {
+    // The card shows again; the sheet keeps its end state only while closing.
+    for (const r of runs) {
+      const target = (r.effect as KeyframeEffect | null)?.target ?? null;
+      if (forward || (target && cardParts.includes(target))) r.cancel();
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
