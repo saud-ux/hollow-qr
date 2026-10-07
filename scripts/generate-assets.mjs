@@ -215,9 +215,9 @@ function captionSvg({ caption, text, W, x0, muted }) {
   }
   // Shrink the reward line if it would run into the progress value.
   const room = right - x0 - progressWidth - (progressWidth ? 18 : 0);
-  let reward = text(caption.reward, { size: 20 });
-  if (reward.width > room) reward = text(caption.reward, { size: (20 * room) / reward.width });
-  out += at(reward, right - reward.width, 131, caption.gold ? rgb([217, 181, 74]) : value);
+  let reward = text(caption.reward, { size: 16 });
+  if (reward.width > room) reward = text(caption.reward, { size: (16 * room) / reward.width });
+  out += at(reward, right - reward.width, 130, caption.gold ? rgb([217, 181, 74]) : value);
   return out;
 }
 
