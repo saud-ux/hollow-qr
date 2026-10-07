@@ -26,6 +26,10 @@ import { PrivacyPage, SupportPage } from "./pages/info/InfoPages";
 const AdminMenuPage = lazy(() => import("./pages/staff/AdminMenuPage").then((m) => ({ default: m.AdminMenuPage })));
 const StaffOrdersPage = lazy(() => import("./pages/staff/StaffOrdersPage").then((m) => ({ default: m.StaffOrdersPage })));
 const AdminPage = lazy(() => import("./pages/staff/AdminPage").then((m) => ({ default: m.AdminPage })));
+const AdminTeamPage = lazy(() => import("./pages/staff/AdminPage").then((m) => ({ default: m.AdminTeamPage })));
+const AdminEngagePage = lazy(() => import("./pages/staff/AdminPage").then((m) => ({ default: m.AdminEngagePage })));
+const AdminSettingsPage = lazy(() => import("./pages/staff/AdminMenuPage").then((m) => ({ default: m.AdminSettingsPage })));
+const StockPage = lazy(() => import("./pages/staff/StockPage").then((m) => ({ default: m.StockPage })));
 const CustomerPage = lazy(() => import("./pages/staff/CustomerPage").then((m) => ({ default: m.CustomerPage })));
 const StaffHomePage = lazy(() => import("./pages/staff/StaffHomePage").then((m) => ({ default: m.StaffHomePage })));
 const StaffLoginPage = lazy(() => import("./pages/staff/StaffLoginPage").then((m) => ({ default: m.StaffLoginPage })));
@@ -92,8 +96,17 @@ function WebRoutes() {
         <Route path="/orders/:id" element={<OrderPage />} />
         <Route path="/c/:token" element={<QrLandingPage />} />
         <Route path="/staff/login" element={<StaffLoginPage />} />
+        <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
         <Route
-          path="/staff"
+          path="/staff/orders"
+          element={
+            <StaffGuard>
+              <StaffOrdersPage />
+            </StaffGuard>
+          }
+        />
+        <Route
+          path="/staff/customers"
           element={
             <StaffGuard>
               <StaffHomePage />
@@ -109,10 +122,18 @@ function WebRoutes() {
           }
         />
         <Route
-          path="/staff/orders"
+          path="/staff/stock"
           element={
             <StaffGuard>
-              <StaffOrdersPage />
+              <StockPage />
+            </StaffGuard>
+          }
+        />
+        <Route
+          path="/staff/admin"
+          element={
+            <StaffGuard adminOnly>
+              <AdminPage />
             </StaffGuard>
           }
         />
@@ -125,10 +146,26 @@ function WebRoutes() {
           }
         />
         <Route
-          path="/staff/admin"
+          path="/staff/admin/settings"
           element={
             <StaffGuard adminOnly>
-              <AdminPage />
+              <AdminSettingsPage />
+            </StaffGuard>
+          }
+        />
+        <Route
+          path="/staff/admin/engage"
+          element={
+            <StaffGuard adminOnly>
+              <AdminEngagePage />
+            </StaffGuard>
+          }
+        />
+        <Route
+          path="/staff/admin/team"
+          element={
+            <StaffGuard adminOnly>
+              <AdminTeamPage />
             </StaffGuard>
           }
         />

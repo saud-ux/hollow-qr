@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  CATEGORY_LABELS_AR,
   FULFILLMENT_LABELS_AR,
   isActiveStatus,
   nextStatus,
   STATUS_LABELS_AR,
-  type MenuItem,
   type Order,
   type OrderStatus,
   type ShopSettings,
 } from "../../../shared/ordering";
 import { Dialog } from "../../components/Dialog";
 import { Alert, Spinner } from "../../components/Field";
-import { StockCount } from "../../components/StockCount";
+import { AvailabilityList } from "../../components/Availability";
 import { CarIcon, ScooterIcon, StoreIcon } from "../../components/Shop";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiGet, apiPost, errorText } from "../../lib/api";
@@ -162,7 +160,7 @@ export function StaffOrdersPage() {
   const recent = board?.items.filter((o) => !isActiveStatus(o.status)) ?? [];
 
   return (
-    <StaffLayout>
+    <StaffLayout title="الطلبات" wide>
       <div className="board-bar">
         <div className={`shop-state ${board?.shop.isOpen ? "shop-state--open" : ""}`}>
           <span className="shop-state__dot" aria-hidden="true" />
@@ -171,7 +169,7 @@ export function StaffOrdersPage() {
         {board && (
           <div className="board-bar__actions">
             <button type="button" className="btn btn--small btn--secondary" onClick={() => setStockOpen(true)}>
-              المتوفر
+              المتوفر والكميات
             </button>
             <button type="button" className={`btn btn--small ${board.shop.settings.orderingPaused ? "btn--primary" : "btn--secondary"}`} onClick={() => void togglePause()}>
               {board.shop.settings.orderingPaused ? "استئناف الطلبات" : "إيقاف مؤقت"}
@@ -290,30 +288,6 @@ export function StaffOrdersPage() {
 
 /** Sold out in two taps: a switch per item, and per origin for items like V60. */
 function StockDialog({ onClose }: { onClose: () => void }) {
-  const [items, setItems] = useState<MenuItem[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-
-  useEffect(() => {
-    apiGet<{ items: MenuItem[] }>("/api/staff/menu")
-      .then((r) => setItems(r.items))
-      .catch((e: unknown) => setError(errorText(e)));
-  }, []);
-
-  async function toggle(item: MenuItem, isAvailable: boolean, optionId?: string) {
-    const key = `${item.id}:${optionId ?? ""}`;
-    setBusy(key);
-    setError(null);
-    try {
-      const { item: saved } = await apiPost<{ item: MenuItem }>(`/api/staff/menu/${item.id}/availability`, { isAvailable, optionId });
-      setItems((list) => list?.map((i) => (i.id === saved.id ? saved : i)) ?? list);
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy(null);
-    }
-  }
-
   return (
     <Dialog
       open
@@ -325,57 +299,7 @@ function StockDialog({ onClose }: { onClose: () => void }) {
         </button>
       }
     >
-      <p className="muted small">أطفئ الصنف إذا نفد، ويظهر للعملاء «نفد» فورًا. ولو حددت كمية، كل طلب ينقص منها ويتقفل الصنف لما توصل صفر.</p>
-      {error && <Alert tone="error">{error}</Alert>}
-      {!items && !error && <Spinner />}
-      {items && (
-        <div className="stock">
-          {(["drink", "dessert"] as const).map((category) => {
-            const list = items.filter((i) => i.category === category);
-            if (list.length === 0) return null;
-            return (
-              <section key={category} className="stock__group">
-                <h3 className="stock__title">{CATEGORY_LABELS_AR[category]}</h3>
-                {list.map((item) => (
-                  <div key={item.id} className="stock__item">
-                    <label className="stock__row">
-                      <span>{item.nameAr}</span>
-                      <input
-                        type="checkbox"
-                        role="switch"
-                        className="switch"
-                        checked={item.isAvailable}
-                        disabled={busy === `${item.id}:`}
-                        onChange={(e) => void toggle(item, e.target.checked)}
-                      />
-                    </label>
-                    {item.isAvailable && (
-                      <div className="stock__row stock__row--option">
-                        <span>الكمية</span>
-                        <StockCount item={item} onSaved={(saved) => setItems((list) => list?.map((i) => (i.id === saved.id ? saved : i)) ?? list)} />
-                      </div>
-                    )}
-                    {item.isAvailable &&
-                      item.options.map((o) => (
-                        <label key={o.id} className="stock__row stock__row--option">
-                          <span>{o.nameAr}</span>
-                          <input
-                            type="checkbox"
-                            role="switch"
-                            className="switch"
-                            checked={o.isAvailable}
-                            disabled={busy === `${item.id}:${o.id}`}
-                            onChange={(e) => void toggle(item, e.target.checked, o.id)}
-                          />
-                        </label>
-                      ))}
-                  </div>
-                ))}
-              </section>
-            );
-          })}
-        </div>
-      )}
+      <AvailabilityList scroll />
     </Dialog>
   );
 }

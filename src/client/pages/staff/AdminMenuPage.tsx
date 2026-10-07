@@ -41,10 +41,17 @@ const sar = (halalas: number) => String(halalas / 100);
 
 export function AdminMenuPage() {
   return (
-    <StaffLayout>
-      <h1 className="page-title">المنيو والطلبات</h1>
-      <SettingsPanel />
+    <StaffLayout title="المنيو" wide>
       <MenuPanel />
+    </StaffLayout>
+  );
+}
+
+/** أوقات الطلبات والتوصيل: pause, pickup options, delivery fee and the weekly hours. */
+export function AdminSettingsPage() {
+  return (
+    <StaffLayout title="أوقات الطلبات والتوصيل">
+      <SettingsPanel />
     </StaffLayout>
   );
 }
