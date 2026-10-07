@@ -7,61 +7,57 @@ const TITLE = "HOLLOW";
 
 /** The notification for an order's new status in the app's language, or null when none is sent. */
 export function orderStatusMessage(order: Order, lang: PushLang = "ar"): AppPushMessage | null {
-  const body = lang === "en" ? englishBody(order) : arabicBody(order);
-  return body === null ? null : { title: statusTitle(order, lang), body, collapseId: order.id, data: { orderId: order.id } };
+  const text = lang === "en" ? englishText(order) : arabicText(order);
+  return text === null ? null : { ...text, collapseId: order.id, data: { orderId: order.id } };
 }
 
-/** "HOLLOW", except where a step has its own headline. */
-function statusTitle(order: Order, lang: PushLang): string {
-  if (order.status === "preparing") return lang === "en" ? "We're on it! ☕" : "شغّالين على طلبك! ☕";
-  return TITLE;
-}
+type PushText = { title: string; body: string };
 
-function arabicBody(order: Order): string | null {
-  const n = `#${order.orderNumber}`;
+function arabicText(order: Order): PushText | null {
+  const n = order.orderNumber;
   switch (order.status) {
     case "new":
-      return `استلمنا طلبك ${n} · الإجمالي ${formatSar(order.totalHalalas)} ر.س، والدفع عند الاستلام. نبلغك أول ما نبدأ نحضّره`;
+      return { title: "استلمنا طلبك! 🤩", body: `طلبك رقم ${n} (الإجمالي ${formatSar(order.totalHalalas)} ر.س - دفع عند الاستلام). ثواني ونبدأ!` };
     case "preparing":
-      return `طلبك ${n} قيد التحضير، استعد لمشروب طازج!`;
+      return { title: "شغّالين على طلبك! ☕", body: `طلبك رقم ${n} قيد التحضير، جهّز نفسك!` };
     case "ready":
-      if (order.fulfillment === "pickup") return `طلبك ${n} جاهز، تفضّل استلمه من الكاشير`;
-      if (order.fulfillment === "curbside") return `طلبك ${n} جاهز، اضغط «وصلت» إذا وصلت ونطلّعه لك`;
-      return `طلبك ${n} جاهز وبيطلع لك مع المندوب قريبًا`;
+      if (order.fulfillment === "pickup") return { title: "قهوتك تناديك! 📣", body: `طلبك رقم ${n} جاهز، ننتظرك عند الكاشير!` };
+      if (order.fulfillment === "curbside") return { title: "طلبك جاهز للتحريك! 🚗", body: `طلبك رقم ${n} جاهز. اضغط «وصلت» وبنجيبه لسيارتك!` };
+      return { title: TITLE, body: `طلبك #${n} جاهز وبيطلع لك مع المندوب قريبًا` };
     case "out_for_delivery":
-      return `طلبك ${n} في الطريق إليك`;
+      return { title: "قهوتك في الطريق! 🛵", body: `طلبك رقم ${n} طلع مع المندوب وجاي لك!` };
     case "completed": {
       const cups = order.loyaltyResult?.cupsAdded ?? 0;
-      return cups > 0 ? `بالعافية! انضاف لبطاقتك ${cups} ${cups === 1 ? "كوب" : "أكواب"}` : "بالعافية! تم تسليم طلبك";
+      return { title: TITLE, body: cups > 0 ? `بالعافية! انضاف لبطاقتك ${cups} ${cups === 1 ? "كوب" : "أكواب"}` : "بالعافية! تم تسليم طلبك" };
     }
     case "cancelled":
       if (order.cancelledBy !== "staff") return null;
-      return order.cancelReason ? `نعتذر، تم إلغاء طلبك ${n}: ${order.cancelReason}` : `نعتذر، تم إلغاء طلبك ${n}`;
+      return { title: TITLE, body: order.cancelReason ? `نعتذر، تم إلغاء طلبك #${n}: ${order.cancelReason}` : `نعتذر، تم إلغاء طلبك #${n}` };
     default:
       return null;
   }
 }
 
-function englishBody(order: Order): string | null {
-  const n = `#${order.orderNumber}`;
+function englishText(order: Order): PushText | null {
+  const n = order.orderNumber;
   switch (order.status) {
     case "new":
-      return `We got your order ${n} · Total SAR ${formatSar(order.totalHalalas)}, pay on pickup. We'll let you know when we start on it`;
+      return { title: `Got your order #${n}! 🤩`, body: `Total SAR ${formatSar(order.totalHalalas)}, pay on pickup. Loading up...` };
     case "preparing":
-      return `Your order ${n} is being prepared. Get ready for a fresh brew!`;
+      return { title: "We're on it! ☕", body: `Your order #${n} is being prepared. Ready soon!` };
     case "ready":
-      if (order.fulfillment === "pickup") return `Your order ${n} is ready, pick it up at the counter`;
-      if (order.fulfillment === "curbside") return `Your order ${n} is ready. Tap "I'm here" when you arrive and we'll bring it out`;
-      return `Your order ${n} is ready and leaving with the driver soon`;
+      if (order.fulfillment === "pickup") return { title: "Ready at the counter! 📣", body: `Order #${n} is waiting for you at the counter.` };
+      if (order.fulfillment === "curbside") return { title: "Ready to roll! 🚗", body: `Order #${n} is ready. Tap "I'm here" on arrival!` };
+      return { title: TITLE, body: `Your order #${n} is ready and leaving with the driver soon` };
     case "out_for_delivery":
-      return `Your order ${n} is on its way`;
+      return { title: "On its way! 🛵", body: `Order #${n} is with the driver, heading your way!` };
     case "completed": {
       const cups = order.loyaltyResult?.cupsAdded ?? 0;
-      return cups > 0 ? `Enjoy! ${cups} ${cups === 1 ? "cup" : "cups"} added to your card` : "Enjoy! Your order is complete";
+      return { title: TITLE, body: cups > 0 ? `Enjoy! ${cups} ${cups === 1 ? "cup" : "cups"} added to your card` : "Enjoy! Your order is complete" };
     }
     case "cancelled":
       if (order.cancelledBy !== "staff") return null;
-      return order.cancelReason ? `Sorry, your order ${n} was cancelled: ${order.cancelReason}` : `Sorry, your order ${n} was cancelled`;
+      return { title: TITLE, body: order.cancelReason ? `Sorry, your order #${n} was cancelled: ${order.cancelReason}` : `Sorry, your order #${n} was cancelled` };
     default:
       return null;
   }
