@@ -137,9 +137,40 @@ export interface RatingOverview {
   items: { orderNumber: number; customerName: string; rating: number; comment: string | null; ratedAt: string }[];
 }
 
-/** The steps an order goes through, in order (cancelled is outside the flow). */
+/**
+ * The steps the customer sees, in order (cancelled is outside the flow).
+ * Delivery has no "ready" step of its own: the customer goes from preparing
+ * straight to out for delivery.
+ */
 export function orderFlow(fulfillment: FulfillmentType): OrderStatus[] {
-  return fulfillment === "delivery" ? ["new", "preparing", "ready", "out_for_delivery", "completed"] : ["new", "preparing", "ready", "completed"];
+  return fulfillment === "delivery" ? ["new", "preparing", "out_for_delivery", "completed"] : ["new", "preparing", "ready", "completed"];
+}
+
+/** Where an order is in its customer flow; -1 when cancelled. A delivery waiting for the driver still shows as preparing. */
+export function flowStep(order: Pick<Order, "status" | "fulfillment">): number {
+  const status = order.fulfillment === "delivery" && order.status === "ready" ? "preparing" : order.status;
+  return orderFlow(order.fulfillment).indexOf(status);
+}
+
+/** A status in the customer's words (staff screens use STATUS_LABELS_*). */
+export function customerStatusLabel(order: Pick<Order, "status" | "fulfillment">, lang: "ar" | "en"): string {
+  const en = lang === "en";
+  switch (order.status) {
+    case "new":
+      return en ? "Order received" : "استلمنا طلبك";
+    case "preparing":
+      return en ? "Preparing" : "قيد التحضير";
+    case "ready":
+      if (order.fulfillment === "delivery") return en ? "Preparing" : "قيد التحضير";
+      if (order.fulfillment === "curbside") return en ? "Ready, we'll bring it out" : "جاهز، نطلعه لك";
+      return en ? "Ready for pickup" : "جاهز للاستلام";
+    case "out_for_delivery":
+      return en ? "Out for delivery" : "خرج للتوصيل";
+    case "completed":
+      return order.fulfillment === "delivery" ? (en ? "Delivered" : "تم التوصيل") : en ? "Picked up" : "تم الاستلام";
+    case "cancelled":
+      return en ? "Cancelled" : "ملغي";
+  }
 }
 
 /** What the iOS home-screen widget shows; the widget refreshes it with its own token. */

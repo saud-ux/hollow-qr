@@ -130,7 +130,10 @@ describe("lock-screen order tracker (Live Activity)", () => {
     const now = new Date("2026-10-10T10:00:00Z");
     expect(liveActivityUpdate(base, "ar", now)).toEqual({ event: "update", state: { status: "ready", label: "جاهز، نطلّعه لك", step: 2, steps: 4 } });
     const delivery = { ...base, fulfillment: "delivery", status: "out_for_delivery" } as Order;
-    expect(liveActivityUpdate(delivery, "en", now).state).toEqual({ status: "out_for_delivery", label: "On its way", step: 3, steps: 5 });
+    expect(liveActivityUpdate(delivery, "en", now).state).toEqual({ status: "out_for_delivery", label: "Out for delivery", step: 2, steps: 4 });
+    // A delivery waiting for the driver is still "preparing" for the customer.
+    expect(liveActivityUpdate({ ...delivery, status: "ready" }, "en", now).state).toEqual({ status: "ready", label: "Preparing your order", step: 1, steps: 4 });
+    expect(liveActivityUpdate({ ...base, fulfillment: "pickup", status: "completed" }, "en", now).state.label).toBe("Picked up, enjoy!");
     const cancelled = liveActivityUpdate({ ...base, status: "cancelled" }, "ar", now);
     expect(cancelled).toMatchObject({ event: "end", state: { label: "تم إلغاء الطلب" } });
     expect(cancelled.dismissAt!.getTime()).toBe(now.getTime() + 60_000);

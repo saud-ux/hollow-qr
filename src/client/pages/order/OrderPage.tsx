@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
-import { isActiveStatus, MAX_RATING_COMMENT, type Order, type OrderStatus } from "../../../shared/ordering";
+import { flowStep, isActiveStatus, MAX_RATING_COMMENT, orderFlow, type Order, type OrderStatus } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
 import { OffersPrompt } from "../../components/OffersPrompt";
 import { Alert } from "../../components/Field";
@@ -19,24 +19,13 @@ import { tr } from "../../lib/i18n";
 
 const POLL_MS = 8_000;
 
+/** The tracker's steps: pickup ends "Picked up"; delivery goes received, preparing, out for delivery, delivered. */
 function steps(order: Order): { status: OrderStatus; label: string }[] {
-  const base: { status: OrderStatus; label: string }[] = [
-    { status: "new", label: tr("استلمنا طلبك", "Order received") },
-    { status: "preparing", label: tr("قيد التحضير", "Preparing") },
-    {
-      status: "ready",
-      label:
-        order.fulfillment === "delivery"
-          ? tr("جاهز", "Ready")
-          : order.fulfillment === "curbside"
-            ? tr("جاهز، نطلعه لك", "Ready, we'll bring it out")
-            : tr("جاهز للاستلام", "Ready for pickup"),
-    },
-  ];
-  if (order.fulfillment === "delivery") base.push({ status: "out_for_delivery", label: tr("في الطريق إليك", "On its way") });
-  base.push({ status: "completed", label: tr("تم التسليم", "Delivered") });
-  return base;
+  return orderFlow(order.fulfillment).map((status) => ({ status, label: statusLabel({ status, fulfillment: order.fulfillment }) }));
 }
+
+/** The ready moment (steaming cup) is for orders the customer collects. */
+const isCollectReady = (order: Order) => order.status === "ready" && order.fulfillment !== "delivery";
 
 /** What the customer should do / know right now. */
 function headline(order: Order): string {
@@ -50,7 +39,7 @@ function headline(order: Order): string {
         ? tr("طلبك جاهز، استلمه من الكاشير", "Your order is ready, pick it up at the counter")
         : order.fulfillment === "curbside"
           ? tr("طلبك جاهز، اضغط «وصلت» إذا كنت عند الكوفي", "Your order is ready. Tap \"I'm here\" when you're outside")
-          : tr("طلبك جاهز وبيطلع مع المندوب", "Your order is ready and leaving with the driver");
+          : tr("نجهّز طلبك للمندوب، وبيطلع لك قريبًا", "Getting your order ready for the driver, it'll be on its way soon");
     case "out_for_delivery":
       return tr("المندوب في الطريق إليك", "The driver is on the way");
     case "completed":
@@ -112,14 +101,14 @@ export function OrderPage() {
   }, [session, load]);
 
   // Play the tracker in on first open, then each time the café moves the order on.
-  const stepIndex = order ? steps(order).findIndex((s) => s.status === order.status) : -1;
+  const stepIndex = order ? flowStep(order) : -1;
   useLayoutEffect(() => {
     if (!order || stepIndex < 0) return;
     const prev = shownStep.current?.id === order.id ? shownStep.current.index : -1;
     shownStep.current = { id: order.id, index: stepIndex };
     if (prev === stepIndex) return;
     animateTracker(ticketRef.current, prev, stepIndex);
-    if (order.status === "ready") {
+    if (isCollectReady(order)) {
       serveCup(ticketRef.current);
       // Turned ready while the customer is watching: a tap they can feel.
       if (prev >= 0) successFeedback();
@@ -181,7 +170,7 @@ export function OrderPage() {
   }
 
   const flow = steps(order);
-  const currentIndex = flow.findIndex((s) => s.status === order.status);
+  const currentIndex = flowStep(order);
   const cancelled = order.status === "cancelled";
 
   return (
@@ -193,9 +182,9 @@ export function OrderPage() {
           <span className="ticket__number" dir="ltr">
             #{order.orderNumber}
           </span>
-          <span className="ticket__status">{statusLabel(order.status)}</span>
+          <span className="ticket__status">{statusLabel(order)}</span>
         </div>
-        {order.status === "ready" && <ReadyCup />}
+        {isCollectReady(order) && <ReadyCup />}
         <p className="ticket__headline">{headline(order)}</p>
         {!cancelled && (
           <ol className="steps">

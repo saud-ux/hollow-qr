@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router";
-import { isActiveStatus, orderFlow, type Order } from "../../../shared/ordering";
+import { flowStep, isActiveStatus, orderFlow, type Order } from "../../../shared/ordering";
 import { Alert } from "../../components/Field";
 import { OrdersSkeleton } from "../../components/Skeletons";
 import { ShopLayout } from "../../components/Shop";
@@ -13,9 +13,8 @@ import { tr } from "../../lib/i18n";
 
 /** How far along the order is, for the small progress bar (0–100). */
 function progress(o: Order): number {
-  const flow = orderFlow(o.fulfillment);
-  const i = Math.max(flow.indexOf(o.status), 0);
-  return Math.round(((i + 0.5) / flow.length) * 100);
+  const i = Math.max(flowStep(o), 0);
+  return Math.round(((i + 0.5) / orderFlow(o.fulfillment).length) * 100);
 }
 
 export function OrdersPage() {
@@ -86,7 +85,7 @@ export function OrdersPage() {
                       <span className="order-live__num" dir="ltr">
                         #{o.orderNumber}
                       </span>
-                      <span className="order-live__status">{statusLabel(o.status)}</span>
+                      <span className="order-live__status">{statusLabel(o)}</span>
                     </span>
                     <span className="order-live__bar" aria-hidden="true">
                       <i style={{ width: `${progress(o)}%` }} />
@@ -120,7 +119,7 @@ export function OrdersPage() {
                       <small>{formatDateTime(o.createdAt)}</small>
                     </span>
                     <span className="order-row__side">
-                      <span className={`status-chip status-chip--${o.status}`}>{statusLabel(o.status)}</span>
+                      <span className={`status-chip status-chip--${o.status}`}>{statusLabel(o)}</span>
                       <small>{riyals(o.totalHalalas)}</small>
                     </span>
                   </Link>

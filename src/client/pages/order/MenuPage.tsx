@@ -157,7 +157,7 @@ function LiveOrder({ refreshes }: { refreshes: number }) {
         <strong>
           {tr("طلبك", "Your order")} <span dir="ltr">#{order.orderNumber}</span>
         </strong>
-        <small>{statusLabel(order.status)}</small>
+        <small>{statusLabel(order)}</small>
       </span>
       <span className="live-order__go">{tr("تابع الطلب ›", "Track ›")}</span>
     </Link>
