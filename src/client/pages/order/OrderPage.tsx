@@ -14,6 +14,7 @@ import { riyals, useMenu } from "../../lib/menu";
 import { fulfillmentLabel, lineName, lineOptionName, statusLabel } from "../../lib/menuText";
 import { animateTracker, serveCup } from "../../lib/motion";
 import { successFeedback } from "../../lib/native";
+import { endOrderOnLockScreen, refreshWidget, trackOrderOnLockScreen } from "../../lib/widget";
 import { tr } from "../../lib/i18n";
 
 const POLL_MS = 8_000;
@@ -124,6 +125,17 @@ export function OrderPage() {
       if (prev >= 0) successFeedback();
     }
   }, [order, stepIndex]);
+
+  // iOS app: the order on the lock screen and on the home-screen widget.
+  const orderStatus = order?.status;
+  useEffect(() => {
+    if (!order || !orderStatus) return;
+    if (isActiveStatus(orderStatus)) void trackOrderOnLockScreen(order);
+    else endOrderOnLockScreen(order.id);
+    void refreshWidget();
+    // Only when the order or its status changes, not on every poll.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.id, orderStatus]);
 
   const active = order ? isActiveStatus(order.status) : false;
   useEffect(() => {

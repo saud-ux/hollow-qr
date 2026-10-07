@@ -1,0 +1,58 @@
+# Compiles the iOS app and its widget extension for the simulator (no signing,
+# nothing uploaded), so native changes are checked before a TestFlight run.
+name: iOS build check
+
+on:
+  pull_request:
+    paths:
+      - "ios/**"
+      - "scripts/ios-*"
+      - ".github/workflows/ios-*.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the web app and copy it into the iOS project
+        run: |
+          pnpm build
+          npx cap sync ios
+
+      - name: Compile (simulator, unsigned)
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            > "$RUNNER_TEMP/xcodebuild.log" 2>&1 || { grep -E 'error:' "$RUNNER_TEMP/xcodebuild.log" | sort -u | head -50; tail -80 "$RUNNER_TEMP/xcodebuild.log"; exit 1; }
+          grep -E 'warning:.*(HollowWidgets|Shared|HollowWidgetPlugin)' "$RUNNER_TEMP/xcodebuild.log" | sort -u | head -30 || true
+          echo "Compiled App and HollowWidgets" >> "$GITHUB_STEP_SUMMARY"

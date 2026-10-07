@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0BA1A6257E75E531BDFB1E84 /* CardWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8611758A71949785362A44D2 /* CardWidget.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -15,11 +16,44 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		8152AC32043F432B71CBC074 /* HollowWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DE1E9A2C52BA08F9B4084B8F /* HollowWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		86559620289C375948A4A78E /* HollowWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C19B18FDC4D705394C984BE /* HollowWidgetsBundle.swift */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
+		9985B5F2A3A94910A77D87FE /* HollowWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADF4DFD2D881B41AB71D86E /* HollowWidgetPlugin.swift */; };
+		AA0613B2F171707E8A68E766 /* HollowShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A467242A9A7D6AB1671E8A60 /* HollowShared.swift */; };
+		ADF2F47D0A9333152FDA7D64 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9CAE0147CEA53B9C93F70304 /* Foundation.framework */; };
+		B09229AA80CD62F9C982A5FE /* OrderActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29368C32C1069F0DCE1CC8C /* OrderActivityWidget.swift */; };
+		D4DFEA7E89F05EDD431C85B5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7B06813ACF92936D5B3FD367 /* Assets.xcassets */; };
+		F68BC8792409CEE83D51D82C /* HollowShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A467242A9A7D6AB1671E8A60 /* HollowShared.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		89B86E26DBD18B37C438CF9A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B2072CFF1D828AA3141D2C9A;
+			remoteInfo = HollowWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		912423A5C0ADB236B8641B66 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				8152AC32043F432B71CBC074 /* HollowWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		4ADF4DFD2D881B41AB71D86E /* HollowWidgetPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HollowWidgetPlugin.swift; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -28,11 +62,28 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		54CB683C8E0024AE41B624CF /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		65A9EDBAA8D1A6FECDEFA618 /* HollowWidgets.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = HollowWidgets.entitlements; sourceTree = "<group>"; };
+		7B06813ACF92936D5B3FD367 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7C19B18FDC4D705394C984BE /* HollowWidgetsBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HollowWidgetsBundle.swift; sourceTree = "<group>"; };
+		8611758A71949785362A44D2 /* CardWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CardWidget.swift; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		9CAE0147CEA53B9C93F70304 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		A467242A9A7D6AB1671E8A60 /* HollowShared.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HollowShared.swift; sourceTree = "<group>"; };
+		B29368C32C1069F0DCE1CC8C /* OrderActivityWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OrderActivityWidget.swift; sourceTree = "<group>"; };
+		DE1E9A2C52BA08F9B4084B8F /* HollowWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HollowWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		0CA343C5C8CA87CAD429DA7E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ADF2F47D0A9333152FDA7D64 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3011FED79650016851F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -44,12 +95,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3FAFEC9AECD27A6FF35B6BE2 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				86B4CF25889B486C6DABA525 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				504EC3051FED79650016851F /* Products */,
+				B22322FCC14837D119096476 /* HollowWidgets */,
+				9FBEABCE4F3857096CB29AC5 /* Shared */,
+				3FAFEC9AECD27A6FF35B6BE2 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -57,6 +119,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				DE1E9A2C52BA08F9B4084B8F /* HollowWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -73,8 +136,40 @@
 				504EC3131FED79650016851F /* Info.plist */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				4ADF4DFD2D881B41AB71D86E /* HollowWidgetPlugin.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		86B4CF25889B486C6DABA525 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				9CAE0147CEA53B9C93F70304 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		9FBEABCE4F3857096CB29AC5 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A467242A9A7D6AB1671E8A60 /* HollowShared.swift */,
+			);
+			name = Shared;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		B22322FCC14837D119096476 /* HollowWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				7C19B18FDC4D705394C984BE /* HollowWidgetsBundle.swift */,
+				8611758A71949785362A44D2 /* CardWidget.swift */,
+				B29368C32C1069F0DCE1CC8C /* OrderActivityWidget.swift */,
+				7B06813ACF92936D5B3FD367 /* Assets.xcassets */,
+				54CB683C8E0024AE41B624CF /* Info.plist */,
+				65A9EDBAA8D1A6FECDEFA618 /* HollowWidgets.entitlements */,
+			);
+			name = HollowWidgets;
+			path = HollowWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -87,10 +182,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				912423A5C0ADB236B8641B66 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FA0683EBC5E319C3CACD6A9F /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -99,6 +196,23 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		B2072CFF1D828AA3141D2C9A /* HollowWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5D89A0F77754A0E466BFE3CC /* Build configuration list for PBXNativeTarget "HollowWidgets" */;
+			buildPhases = (
+				303F216A76E63C94877CFA2C /* Sources */,
+				0CA343C5C8CA87CAD429DA7E /* Frameworks */,
+				B395AB560B1563BA0D45487E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HollowWidgets;
+			productName = HollowWidgets;
+			productReference = DE1E9A2C52BA08F9B4084B8F /* HollowWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -133,6 +247,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				B2072CFF1D828AA3141D2C9A /* HollowWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -151,19 +266,49 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B395AB560B1563BA0D45487E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D4DFEA7E89F05EDD431C85B5 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		303F216A76E63C94877CFA2C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				86559620289C375948A4A78E /* HollowWidgetsBundle.swift in Sources */,
+				0BA1A6257E75E531BDFB1E84 /* CardWidget.swift in Sources */,
+				B09229AA80CD62F9C982A5FE /* OrderActivityWidget.swift in Sources */,
+				AA0613B2F171707E8A68E766 /* HollowShared.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				9985B5F2A3A94910A77D87FE /* HollowWidgetPlugin.swift in Sources */,
+				F68BC8792409CEE83D51D82C /* HollowShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FA0683EBC5E319C3CACD6A9F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = HollowWidgets;
+			target = B2072CFF1D828AA3141D2C9A /* HollowWidgets */;
+			targetProxy = 89B86E26DBD18B37C438CF9A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -185,6 +330,39 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		3B5A371388F7B19481F7E633 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = "";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = HollowWidgets/HollowWidgets.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N2KXQ7MVY3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HollowWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hollowzulfi.coffee.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "HOLLOW Coffee Widgets App Store";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		504EC3141FED79650016851F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
@@ -299,9 +477,9 @@
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				DEVELOPMENT_TEAM = N2KXQ7MVY3;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -310,6 +488,11 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					ActivityKit,
+				);
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.hollowzulfi.coffee;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -323,27 +506,61 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
-				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				DEVELOPMENT_TEAM = N2KXQ7MVY3;
 				INFOPLIST_FILE = App/Info.plist;
-				PROVISIONING_PROFILE_SPECIFIER = "HOLLOW Coffee App Store";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					ActivityKit,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.hollowzulfi.coffee;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "HOLLOW Coffee App Store";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
+		};
+		9366552ABEB565BF085BB502 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = "";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = HollowWidgets/HollowWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N2KXQ7MVY3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HollowWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hollowzulfi.coffee.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -362,6 +579,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5D89A0F77754A0E466BFE3CC /* Build configuration list for PBXNativeTarget "HollowWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3B5A371388F7B19481F7E633 /* Release */,
+				9366552ABEB565BF085BB502 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
