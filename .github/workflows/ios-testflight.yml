@@ -67,10 +67,13 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
           rm -f "$SIGN_DIR/signing.pem" "$SIGN_DIR/dist.p12"
 
-          node scripts/ios-signing.mjs profile "$SIGN_DIR/app.mobileprovision"
-          UUID="$(security cms -D -i "$SIGN_DIR/app.mobileprovision" | plutil -extract UUID raw -)"
-          for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
-            mkdir -p "$dir"; cp "$SIGN_DIR/app.mobileprovision" "$dir/$UUID.mobileprovision"
+          # One profile for the app, one for the widget extension.
+          node scripts/ios-signing.mjs profile "$SIGN_DIR/app.mobileprovision" "$SIGN_DIR/widgets.mobileprovision"
+          for profile in app widgets; do
+            UUID="$(security cms -D -i "$SIGN_DIR/$profile.mobileprovision" | plutil -extract UUID raw -)"
+            for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+              mkdir -p "$dir"; cp "$SIGN_DIR/$profile.mobileprovision" "$dir/$UUID.mobileprovision"
+            done
           done
 
       - name: Archive
@@ -107,7 +110,10 @@ jobs:
             <key>signingStyle</key><string>manual</string>
             <key>signingCertificate</key><string>Apple Distribution</string>
             <key>provisioningProfiles</key>
-            <dict><key>com.hollowzulfi.coffee</key><string>HOLLOW Coffee App Store</string></dict>
+            <dict>
+              <key>com.hollowzulfi.coffee</key><string>HOLLOW Coffee App Store</string>
+              <key>com.hollowzulfi.coffee.widgets</key><string>HOLLOW Coffee Widgets App Store</string>
+            </dict>
             <key>uploadSymbols</key><true/>
             <key>manageAppVersionAndBuildNumber</key><false/>
           </dict>

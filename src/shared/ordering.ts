@@ -135,6 +135,18 @@ export interface RatingOverview {
   items: { orderNumber: number; customerName: string; rating: number; comment: string | null; ratedAt: string }[];
 }
 
+/** The steps an order goes through, in order (cancelled is outside the flow). */
+export function orderFlow(fulfillment: FulfillmentType): OrderStatus[] {
+  return fulfillment === "delivery" ? ["new", "preparing", "ready", "out_for_delivery", "completed"] : ["new", "preparing", "ready", "completed"];
+}
+
+/** What the iOS home-screen widget shows; the widget refreshes it with its own token. */
+export interface WidgetData {
+  card: { name: string; stamps: number; max: number; reward: boolean; active: boolean; qr: string } | null;
+  /** The customer's newest order still in progress. */
+  order: { id: string; number: number; status: OrderStatus; fulfillment: FulfillmentType } | null;
+}
+
 export type SalesRange = "today" | "7d" | "30d";
 
 /** Admin sales dashboard: completed orders in the range, and the same span just before it. */

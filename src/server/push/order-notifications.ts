@@ -1,7 +1,7 @@
-import { FULFILLMENT_LABELS_AR, formatSar, type Order } from "../../shared/ordering";
+import { FULFILLMENT_LABELS_AR, formatSar, orderFlow, type Order } from "../../shared/ordering";
 import type { PushLang, Repository } from "../data/repository";
 import type { Logger } from "../lib/logger";
-import type { AppPushMessage, AppPushSender } from "./app-push";
+import type { AppPushMessage, AppPushSender, LiveActivityUpdate } from "./app-push";
 
 const TITLE = "HOLLOW";
 
@@ -74,7 +74,7 @@ export async function sendToTokens(deps: PushDeps, tokens: string[], message: Ap
   return sent;
 }
 
-/** Sends the status notification to every device of the order's customer. */
+/** Sends the status notification to every device of the order's customer, and moves its lock-screen tracker on. */
 export async function notifyOrderStatus(deps: PushDeps, order: Order): Promise<void> {
   if (deps.appPush.kind === "disabled") return;
   const devices = await deps.repo.pushTokensForOrder(order.id);
@@ -85,6 +85,57 @@ export async function notifyOrderStatus(deps: PushDeps, order: Order): Promise<v
     if (message && tokens.length > 0) sent += await sendToTokens(deps, tokens, message);
   }
   if (devices.length > 0) deps.logger.info("app_push.order_status", { orderId: order.id, status: order.status, devices: devices.length, sent });
+  await updateLiveActivities(deps, order);
+}
+
+/** How long a finished tracker stays on the lock screen. */
+const DONE_LINGER_MS = 15 * 60 * 1000;
+
+/**
+ * The lock-screen tracker for an order's status: the same steps as the order
+ * screen. A finished order ends it (the notification already alerted).
+ */
+export function liveActivityUpdate(order: Order, lang: PushLang, now: Date): LiveActivityUpdate {
+  const flow = orderFlow(order.fulfillment);
+  const state = { status: order.status, label: trackerLabel(order, lang), step: Math.max(flow.indexOf(order.status), 0), steps: flow.length };
+  if (order.status === "completed" || order.status === "cancelled") {
+    return { event: "end", state, dismissAt: new Date(now.getTime() + (order.status === "completed" ? DONE_LINGER_MS : 60_000)) };
+  }
+  return { event: "update", state };
+}
+
+/** Short status line for the lock screen, written to the customer. */
+function trackerLabel(order: Order, lang: PushLang): string {
+  const en = lang === "en";
+  switch (order.status) {
+    case "new":
+      return en ? "Order received" : "استلمنا طلبك";
+    case "preparing":
+      return en ? "Preparing your order" : "نحضّر طلبك";
+    case "ready":
+      if (order.fulfillment === "pickup") return en ? "Ready, pick it up at the counter" : "جاهز، استلمه من الكاشير";
+      if (order.fulfillment === "curbside") return en ? "Ready, we'll bring it out" : "جاهز، نطلّعه لك";
+      return en ? "Ready" : "جاهز";
+    case "out_for_delivery":
+      return en ? "On its way" : "في الطريق إليك";
+    case "completed":
+      return en ? "Enjoy!" : "بالعافية!";
+    case "cancelled":
+      return en ? "Order cancelled" : "تم إلغاء الطلب";
+    default:
+      return "";
+  }
+}
+
+async function updateLiveActivities(deps: PushDeps, order: Order): Promise<void> {
+  const activities = await deps.repo.liveActivitiesForOrder(order.id);
+  if (activities.length === 0) return;
+  const now = new Date();
+  for (const a of activities) {
+    const outcome = await deps.appPush.sendLiveActivity(a.token, liveActivityUpdate(order, a.lang, now));
+    if (outcome === "invalid-token") await deps.repo.deleteLiveActivities(order.id, a.token);
+  }
+  if (order.status === "completed" || order.status === "cancelled") await deps.repo.deleteLiveActivities(order.id);
 }
 
 /** What staff see when an order comes in: who, what and how it is collected. */

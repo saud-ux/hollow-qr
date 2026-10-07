@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router";
-import { isActiveStatus, type Order, type OrderStatus } from "../../../shared/ordering";
+import { isActiveStatus, orderFlow, type Order } from "../../../shared/ordering";
 import { Alert } from "../../components/Field";
 import { OrdersSkeleton } from "../../components/Skeletons";
 import { ShopLayout } from "../../components/Shop";
@@ -11,15 +11,9 @@ import { riyals, useMenu } from "../../lib/menu";
 import { lineName, lineOptionName, statusLabel } from "../../lib/menuText";
 import { tr } from "../../lib/i18n";
 
-const FLOW: Record<"pickup" | "curbside" | "delivery", OrderStatus[]> = {
-  pickup: ["new", "preparing", "ready", "completed"],
-  curbside: ["new", "preparing", "ready", "completed"],
-  delivery: ["new", "preparing", "ready", "out_for_delivery", "completed"],
-};
-
 /** How far along the order is, for the small progress bar (0–100). */
 function progress(o: Order): number {
-  const flow = FLOW[o.fulfillment];
+  const flow = orderFlow(o.fulfillment);
   const i = Math.max(flow.indexOf(o.status), 0);
   return Math.round(((i + 0.5) / flow.length) * 100);
 }

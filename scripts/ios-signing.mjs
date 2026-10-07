@@ -9,9 +9,10 @@
  *     Writes <outDir>/IOS_SIGNING.txt: the certificate + private key (PEM),
  *     which the workflow saves as the IOS_SIGNING repository secret.
  *
- *   node scripts/ios-signing.mjs profile <file>
+ *   node scripts/ios-signing.mjs profile <file> [<widgetsFile>]
  *     Downloads the active App Store profile to <file> (re-creating it if
- *     it has expired or no longer matches the certificate).
+ *     it has expired or no longer matches the certificate), and the widget
+ *     extension's profile to <widgetsFile>, registering its App ID if needed.
  *
  * Env: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 contents or base64 of it),
  *      IOS_SIGNING (profile command: to find the matching certificate).
@@ -21,9 +22,9 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const BUNDLE_ID = "com.hollowzulfi.coffee";
-const APP_NAME = "HOLLOW Coffee";
-const PROFILE_NAME = "HOLLOW Coffee App Store"; // matches PROVISIONING_PROFILE_SPECIFIER in project.pbxproj
+// Profile names match PROVISIONING_PROFILE_SPECIFIER in project.pbxproj.
+const APP = { bundleId: "com.hollowzulfi.coffee", name: "HOLLOW Coffee", profile: "HOLLOW Coffee App Store", push: true };
+const WIDGETS = { bundleId: "com.hollowzulfi.coffee.widgets", name: "HOLLOW Coffee Widgets", profile: "HOLLOW Coffee Widgets App Store", push: false };
 const API = "https://api.appstoreconnect.apple.com";
 
 function env(name) {
@@ -69,17 +70,18 @@ async function api(method, path, body) {
   return json;
 }
 
-async function ensureBundleId() {
-  const found = await api("GET", `/v1/bundleIds?filter[identifier]=${BUNDLE_ID}&limit=200`);
-  let bundle = found.data.find((b) => b.attributes.identifier === BUNDLE_ID);
+async function ensureBundleId(target = APP) {
+  const found = await api("GET", `/v1/bundleIds?filter[identifier]=${target.bundleId}&limit=200`);
+  let bundle = found.data.find((b) => b.attributes.identifier === target.bundleId);
   if (!bundle) {
     bundle = (
       await api("POST", "/v1/bundleIds", {
-        data: { type: "bundleIds", attributes: { identifier: BUNDLE_ID, name: APP_NAME, platform: "IOS" } },
+        data: { type: "bundleIds", attributes: { identifier: target.bundleId, name: target.name, platform: "IOS" } },
       })
     ).data;
-    console.log(`Registered App ID ${BUNDLE_ID}`);
-  } else console.log(`App ID ${BUNDLE_ID} already registered`);
+    console.log(`Registered App ID ${target.bundleId}`);
+  } else console.log(`App ID ${target.bundleId} already registered`);
+  if (!target.push) return bundle;
 
   try {
     await api("POST", "/v1/bundleIdCapabilities", {
@@ -103,20 +105,20 @@ async function findCertificate(certPem) {
   return certs.data.find((c) => c.attributes.serialNumber.toUpperCase().replace(/^0+/, "") === serial) ?? null;
 }
 
-async function createProfile(bundleId, certificateId) {
-  const existing = await api("GET", `/v1/profiles?filter[name]=${encodeURIComponent(PROFILE_NAME)}&limit=200`);
+async function createProfile(bundleId, certificateId, profileName = APP.profile) {
+  const existing = await api("GET", `/v1/profiles?filter[name]=${encodeURIComponent(profileName)}&limit=200`);
   for (const p of existing.data) await api("DELETE", `/v1/profiles/${p.id}`);
   const created = await api("POST", "/v1/profiles", {
     data: {
       type: "profiles",
-      attributes: { name: PROFILE_NAME, profileType: "IOS_APP_STORE" },
+      attributes: { name: profileName, profileType: "IOS_APP_STORE" },
       relationships: {
         bundleId: { data: { type: "bundleIds", id: bundleId } },
         certificates: { data: [{ type: "certificates", id: certificateId }] },
       },
     },
   });
-  console.log(`Created provisioning profile "${PROFILE_NAME}"`);
+  console.log(`Created provisioning profile "${profileName}"`);
   return created.data;
 }
 
@@ -153,27 +155,32 @@ async function setup(outDir) {
   console.log("Wrote IOS_SIGNING.txt");
 }
 
-async function profile(file) {
+async function profileFor(target, cert, file) {
+  const bundle = await ensureBundleId(target);
+  const found = await api("GET", `/v1/profiles?filter[name]=${encodeURIComponent(target.profile)}&filter[profileState]=ACTIVE&include=certificates&limit=20`);
+  let current = found.data.find((p) => (p.relationships?.certificates?.data ?? []).some((c) => c.id === cert.id));
+  if (!current) current = await createProfile(bundle.id, cert.id, target.profile);
+  writeFileSync(file, Buffer.from(current.attributes.profileContent, "base64"));
+  console.log(`Profile "${target.profile}" saved (expires ${current.attributes.expirationDate})`);
+}
+
+async function profile(file, widgetsFile) {
   const signing = env("IOS_SIGNING");
   const certPem = signing.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/)?.[0];
   if (!certPem) throw new Error("IOS_SIGNING does not contain a certificate: run the iOS setup workflow again");
   const cert = await findCertificate(certPem);
   if (!cert) throw new Error("The IOS_SIGNING certificate was revoked or expired: run the iOS setup workflow again");
 
-  const bundle = await ensureBundleId();
-  const found = await api("GET", `/v1/profiles?filter[name]=${encodeURIComponent(PROFILE_NAME)}&filter[profileState]=ACTIVE&include=certificates&limit=20`);
-  let current = found.data.find((p) => (p.relationships?.certificates?.data ?? []).some((c) => c.id === cert.id));
-  if (!current) current = await createProfile(bundle.id, cert.id);
-  writeFileSync(file, Buffer.from(current.attributes.profileContent, "base64"));
-  console.log(`Profile "${PROFILE_NAME}" saved (expires ${current.attributes.expirationDate})`);
+  await profileFor(APP, cert, file);
+  if (widgetsFile) await profileFor(WIDGETS, cert, widgetsFile);
 }
 
-const [command, arg] = process.argv.slice(2);
+const [command, arg, arg2] = process.argv.slice(2);
 try {
   if (command === "setup" && arg) await setup(arg);
-  else if (command === "profile" && arg) await profile(arg);
+  else if (command === "profile" && arg) await profile(arg, arg2);
   else {
-    console.error("usage: ios-signing.mjs setup <outDir> | profile <file>");
+    console.error("usage: ios-signing.mjs setup <outDir> | profile <file> [<widgetsFile>]");
     process.exit(2);
   }
 } catch (err) {

@@ -10,6 +10,7 @@ import { adminRoutes } from "./routes/admin";
 import { adminMenuRoutes } from "./routes/admin-menu";
 import { meRoutes } from "./routes/me";
 import { orderRoutes } from "./routes/orders";
+import { widgetRoutes } from "./routes/widget";
 import { publicRoutes } from "./routes/public";
 import { staffRoutes } from "./routes/staff";
 import { staffOrderRoutes } from "./routes/staff-orders";
@@ -45,6 +46,7 @@ export function createApp(deps: AppDeps) {
   app.route("/api", publicRoutes);
   app.route("/api", meRoutes);
   app.route("/api", orderRoutes);
+  app.route("/api", widgetRoutes);
   app.route("/api/staff", staffRoutes);
   app.route("/api/staff", staffOrderRoutes);
   app.route("/api/admin", adminRoutes);

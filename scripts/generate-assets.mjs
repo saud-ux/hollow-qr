@@ -24,6 +24,7 @@ const REF = join(ROOT, "reference-assets");
 const PUBLIC_BRAND = join(ROOT, "public", "brand");
 const PUBLIC_WALLET = join(ROOT, "public", "wallet-preview");
 const GENERATED_TS = join(ROOT, "src", "server", "wallet", "generated", "pass-images.ts");
+const WIDGET_ASSETS = join(ROOT, "ios", "App", "HollowWidgets", "Assets.xcassets");
 
 export const COLORS = {
   cream: [244, 237, 224],
@@ -97,6 +98,54 @@ function cupSvg({ state, wordmark, tent, open = false }) {
         : `<rect x="6" y="8" width="48" height="8" rx="3" fill="${lid}" stroke="${rgb(COLORS.cupInk, 0.45 * ink)}" stroke-width="0.8"/>
     <rect x="8.5" y="5" width="43" height="4.5" rx="2" fill="${lid}" stroke="${rgb(COLORS.cupInk, 0.35 * ink)}" stroke-width="0.6"/>`
     }`;
+}
+
+/** An empty cup for a light or dark widget: a dashed outline in `color`. */
+function outlineCupSvg(color) {
+  return `
+    <path d="M9 15 L51 15 L46.5 74 Q46.2 77 43 77 L17 77 Q13.8 77 13.5 74 Z" fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="3 2.4" stroke-linejoin="round"/>
+    <rect x="6" y="8" width="48" height="8" rx="3" fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="3 2.4"/>`;
+}
+
+/**
+ * Images for the iOS widget extension's asset catalog. Each image set gets
+ * one @3x PNG, plus a dark-mode variant where the look differs.
+ */
+async function writeWidgetAssets({ cupWordmark, cupTent }) {
+  const sets = {
+    CupFilled: { light: cupSvg({ state: "filled", wordmark: cupWordmark, tent: cupTent }) },
+    CupOpen: { light: cupSvg({ state: "filled", wordmark: cupWordmark, tent: cupTent, open: true }) },
+    CupEmpty: { light: outlineCupSvg(rgb(COLORS.cupInk, 0.45)), dark: outlineCupSvg(rgb(COLORS.cream, 0.5)) },
+  };
+  const write = async (name, files) => {
+    const dir = join(WIDGET_ASSETS, `${name}.imageset`);
+    await mkdir(dir, { recursive: true });
+    const images = [];
+    for (const [variant, buf] of Object.entries(files)) {
+      const filename = `${name}${variant === "dark" ? "-dark" : ""}.png`;
+      await writeFile(join(dir, filename), buf);
+      images.push({
+        ...(variant === "dark" ? { appearances: [{ appearance: "luminosity", value: "dark" }] } : {}),
+        filename,
+        idiom: "universal",
+        scale: "3x",
+      });
+    }
+    await writeFile(join(dir, "Contents.json"), `${JSON.stringify({ images, info: { author: "xcode", version: 1 } }, null, 2)}\n`);
+  };
+  for (const [name, variants] of Object.entries(sets)) {
+    const files = {};
+    for (const [variant, body] of Object.entries(variants)) {
+      files[variant] = await png(`<svg xmlns="http://www.w3.org/2000/svg" width="180" height="240" viewBox="0 0 60 80">${body}</svg>`);
+    }
+    await write(name, files);
+  }
+  const espresso = await sharp(join(PUBLIC_BRAND, "wordmark-espresso.png")).resize({ width: 450 }).png().toBuffer();
+  const cream = await sharp(join(PUBLIC_BRAND, "wordmark-cream.png")).resize({ width: 450 }).png().toBuffer();
+  await write("Wordmark", { light: espresso, dark: cream });
+  await write("WordmarkCream", { light: cream });
+  await mkdir(WIDGET_ASSETS, { recursive: true });
+  await writeFile(join(WIDGET_ASSETS, "Contents.json"), `${JSON.stringify({ info: { author: "xcode", version: 1 } }, null, 2)}\n`);
 }
 
 /** Store-card strip: five cups showing progress (375x144 pt). */
@@ -231,6 +280,8 @@ async function main() {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="240" viewBox="0 0 60 80">${cupSvg({ state, wordmark: cupWordmark, tent: cupTent })}</svg>`;
     await writeFile(join(PUBLIC_WALLET, `cup-${state}.png`), await png(svg));
   }
+  await writeWidgetAssets({ cupWordmark, cupTent });
+
   // The open cup (no lid) that steams on a ready order, drawn larger for the order screen.
   await writeFile(
     join(PUBLIC_WALLET, "cup-open.png"),

@@ -28,6 +28,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 class HollowBridgeViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(HollowWalletPlugin())
+        bridge?.registerPluginInstance(HollowWidgetPlugin())
     }
 }
 

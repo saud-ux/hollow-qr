@@ -4,12 +4,14 @@ import { apiPost } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { initMotion } from "../lib/motion";
 import { currentLang } from "../lib/i18n";
+import { appLinkPath } from "../../shared/app-links";
 import { initNativePush, initNativeShell, isNative, openWebsite, refreshPushIfAllowed } from "../lib/native";
+import { clearWidget, listenForTrackerTokens, refreshWidget } from "../lib/widget";
 
-/** iOS app glue: push registration and notification taps. Renders nothing. */
+/** iOS app glue: push registration, notification and widget taps, widget data. Renders nothing. */
 export function NativeBridge() {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, me } = useAuth();
   const signedIn = useRef(false);
   const userId = session?.user.id;
   useEffect(() => {
@@ -30,7 +32,35 @@ export function NativeBridge() {
         else openWebsite("/staff/orders");
       },
     }).catch(() => undefined);
+    listenForTrackerTokens();
+    let removeLinks: (() => void) | null = null;
+    void import("@capacitor/app")
+      .then(({ App }) =>
+        App.addListener("appUrlOpen", ({ url }) => {
+          const path = appLinkPath(url);
+          if (path) void navigate(path);
+        }),
+      )
+      .then((handle) => (removeLinks = () => void handle.remove()))
+      .catch(() => undefined);
+    return () => removeLinks?.();
   }, [navigate]);
+
+  // The widget follows the signed-in customer: their cups, their order.
+  const stamps = me?.card?.stampCount;
+  const reward = me?.card?.rewardAvailable;
+  useEffect(() => {
+    if (!isNative) return;
+    if (userId) void refreshWidget(true);
+    else void clearWidget();
+  }, [userId, stamps, reward]);
+
+  useEffect(() => {
+    if (!isNative || !userId) return;
+    const onVisible = () => document.visibilityState === "visible" && void refreshWidget();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [userId]);
 
   // Signing in on a phone that already allowed notifications links it to this
   // user. This also runs after a language change (the app re-renders keyed by
