@@ -57,7 +57,15 @@ describe("notifications in the app's language", () => {
     expect(orderStatusMessage({ ...base, status: "new" }, "en")!.body).toContain("We got your order #12 · Total SAR 15.50");
     expect(orderStatusMessage({ ...base, status: "ready" }, "en")!.body).toBe("Your order #12 is ready, pick it up at the counter");
     expect(orderStatusMessage({ ...base, status: "cancelled", cancelledBy: "staff", cancelReason: "Out of milk" }, "en")!.body).toContain("cancelled: Out of milk");
-    expect(orderStatusMessage({ ...base, status: "preparing" })!.body).toContain("بدأنا نحضّر");
+    expect(orderStatusMessage({ ...base, status: "preparing" }, "en")).toMatchObject({
+      title: "We're on it! ☕",
+      body: "Your order #12 is being prepared. Get ready for a fresh brew!",
+    });
+    expect(orderStatusMessage({ ...base, status: "preparing" })).toMatchObject({
+      title: "شغّالين على طلبك! ☕",
+      body: "طلبك #12 قيد التحضير، استعد لمشروب طازج!",
+    });
+    expect(orderStatusMessage({ ...base, status: "ready" }, "en")!.title).toBe("HOLLOW");
   });
 
   it("sends each device the message in its own language", async () => {
@@ -84,6 +92,6 @@ describe("notifications in the app's language", () => {
     expect((await send("POST", `/api/staff/orders/${order.id}/status`, { status: "preparing" }, staffId)).status).toBe(200);
     await vi.waitFor(() => expect(appPush.sent.filter((p) => p.message.data?.orderId === order.id)).toHaveLength(4));
     const latest = appPush.sent.filter((p) => p.message.data?.orderId === order.id).slice(2);
-    expect(latest.every((p) => p.message.body.includes("بدأنا نحضّر"))).toBe(true);
+    expect(latest.every((p) => p.message.body.includes("قيد التحضير"))).toBe(true);
   });
 });

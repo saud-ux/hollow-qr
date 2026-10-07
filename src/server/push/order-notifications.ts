@@ -8,7 +8,13 @@ const TITLE = "HOLLOW";
 /** The notification for an order's new status in the app's language, or null when none is sent. */
 export function orderStatusMessage(order: Order, lang: PushLang = "ar"): AppPushMessage | null {
   const body = lang === "en" ? englishBody(order) : arabicBody(order);
-  return body === null ? null : { title: TITLE, body, collapseId: order.id, data: { orderId: order.id } };
+  return body === null ? null : { title: statusTitle(order, lang), body, collapseId: order.id, data: { orderId: order.id } };
+}
+
+/** "HOLLOW", except where a step has its own headline. */
+function statusTitle(order: Order, lang: PushLang): string {
+  if (order.status === "preparing") return lang === "en" ? "We're on it! ☕" : "شغّالين على طلبك! ☕";
+  return TITLE;
 }
 
 function arabicBody(order: Order): string | null {
@@ -17,7 +23,7 @@ function arabicBody(order: Order): string | null {
     case "new":
       return `استلمنا طلبك ${n} · الإجمالي ${formatSar(order.totalHalalas)} ر.س، والدفع عند الاستلام. نبلغك أول ما نبدأ نحضّره`;
     case "preparing":
-      return `بدأنا نحضّر طلبك ${n} ☕`;
+      return `طلبك ${n} قيد التحضير، استعد لمشروب طازج!`;
     case "ready":
       if (order.fulfillment === "pickup") return `طلبك ${n} جاهز، تفضّل استلمه من الكاشير`;
       if (order.fulfillment === "curbside") return `طلبك ${n} جاهز، اضغط «وصلت» إذا وصلت ونطلّعه لك`;
@@ -42,7 +48,7 @@ function englishBody(order: Order): string | null {
     case "new":
       return `We got your order ${n} · Total SAR ${formatSar(order.totalHalalas)}, pay on pickup. We'll let you know when we start on it`;
     case "preparing":
-      return `We're preparing your order ${n} ☕`;
+      return `Your order ${n} is being prepared. Get ready for a fresh brew!`;
     case "ready":
       if (order.fulfillment === "pickup") return `Your order ${n} is ready, pick it up at the counter`;
       if (order.fulfillment === "curbside") return `Your order ${n} is ready. Tap "I'm here" when you arrive and we'll bring it out`;
