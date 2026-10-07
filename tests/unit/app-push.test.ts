@@ -96,11 +96,21 @@ describe("orderStatusMessage", () => {
   const base = { id: "o1", orderNumber: 12, fulfillment: "pickup", cancelledBy: null, cancelReason: null, loyaltyResult: null } as unknown as Order;
 
   it("words each step for the way the order is collected", () => {
-    expect(orderStatusMessage({ ...base, status: "new", totalHalalas: 1550 })!.body).toContain("استلمنا طلبك #12 · الإجمالي 15.50 ر.س");
-    expect(orderStatusMessage({ ...base, status: "preparing" })!.body).toContain("#12");
-    expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "curbside" })!.body).toContain("وصلت");
+    expect(orderStatusMessage({ ...base, status: "new", totalHalalas: 1550 })).toMatchObject({
+      title: "استلمنا طلبك! 🤩",
+      body: "طلبك رقم 12 (الإجمالي 15.50 ر.س - دفع عند الاستلام). ثواني ونبدأ!",
+    });
+    expect(orderStatusMessage({ ...base, status: "preparing" })).toMatchObject({ title: "شغّالين على طلبك! ☕", body: "طلبك رقم 12 قيد التحضير، جهّز نفسك!" });
+    expect(orderStatusMessage({ ...base, status: "ready" })).toMatchObject({ title: "قهوتك تناديك! 📣", body: "طلبك رقم 12 جاهز، ننتظرك عند الكاشير!" });
+    expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "curbside" })).toMatchObject({
+      title: "طلبك جاهز للتحريك! 🚗",
+      body: "طلبك رقم 12 جاهز. اضغط «وصلت» وبنجيبه لسيارتك!",
+    });
     expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "delivery" })!.body).toContain("المندوب");
-    expect(orderStatusMessage({ ...base, status: "out_for_delivery" })!.body).toContain("الطريق");
+    expect(orderStatusMessage({ ...base, status: "out_for_delivery", fulfillment: "delivery" })).toMatchObject({
+      title: "قهوتك في الطريق! 🛵",
+      body: "طلبك رقم 12 طلع مع المندوب وجاي لك!",
+    });
     const oneCup = { redeem: null, cupsAdded: 1, cupsNotAdded: 0, skipped: false };
     expect(orderStatusMessage({ ...base, status: "completed", loyaltyResult: oneCup })!.body).toContain("1 كوب");
     expect(orderStatusMessage({ ...base, status: "cancelled", cancelledBy: "customer" })).toBeNull();

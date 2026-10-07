@@ -132,13 +132,13 @@ describe("order status notifications", () => {
     const order = await placeOrder(customer.id);
     // Received: confirmed with the order number and total.
     await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(2));
-    expect(pushesFor(order.id)[0]!.message).toMatchObject({ title: "HOLLOW", collapseId: order.id });
-    expect(pushesFor(order.id)[0]!.message.body).toContain(`استلمنا طلبك #${order.orderNumber}`);
+    expect(pushesFor(order.id)[0]!.message).toMatchObject({ title: "استلمنا طلبك! 🤩", collapseId: order.id });
+    expect(pushesFor(order.id)[0]!.message.body).toContain(`طلبك رقم ${order.orderNumber}`);
     expect(pushesFor(order.id)[0]!.message.body).toContain(`${order.totalHalalas / 100} ر.س`);
 
     await setStatus(order.id, "preparing");
     await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(4));
-    expect(pushesFor(order.id)[2]!.message.body).toContain(`#${order.orderNumber}`);
+    expect(pushesFor(order.id)[2]!.message.body).toContain(`طلبك رقم ${order.orderNumber}`);
 
     await setStatus(order.id, "ready");
     await vi.waitFor(() => expect(pushesFor(order.id)).toHaveLength(6));
@@ -164,7 +164,7 @@ describe("order status notifications", () => {
     await vi.waitFor(() => expect(pushesFor(first.id)).toHaveLength(1));
     await new Promise((r) => setTimeout(r, 20));
     expect(pushesFor(first.id)).toHaveLength(1);
-    expect(pushesFor(first.id)[0]!.message.body).toContain("الدفع عند الاستلام");
+    expect(pushesFor(first.id)[0]!.message.body).toContain("دفع عند الاستلام");
   });
 
   it("explains staff cancellations and stays quiet for the customer's own", async () => {

@@ -54,18 +54,26 @@ describe("English menu text", () => {
 describe("notifications in the app's language", () => {
   it("words each step in English for English devices", () => {
     const base = { id: "o1", orderNumber: 12, fulfillment: "pickup", totalHalalas: 1550, cancelledBy: null, cancelReason: null, loyaltyResult: null } as unknown as Order;
-    expect(orderStatusMessage({ ...base, status: "new" }, "en")!.body).toContain("We got your order #12 · Total SAR 15.50");
-    expect(orderStatusMessage({ ...base, status: "ready" }, "en")!.body).toBe("Your order #12 is ready, pick it up at the counter");
+    expect(orderStatusMessage({ ...base, status: "new" }, "en")).toMatchObject({ title: "Got your order #12! 🤩", body: "Total SAR 15.50, pay on pickup. Loading up..." });
+    expect(orderStatusMessage({ ...base, status: "ready" }, "en")).toMatchObject({ title: "Ready at the counter! 📣", body: "Order #12 is waiting for you at the counter." });
+    expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "curbside" }, "en")).toMatchObject({
+      title: "Ready to roll! 🚗",
+      body: 'Order #12 is ready. Tap "I\'m here" on arrival!',
+    });
+    expect(orderStatusMessage({ ...base, status: "out_for_delivery", fulfillment: "delivery" }, "en")).toMatchObject({
+      title: "On its way! 🛵",
+      body: "Order #12 is with the driver, heading your way!",
+    });
     expect(orderStatusMessage({ ...base, status: "cancelled", cancelledBy: "staff", cancelReason: "Out of milk" }, "en")!.body).toContain("cancelled: Out of milk");
     expect(orderStatusMessage({ ...base, status: "preparing" }, "en")).toMatchObject({
       title: "We're on it! ☕",
-      body: "Your order #12 is being prepared. Get ready for a fresh brew!",
+      body: "Your order #12 is being prepared. Ready soon!",
     });
     expect(orderStatusMessage({ ...base, status: "preparing" })).toMatchObject({
       title: "شغّالين على طلبك! ☕",
-      body: "طلبك #12 قيد التحضير، استعد لمشروب طازج!",
+      body: "طلبك رقم 12 قيد التحضير، جهّز نفسك!",
     });
-    expect(orderStatusMessage({ ...base, status: "ready" }, "en")!.title).toBe("HOLLOW");
+    expect(orderStatusMessage({ ...base, status: "completed" }, "en")!.title).toBe("HOLLOW");
   });
 
   it("sends each device the message in its own language", async () => {
@@ -83,8 +91,8 @@ describe("notifications in the app's language", () => {
     );
     const { order } = (await res.json()) as { order: Order };
     await vi.waitFor(() => expect(appPush.sent.filter((p) => p.message.data?.orderId === order.id)).toHaveLength(2));
-    const byToken = new Map(appPush.sent.filter((p) => p.message.data?.orderId === order.id).map((p) => [p.token, p.message.body]));
-    expect(byToken.get(token(1))).toContain("We got your order");
+    const byToken = new Map(appPush.sent.filter((p) => p.message.data?.orderId === order.id).map((p) => [p.token, p.message.title]));
+    expect(byToken.get(token(1))).toContain("Got your order");
     expect(byToken.get(token(2))).toContain("استلمنا طلبك");
 
     // Switching the app to Arabic re-registers the same device.
