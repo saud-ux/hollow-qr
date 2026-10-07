@@ -394,7 +394,7 @@ function OrderDetail({ order: o, onClose }: { order: AdminOrder | null; onClose:
                   </span>
                   <span className="odet__price sale-price">
                     <span className="price-now">{riyals(l.unitPriceHalalas * l.quantity)}</span>
-                    {l.listPriceHalalas !== null && <s className="price-was">{riyals(l.listPriceHalalas * l.quantity)}</s>}
+                    {l.listPriceHalalas != null && <s className="price-was">{riyals(l.listPriceHalalas * l.quantity)}</s>}
                   </span>
                 </li>
               ))}
