@@ -51,6 +51,7 @@ export function toMenuItem(config: Pick<AppConfig, "supabaseUrl">, row: MenuItem
     optionLabelEn: row.optionLabelEn,
     options: row.options,
     calories: row.calories,
+    isBestSeller: row.isBestSeller,
   };
 }
 

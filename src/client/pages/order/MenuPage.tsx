@@ -15,9 +15,23 @@ import { tr } from "../../lib/i18n";
 
 const CATEGORIES: MenuCategory[] = ["drink", "dessert"];
 
+/** A block of the menu: «الأفضل مبيعًا» (the owner's picks), then each category. */
+type Section = { key: "best" | MenuCategory; title: string; items: MenuItem[] };
+
+function menuSections(items: MenuItem[]): Section[] {
+  const best = items.filter((i) => i.isBestSeller);
+  const sections: Section[] = best.length > 0 ? [{ key: "best", title: tr("الأفضل مبيعًا", "Best sellers"), items: best }] : [];
+  for (const c of CATEGORIES) {
+    const list = items.filter((i) => i.category === c);
+    if (list.length > 0) sections.push({ key: c, title: categoryLabel(c), items: list });
+  }
+  return sections;
+}
+
 export function MenuPage() {
   const { me, session, refreshMe } = useAuth();
   const { menu, error, reload } = useMenu();
+  const sections = menu ? menuSections(menu.items) : [];
   // Bumped by pull-to-refresh so the live order reloads too.
   const [refreshes, setRefreshes] = useState(0);
   const refresh = useCallback(() => {
@@ -36,24 +50,20 @@ export function MenuPage() {
           <span>{closedNote(menu.shop.settings)}</span>
         </div>
       )}
-      {menu && <CategoryChips categories={CATEGORIES.filter((c) => menu.items.some((i) => i.category === c))} />}
+      {sections.length > 0 && <CategoryChips sections={sections} />}
       {menu &&
-        CATEGORIES.map((category) => {
-          const items = menu.items.filter((i) => i.category === category);
-          if (items.length === 0) return null;
-          return (
-            <section key={category} id={`section-${category}`} className="menu-section" aria-labelledby={`cat-${category}`}>
-              <h2 id={`cat-${category}`} className="menu-section__title">
-                {categoryLabel(category)}
-              </h2>
-              <ul className="menu-grid">
-                {items.map((item) => (
-                  <MenuCard key={item.id} item={item} canOrder={menu.shop.isOpen} />
-                ))}
-              </ul>
-            </section>
-          );
-        })}
+        sections.map((section) => (
+          <section key={section.key} id={`section-${section.key}`} className="menu-section" aria-labelledby={`cat-${section.key}`}>
+            <h2 id={`cat-${section.key}`} className={`menu-section__title ${section.key === "best" ? "menu-section__title--best" : ""}`}>
+              {section.title}
+            </h2>
+            <ul className="menu-grid">
+              {section.items.map((item) => (
+                <MenuCard key={item.id} item={item} canOrder={menu.shop.isOpen} />
+              ))}
+            </ul>
+          </section>
+        ))}
     </ShopLayout>
   );
 }
@@ -88,35 +98,39 @@ function LiveOrder({ refreshes }: { refreshes: number }) {
 }
 
 /** Jump between menu sections; the chip of the section in view is highlighted. */
-function CategoryChips({ categories }: { categories: MenuCategory[] }) {
-  const [active, setActive] = useState<MenuCategory | null>(categories[0] ?? null);
+function CategoryChips({ sections }: { sections: Section[] }) {
+  const keys = sections.map((s) => s.key).join(",");
+  const [active, setActive] = useState<Section["key"] | null>(sections[0]?.key ?? null);
   useEffect(() => {
-    const sections = categories.map((c) => document.getElementById(`section-${c}`)).filter((el): el is HTMLElement => el !== null);
+    const elements = keys
+      .split(",")
+      .map((k) => document.getElementById(`section-${k}`))
+      .filter((el): el is HTMLElement => el !== null);
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) setActive(visible.target.id.replace("section-", "") as MenuCategory);
+        if (visible) setActive(visible.target.id.replace("section-", "") as Section["key"]);
       },
       { rootMargin: "-130px 0px -55% 0px" },
     );
-    sections.forEach((el) => observer.observe(el));
+    elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [categories]);
-  if (categories.length < 2) return null;
+  }, [keys]);
+  if (sections.length < 2) return null;
   return (
     <nav className="menu-chips" aria-label={tr("أقسام المنيو", "Menu sections")}>
-      {categories.map((c) => (
+      {sections.map((s) => (
         <button
-          key={c}
+          key={s.key}
           type="button"
-          className={`menu-chip ${active === c ? "is-active" : ""}`}
-          aria-current={active === c ? "true" : undefined}
+          className={`menu-chip ${active === s.key ? "is-active" : ""} ${s.key === "best" ? "menu-chip--best" : ""}`}
+          aria-current={active === s.key ? "true" : undefined}
           onClick={() => {
-            setActive(c);
-            document.getElementById(`section-${c}`)?.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" });
+            setActive(s.key);
+            document.getElementById(`section-${s.key}`)?.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" });
           }}
         >
-          {categoryLabel(c)}
+          {s.title}
         </button>
       ))}
     </nav>
@@ -151,6 +165,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
       <button type="button" className="menu-card__photo" onClick={() => setOpen(true)} aria-label={tr(`عرض ${item.nameAr}`, `View ${itemName(item)}`)}>
         <ItemImage item={item} className="menu-card__img" />
         {hasOptions && <span className="menu-card__tag">{tr(`${item.options.length} محاصيل`, `${item.options.length} origins`)}</span>}
+        {item.isBestSeller && <span className="menu-card__ribbon">{tr("الأفضل مبيعًا", "Best seller")}</span>}
       </button>
       <div className="menu-card__body">
         <h3 className="menu-card__name">{itemName(item)}</h3>

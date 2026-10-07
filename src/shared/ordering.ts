@@ -40,6 +40,8 @@ export interface MenuItem {
   options: MenuOption[];
   /** Kcal per serving, shown on the menu. */
   calories: number | null;
+  /** Picked by the owner: listed under «الأفضل مبيعًا» and badged in its category. */
+  isBestSeller: boolean;
 }
 
 export const MAX_MENU_OPTIONS = 12;
