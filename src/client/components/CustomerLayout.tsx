@@ -1,11 +1,23 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { Link } from "react-router";
 import { isNative } from "../lib/native";
 import { TentArt, Wordmark } from "./Brand";
+import { PullToRefresh } from "./PullToRefresh";
 import { ThemeToggle } from "./ThemeToggle";
 import { tr } from "../lib/i18n";
 
-export function CustomerLayout({ children, hero = false, dock }: { children: ReactNode; hero?: boolean; dock?: ReactNode }) {
+export function CustomerLayout({
+  children,
+  hero = false,
+  dock,
+  onRefresh,
+}: {
+  children: ReactNode;
+  hero?: boolean;
+  dock?: ReactNode;
+  onRefresh?: () => Promise<unknown>;
+}) {
+  const mainRef = useRef<HTMLElement>(null);
   return (
     <div className={`customer ${dock ? "customer--docked" : ""}`}>
       <header className="customer__header">
@@ -15,7 +27,10 @@ export function CustomerLayout({ children, hero = false, dock }: { children: Rea
         <ThemeToggle className="customer__theme" />
         {hero && <TentArt className="customer__tent" />}
       </header>
-      <main className="customer__main">{children}</main>
+      {onRefresh && <PullToRefresh onRefresh={onRefresh} target={mainRef} />}
+      <main ref={mainRef} className="customer__main">
+        {children}
+      </main>
       <footer className="customer__footer">
         <span dir="ltr">HOLLOW · Al Zulfi</span>
         {/* The app has these in the card page's settings. */}

@@ -12,6 +12,8 @@ import type {
   Order,
   OrderStatus,
   RatingOverview,
+  SalesRange,
+  SalesReport,
   ShopSettings,
 } from "../../shared/ordering";
 import type { AppRole, LoyaltyAction, MembershipStatus } from "../../shared/types";
@@ -271,6 +273,9 @@ export interface Repository {
 
   rateOrder(customerId: string, orderId: string, rating: number, comment: string | null): Promise<RateOrderResult>;
   ratingOverview(limit: number): Promise<RatingOverview>;
+
+  /** Completed orders in [from, to) against [prevFrom, prevTo), grouped on the wall clock of `timeZone`. */
+  salesReport(range: SalesRange, from: Date, to: Date, prevFrom: Date, prevTo: Date, timeZone: string): Promise<SalesReport>;
 
   /** Orders created in [from, to), for the end-of-day summary. */
   orderSummary(from: Date, to: Date): Promise<OrderSummary>;

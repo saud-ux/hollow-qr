@@ -135,6 +135,22 @@ export interface RatingOverview {
   items: { orderNumber: number; customerName: string; rating: number; comment: string | null; ratedAt: string }[];
 }
 
+export type SalesRange = "today" | "7d" | "30d";
+
+/** Admin sales dashboard: completed orders in the range, and the same span just before it. */
+export interface SalesReport {
+  range: SalesRange;
+  orders: number;
+  revenueHalalas: number;
+  cancelled: number;
+  previous: { orders: number; revenueHalalas: number };
+  /** One entry per day of the range (shop time), oldest first. */
+  days: { date: string; orders: number; revenueHalalas: number }[];
+  /** Orders per weekday (0 = Sunday) and hour (shop time); empty slots are left out. */
+  hours: { weekday: number; hour: number; orders: number }[];
+  topItems: { nameAr: string; optionNameAr: string | null; quantity: number; revenueHalalas: number }[];
+}
+
 /** Per-user push switches. Offers are opt-in; the staff ones only apply to staff/admin. */
 export interface NotificationPrefs {
   offers: boolean;

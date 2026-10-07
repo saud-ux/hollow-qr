@@ -11,6 +11,7 @@ import {
   mapOrder,
   mapOrderSummary,
   mapRatingOverview,
+  mapSalesReport,
   notificationPrefsColumns,
   rateOrderResult,
   mapProfile,
@@ -21,7 +22,7 @@ import {
   shopSettingsColumns,
   totalFrom,
 } from "../../src/server/data/mappers";
-import type { NotificationPrefs, OrderStatus, ShopSettings } from "../../src/shared/ordering";
+import type { NotificationPrefs, OrderStatus, SalesRange, ShopSettings } from "../../src/shared/ordering";
 import type {
   ApplyActionParams,
   ApplyActionResult,
@@ -314,6 +315,16 @@ export class PgliteRepository implements Repository {
   }
   async ratingOverview(limit: number) {
     return mapRatingOverview((await this.one("select public.rating_overview($1) as result", [limit]))!.result as Raw);
+  }
+  async salesReport(range: SalesRange, from: Date, to: Date, prevFrom: Date, prevTo: Date, timeZone: string) {
+    const r = await this.one("select public.sales_report($1, $2, $3, $4, $5) as result", [
+      from.toISOString(),
+      to.toISOString(),
+      prevFrom.toISOString(),
+      prevTo.toISOString(),
+      timeZone,
+    ]);
+    return mapSalesReport(range, r!.result as Raw);
   }
   async orderSummary(from: Date, to: Date) {
     return mapOrderSummary((await this.one("select public.order_summary($1, $2) as result", [from.toISOString(), to.toISOString()]))!.result as Raw);

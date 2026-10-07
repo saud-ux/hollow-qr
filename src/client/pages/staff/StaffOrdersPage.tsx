@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  CATEGORY_LABELS_AR,
   FULFILLMENT_LABELS_AR,
   isActiveStatus,
   nextStatus,
   STATUS_LABELS_AR,
+  type MenuItem,
   type Order,
   type OrderStatus,
   type ShopSettings,
@@ -17,8 +19,6 @@ import { isAudioReady, orderChime, primeAudio } from "../../lib/feedback";
 import { riyals } from "../../lib/menu";
 
 const POLL_MS = 5_000;
-/** Keep ringing while a new order waits, so it is never missed. */
-const REMIND_MS = 15_000;
 
 type Board = { items: Order[]; shop: { isOpen: boolean; settings: ShopSettings } };
 
@@ -79,7 +79,7 @@ export function StaffOrdersPage() {
   const [reason, setReason] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const seen = useRef<Set<string> | null>(null);
-  const lastRing = useRef(0);
+  const [stockOpen, setStockOpen] = useState(false);
 
   useWakeLock(soundOn);
 
@@ -90,15 +90,11 @@ export function StaffOrdersPage() {
           setBoard(b);
           setError(null);
           setNow(Date.now());
-          const newIds = b.items.filter((o) => o.status === "new").map((o) => o.id);
+          // One chime for each order that wasn't on the board before.
           const firstLoad = seen.current === null;
-          const fresh = newIds.some((id) => !seen.current?.has(id));
+          const fresh = b.items.some((o) => o.status === "new" && !seen.current?.has(o.id));
           seen.current = new Set([...(seen.current ?? []), ...b.items.map((o) => o.id)]);
-          const waiting = newIds.length > 0 && Date.now() - lastRing.current > REMIND_MS;
-          if ((fresh && !firstLoad) || waiting) {
-            lastRing.current = Date.now();
-            orderChime();
-          }
+          if (fresh && !firstLoad) orderChime();
         })
         .catch((err: unknown) => setError(errorText(err))),
     [],
@@ -172,16 +168,21 @@ export function StaffOrdersPage() {
           {board ? (board.shop.isOpen ? "نستقبل الطلبات" : board.shop.settings.orderingPaused ? "الطلبات متوقفة" : "خارج أوقات الدوام") : "…"}
         </div>
         {board && (
-          <button type="button" className={`btn btn--small ${board.shop.settings.orderingPaused ? "btn--primary" : "btn--secondary"}`} onClick={() => void togglePause()}>
-            {board.shop.settings.orderingPaused ? "استئناف الطلبات" : "إيقاف مؤقت"}
-          </button>
+          <div className="board-bar__actions">
+            <button type="button" className="btn btn--small btn--secondary" onClick={() => setStockOpen(true)}>
+              المتوفر
+            </button>
+            <button type="button" className={`btn btn--small ${board.shop.settings.orderingPaused ? "btn--primary" : "btn--secondary"}`} onClick={() => void togglePause()}>
+              {board.shop.settings.orderingPaused ? "استئناف الطلبات" : "إيقاف مؤقت"}
+            </button>
+          </div>
         )}
       </div>
 
       {!soundOn && (
         <button type="button" className="sound-gate" onClick={enableSound}>
           <strong>اضغط لتشغيل تنبيه الطلبات</strong>
-          <span>يرن الجهاز مع كل طلب جديد، ويبقى يذكّر حتى يُقبل الطلب</span>
+          <span>يرن الجهاز مع كل طلب جديد</span>
         </button>
       )}
 
@@ -251,6 +252,8 @@ export function StaffOrdersPage() {
         </>
       )}
 
+      {stockOpen && <StockDialog onClose={() => setStockOpen(false)} />}
+
       <Dialog
         open={cancelling !== null}
         title={cancelling ? `إلغاء الطلب #${cancelling.orderNumber}؟` : ""}
@@ -281,6 +284,92 @@ export function StaffOrdersPage() {
         </div>
       </Dialog>
     </StaffLayout>
+  );
+}
+
+/** Sold out in two taps: a switch per item, and per origin for items like V60. */
+function StockDialog({ onClose }: { onClose: () => void }) {
+  const [items, setItems] = useState<MenuItem[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiGet<{ items: MenuItem[] }>("/api/staff/menu")
+      .then((r) => setItems(r.items))
+      .catch((e: unknown) => setError(errorText(e)));
+  }, []);
+
+  async function toggle(item: MenuItem, isAvailable: boolean, optionId?: string) {
+    const key = `${item.id}:${optionId ?? ""}`;
+    setBusy(key);
+    setError(null);
+    try {
+      const { item: saved } = await apiPost<{ item: MenuItem }>(`/api/staff/menu/${item.id}/availability`, { isAvailable, optionId });
+      setItems((list) => list?.map((i) => (i.id === saved.id ? saved : i)) ?? list);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Dialog
+      open
+      title="المتوفر الآن"
+      onClose={onClose}
+      actions={
+        <button type="button" className="btn btn--primary" onClick={onClose}>
+          تم
+        </button>
+      }
+    >
+      <p className="muted small">أطفئ الصنف إذا نفد، ويظهر للعملاء «نفد» فورًا.</p>
+      {error && <Alert tone="error">{error}</Alert>}
+      {!items && !error && <Spinner />}
+      {items && (
+        <div className="stock">
+          {(["drink", "dessert"] as const).map((category) => {
+            const list = items.filter((i) => i.category === category);
+            if (list.length === 0) return null;
+            return (
+              <section key={category} className="stock__group">
+                <h3 className="stock__title">{CATEGORY_LABELS_AR[category]}</h3>
+                {list.map((item) => (
+                  <div key={item.id} className="stock__item">
+                    <label className="stock__row">
+                      <span>{item.nameAr}</span>
+                      <input
+                        type="checkbox"
+                        role="switch"
+                        className="switch"
+                        checked={item.isAvailable}
+                        disabled={busy === `${item.id}:`}
+                        onChange={(e) => void toggle(item, e.target.checked)}
+                      />
+                    </label>
+                    {item.isAvailable &&
+                      item.options.map((o) => (
+                        <label key={o.id} className="stock__row stock__row--option">
+                          <span>{o.nameAr}</span>
+                          <input
+                            type="checkbox"
+                            role="switch"
+                            className="switch"
+                            checked={o.isAvailable}
+                            disabled={busy === `${item.id}:${o.id}`}
+                            onChange={(e) => void toggle(item, e.target.checked, o.id)}
+                          />
+                        </label>
+                      ))}
+                  </div>
+                ))}
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </Dialog>
   );
 }
 

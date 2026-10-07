@@ -171,6 +171,31 @@ export function animateTracker(root: Element | null, from: number, to: number): 
   });
 }
 
+/**
+ * Ready: the HOLLOW cup rises onto the ticket, steam starts to rise from it
+ * (CSS loops it from there), then a gold check badge stamps onto the cup.
+ */
+export function serveCup(root: Element | null): void {
+  const cup = root?.querySelector(".ready-cup");
+  if (!cup || !motionOn()) return;
+  void play(cup.querySelector(".ready-cup__img"), [{ opacity: 0, transform: "translateY(14px) scale(.85)" }, { opacity: 1, transform: "none" }], {
+    duration: 600,
+    easing: CINEMATIC.easing,
+    delay: 250,
+  });
+  void play(cup.querySelector(".ready-cup__steam"), [{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 700 });
+  void play(cup.querySelector(".ready-cup__badge"), [{ opacity: 0, transform: "scale(.3)" }, { opacity: 1, transform: "scale(1)" }], {
+    duration: 380,
+    easing: STAMP_EASE,
+    delay: 1700,
+  });
+  void play(cup.querySelector(".ready-cup__badge path"), [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], {
+    duration: 420,
+    easing: CINEMATIC.easing,
+    delay: 2050,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Loyalty cups (lively): each new cup stamps onto the card.
 // ---------------------------------------------------------------------------

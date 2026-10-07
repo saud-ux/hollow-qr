@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Broadcast, NotificationPrefs, Order, OrderStatus, RatingOverview, ShopSettings } from "../../shared/ordering";
+import type { Broadcast, NotificationPrefs, Order, OrderStatus, RatingOverview, SalesRange, SalesReport, ShopSettings } from "../../shared/ordering";
 import { MENU_IMAGE_BUCKET } from "../../shared/ordering";
 import {
   mapAccount,
@@ -9,6 +9,7 @@ import {
   mapOrder,
   mapOrderSummary,
   mapRatingOverview,
+  mapSalesReport,
   notificationPrefsColumns,
   rateOrderResult,
   mapProfile,
@@ -441,6 +442,17 @@ export class SupabaseRepository implements Repository {
 
   async ratingOverview(limit: number): Promise<RatingOverview> {
     return mapRatingOverview((await this.rpc("rating_overview", { p_limit: limit })) as Raw);
+  }
+
+  async salesReport(range: SalesRange, from: Date, to: Date, prevFrom: Date, prevTo: Date, timeZone: string): Promise<SalesReport> {
+    const raw = await this.rpc("sales_report", {
+      p_from: from.toISOString(),
+      p_to: to.toISOString(),
+      p_prev_from: prevFrom.toISOString(),
+      p_prev_to: prevTo.toISOString(),
+      p_tz: timeZone,
+    });
+    return mapSalesReport(range, raw as Raw);
   }
 
   async orderSummary(from: Date, to: Date): Promise<OrderSummary> {

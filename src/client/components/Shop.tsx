@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { Link, NavLink } from "react-router";
 import { MAX_STAMPS } from "../../shared/constants";
 import type { MenuItem } from "../../shared/ordering";
@@ -7,6 +7,7 @@ import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
 import { Wordmark } from "./Brand";
 import { CupStrip } from "./CupStrip";
+import { PullToRefresh } from "./PullToRefresh";
 import { ThemeToggle } from "./ThemeToggle";
 import { tr } from "../lib/i18n";
 
@@ -14,8 +15,9 @@ import { tr } from "../lib/i18n";
  * Ordering screens share the look of the Wallet card: a cream header with the
  * wordmark and the CUPS field, the espresso strip, and pass-style labels.
  */
-export function ShopLayout({ children, bottom }: { children: ReactNode; bottom?: ReactNode }) {
+export function ShopLayout({ children, bottom, onRefresh }: { children: ReactNode; bottom?: ReactNode; onRefresh?: () => Promise<unknown> }) {
   const { me } = useAuth();
+  const mainRef = useRef<HTMLElement>(null);
   const card = me?.card ?? null;
   return (
     <div className="shop">
@@ -35,7 +37,10 @@ export function ShopLayout({ children, bottom }: { children: ReactNode; bottom?:
           <ThemeToggle />
         </div>
       </header>
-      <main className="shop__main">{children}</main>
+      {onRefresh && <PullToRefresh onRefresh={onRefresh} target={mainRef} />}
+      <main ref={mainRef} className="shop__main">
+        {children}
+      </main>
       <div className="shop__dock">
         {bottom}
         <TabBar />

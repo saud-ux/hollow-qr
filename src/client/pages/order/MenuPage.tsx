@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { isActiveStatus, isOrderable, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
 import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
@@ -16,11 +16,17 @@ import { tr } from "../../lib/i18n";
 const CATEGORIES: MenuCategory[] = ["drink", "dessert"];
 
 export function MenuPage() {
-  const { me } = useAuth();
-  const { menu, error } = useMenu();
+  const { me, session, refreshMe } = useAuth();
+  const { menu, error, reload } = useMenu();
+  // Bumped by pull-to-refresh so the live order reloads too.
+  const [refreshes, setRefreshes] = useState(0);
+  const refresh = useCallback(() => {
+    setRefreshes((n) => n + 1);
+    return Promise.all([reload(), session ? refreshMe() : null]);
+  }, [reload, refreshMe, session]);
   return (
-    <ShopLayout bottom={<CartBar menu={menu} />}>
-      <LiveOrder />
+    <ShopLayout bottom={<CartBar menu={menu} />} onRefresh={refresh}>
+      <LiveOrder refreshes={refreshes} />
       <LoyaltyBand card={me?.card ?? null} />
       {error && !menu && <Alert tone="error">{error}</Alert>}
       {!menu && !error && <MenuSkeleton />}
@@ -53,7 +59,7 @@ export function MenuPage() {
 }
 
 /** An order in progress, pinned on top of the menu so it's one tap away. */
-function LiveOrder() {
+function LiveOrder({ refreshes }: { refreshes: number }) {
   const { session } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   useEffect(() => {
@@ -65,7 +71,7 @@ function LiveOrder() {
     return () => {
       alive = false;
     };
-  }, [session]);
+  }, [session, refreshes]);
   if (!session || !order) return null;
   return (
     <Link to={`/orders/${order.id}`} className="live-order">

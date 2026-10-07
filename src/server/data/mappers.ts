@@ -8,6 +8,8 @@ import type {
   Order,
   OrderLine,
   RatingOverview,
+  SalesRange,
+  SalesReport,
   ShopSettings,
 } from "../../shared/ordering";
 import type { AccountRow, MenuItemRow, OrderSummary, ProfileRow, RateOrderResult, SearchRow, TransactionRow } from "./repository";
@@ -308,6 +310,25 @@ export function mapOrderSummary(r: Raw): OrderSummary {
     open: num(r.open),
     revenueHalalas: num(r.revenue_halalas),
     topItem: top ? { nameAr: str(top.name_ar), quantity: num(top.quantity) } : null,
+  };
+}
+
+export function mapSalesReport(range: SalesRange, r: Raw): SalesReport {
+  const prev = (r.previous ?? {}) as Raw;
+  return {
+    range,
+    orders: num(r.orders),
+    revenueHalalas: num(r.revenue_halalas),
+    cancelled: num(r.cancelled),
+    previous: { orders: num(prev.orders), revenueHalalas: num(prev.revenue_halalas) },
+    days: ((r.days ?? []) as Raw[]).map((d) => ({ date: str(d.date), orders: num(d.orders), revenueHalalas: num(d.revenue_halalas) })),
+    hours: ((r.hours ?? []) as Raw[]).map((h) => ({ weekday: num(h.weekday), hour: num(h.hour), orders: num(h.orders) })),
+    topItems: ((r.top_items ?? []) as Raw[]).map((t) => ({
+      nameAr: str(t.name_ar),
+      optionNameAr: strOrNull(t.option_name_ar),
+      quantity: num(t.quantity),
+      revenueHalalas: num(t.revenue_halalas),
+    })),
   };
 }
 
