@@ -11,12 +11,20 @@ import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { isAppleMobile } from "../../lib/hooks";
 import { addPassNatively, isNative, successFeedback } from "../../lib/native";
+import { tr, useLang, type LangChoice } from "../../lib/i18n";
 import { getThemeChoice, setThemeChoice, type ThemeChoice } from "../../lib/theme";
 
-const THEMES: { value: ThemeChoice; label: string }[] = [
-  { value: "system", label: "تلقائي" },
-  { value: "light", label: "فاتح" },
-  { value: "dark", label: "داكن" },
+// Each language is written in itself so it can be found from either one.
+const langs = (): { value: LangChoice; label: string }[] => [
+  { value: "system", label: tr("تلقائي", "Auto") },
+  { value: "ar", label: "العربية" },
+  { value: "en", label: "English" },
+];
+
+const themes = (): { value: ThemeChoice; label: string }[] => [
+  { value: "system", label: tr("تلقائي", "Auto") },
+  { value: "light", label: tr("فاتح", "Light") },
+  { value: "dark", label: tr("داكن", "Dark") },
 ];
 
 export function WalletPage() {
@@ -31,6 +39,7 @@ export function WalletPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const navigate = useNavigate();
   const [theme, setTheme] = useState<ThemeChoice>(getThemeChoice);
+  const { choice: langChoice, setChoice: setLangChoice } = useLang();
 
   // Keep the preview fresh after staff updates (on focus / every 30 s).
   useEffect(() => {
@@ -61,7 +70,7 @@ export function WalletPage() {
       if (isNative) {
         // The app shows Apple's "Add to Wallet" sheet itself.
         const result = await addPassNatively(url);
-        if (result.alreadyInWallet) setWalletNote("بطاقتك موجودة في Apple Wallet");
+        if (result.alreadyInWallet) setWalletNote(tr("بطاقتك موجودة في Apple Wallet", "Your card is already in Apple Wallet"));
         else if (result.added) successFeedback();
         return;
       }
@@ -98,13 +107,13 @@ export function WalletPage() {
       {!me && !meError && <Spinner />}
       {meError !== null && !emailError && <Alert tone="error">{errorText(meError)}</Alert>}
       {(notConfirmed || emailError) && (
-        <Alert tone="warning">يرجى تأكيد بريدك الإلكتروني من الرسالة المرسلة إليك، ثم حدّث الصفحة.</Alert>
+        <Alert tone="warning">{tr("يرجى تأكيد بريدك الإلكتروني من الرسالة المرسلة إليك، ثم حدّث الصفحة.", "Please confirm your email from the message we sent, then refresh.")}</Alert>
       )}
       {me && !card && me.user.role !== "customer" && (
         <section className="card center">
-          <p>هذا حساب {me.user.role === "admin" ? "مدير" : "موظف"}.</p>
+          <p>{me.user.role === "admin" ? tr("هذا حساب مدير.", "This is an admin account.") : tr("هذا حساب موظف.", "This is a staff account.")}</p>
           <Link to="/staff" className="btn btn--primary">
-            الذهاب إلى لوحة الموظفين
+            {tr("الذهاب إلى لوحة الموظفين", "Go to the staff board")}
           </Link>
         </section>
       )}
@@ -112,40 +121,44 @@ export function WalletPage() {
         <>
           {welcome && (
             <section className="welcome" aria-live="polite">
-              <h1>تم إنشاء بطاقتك بنجاح</h1>
-              <p>{card.walletMode === "production" && card.walletReady ? "أضفها الآن إلى Apple Wallet" : "اعرض رمز QR للموظف عند الدفع"}</p>
+              <h1>{tr("تم إنشاء بطاقتك بنجاح", "Your card is ready")}</h1>
+              <p>
+                {card.walletMode === "production" && card.walletReady
+                  ? tr("أضفها الآن إلى Apple Wallet", "Add it to Apple Wallet now")
+                  : tr("اعرض رمز QR للموظف عند الدفع", "Show the QR code to staff when you pay")}
+              </p>
             </section>
           )}
-          {!welcome && <h1 className="page-title">بطاقتي</h1>}
+          {!welcome && <h1 className="page-title">{tr("بطاقتي", "My card")}</h1>}
 
-          {card.membershipStatus === "cancelled" && <Alert tone="error">عضويتك غير نشطة حاليًا. تواصل مع HOLLOW للمساعدة.</Alert>}
+          {card.membershipStatus === "cancelled" && <Alert tone="error">{tr("عضويتك غير نشطة حاليًا. تواصل مع HOLLOW للمساعدة.", "Your membership is inactive. Contact HOLLOW for help.")}</Alert>}
 
           <PassPreview card={card} />
 
           {card.walletMode === "production" && card.walletReady && (
             <div className="wallet-actions">
               <AddToWalletButton onClick={() => void addToWallet()} busy={walletBusy} />
-              {!isNative && !isAppleMobile() && <p className="muted small">لإضافة البطاقة افتح هذه الصفحة من Safari على iPhone.</p>}
+              {!isNative && !isAppleMobile() && <p className="muted small">{tr("لإضافة البطاقة افتح هذه الصفحة من Safari على iPhone.", "To add the card, open this page in Safari on an iPhone.")}</p>}
               {walletNote && <p className="muted small">{walletNote}</p>}
               {walletError && <Alert tone="error">{walletError}</Alert>}
             </div>
           )}
-          <p className="muted small center">اعرض رمز QR للموظف عند الدفع.</p>
+          <p className="muted small center">{tr("اعرض رمز QR للموظف عند الدفع.", "Show the QR code to staff when you pay.")}</p>
         </>
       )}
       {isNative && me && (
         <>
-          <h2 className="settings__title">الإشعارات</h2>
+          <h2 className="settings__title">{tr("الإشعارات", "Notifications")}</h2>
           <NotificationSettings role={me.user.role} />
-          <h2 className="settings__title">الحساب</h2>
+          <h2 className="settings__title">{tr("الحساب", "Account")}</h2>
         </>
       )}
-      <nav className="settings" aria-label="الحساب">
+      <nav className="settings" aria-label={tr("الحساب", "Account")}>
         {isNative && (
           <div className="settings__row settings__row--theme">
-            المظهر
-            <div className="theme-switch" role="radiogroup" aria-label="المظهر">
-              {THEMES.map((t) => (
+            {tr("المظهر", "Appearance")}
+            <div className="theme-switch" role="radiogroup" aria-label={tr("المظهر", "Appearance")}>
+              {themes().map((t) => (
                 <button
                   key={t.value}
                   type="button"
@@ -163,33 +176,54 @@ export function WalletPage() {
             </div>
           </div>
         )}
+        <div className="settings__row settings__row--theme">
+          {tr("اللغة", "Language")}
+          <div className="theme-switch" role="radiogroup" aria-label={tr("اللغة", "Language")}>
+            {langs().map((l) => (
+              <button
+                key={l.value}
+                type="button"
+                role="radio"
+                aria-checked={langChoice === l.value}
+                className={`theme-switch__opt ${langChoice === l.value ? "is-on" : ""}`}
+                lang={l.value === "en" ? "en" : l.value === "ar" ? "ar" : undefined}
+                onClick={() => setLangChoice(l.value)}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <Link to="/support" className="settings__row">
-          الدعم والمساعدة
+          {tr("الدعم والمساعدة", "Help & support")}
           <ChevronIcon />
         </Link>
         <Link to="/privacy" className="settings__row">
-          سياسة الخصوصية
+          {tr("سياسة الخصوصية", "Privacy policy")}
           <ChevronIcon />
         </Link>
         <button type="button" className="settings__row" onClick={() => void signOut()}>
-          تسجيل الخروج
+          {tr("تسجيل الخروج", "Sign out")}
         </button>
         {me?.user.role === "customer" && (
           <button type="button" className="settings__row settings__row--danger" onClick={() => setDeleteOpen(true)}>
-            حذف الحساب
+            {tr("حذف الحساب", "Delete account")}
           </button>
         )}
       </nav>
       {deleteError && <Alert tone="error">{deleteError}</Alert>}
       <ConfirmDialog
         open={deleteOpen}
-        title="حذف حسابك نهائيًا؟"
+        title={tr("حذف حسابك نهائيًا؟", "Delete your account for good?")}
         message={
           <p>
-            نحذف اسمك وبريدك وأرقامك وعناوينك، وتُلغى بطاقة الولاء وما فيها من أكواب ومكافآت. لا يمكن التراجع عن هذا.
+            {tr(
+              "نحذف اسمك وبريدك وأرقامك وعناوينك، وتُلغى بطاقة الولاء وما فيها من أكواب ومكافآت. لا يمكن التراجع عن هذا.",
+              "We delete your name, email, numbers and addresses, and cancel your loyalty card with its cups and rewards. This can't be undone.",
+            )}
           </p>
         }
-        confirmLabel="احذف حسابي"
+        confirmLabel={tr("احذف حسابي", "Delete my account")}
         tone="danger"
         busy={deleteBusy}
         onConfirm={() => void deleteAccount()}

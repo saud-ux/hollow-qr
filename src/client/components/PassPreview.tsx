@@ -3,6 +3,7 @@ import { cupsLabel } from "../../shared/format";
 import type { CustomerCard } from "../../shared/types";
 import { CupStrip } from "./CupStrip";
 import { QrCode } from "./QrCode";
+import { tr } from "../lib/i18n";
 
 /**
  * Web PREVIEW of the Apple Wallet store card. It mirrors the real pass fields
@@ -13,7 +14,7 @@ export function PassPreview({ card }: { card: CustomerCard }) {
   const strip = cancelled ? "strip-cancelled" : `strip-${Math.min(card.stampCount, MAX_STAMPS)}`;
   const remaining = MAX_STAMPS - card.stampCount;
   return (
-    <figure className={`pass ${cancelled ? "pass--void" : ""}`} aria-label="بطاقة HOLLOW Rewards">
+    <figure className={`pass ${cancelled ? "pass--void" : ""}`} aria-label={tr("بطاقة HOLLOW Rewards", "HOLLOW Rewards card")}>
       <div className="pass__header">
         <img src="/wallet-preview/logo.png" alt="HOLLOW" className="pass__logo" />
         <span className="pass__logo-text">Rewards</span>
@@ -35,31 +36,31 @@ export function PassPreview({ card }: { card: CustomerCard }) {
           <span className="pass__value pass__value--lg" dir="ltr">{cupsLabel(card.stampCount)}</span>
         </div>
         <div className="pass__field">
-          <span className="pass__label">المكافأة</span>
+          <span className="pass__label">{tr("المكافأة", "Reward")}</span>
           <span className={`pass__value ${card.rewardAvailable ? "pass__value--reward" : ""}`}>
             {cancelled
-              ? "العضوية غير نشطة"
+              ? tr("العضوية غير نشطة", "Membership inactive")
               : card.rewardAvailable
-                ? "لك مشروب مجاني"
+                ? tr("لك مشروب مجاني", "You have a free drink")
                 : remaining === 1
-                  ? "باقي كوب واحد للمشروب المجاني"
-                  : `باقي ${remaining} أكواب للمشروب المجاني`}
+                  ? tr("باقي كوب واحد للمشروب المجاني", "1 more cup to your free drink")
+                  : tr(`باقي ${remaining} أكواب للمشروب المجاني`, `${remaining} more cups to your free drink`)}
           </span>
         </div>
       </div>
       <div className="pass__fields pass__fields--aux">
         <div className="pass__field">
-          <span className="pass__label">الاسم</span>
+          <span className="pass__label">{tr("الاسم", "Name")}</span>
           <span className="pass__value">{card.displayName}</span>
         </div>
         <div className="pass__field">
-          <span className="pass__label">رقم العضوية</span>
+          <span className="pass__label">{tr("رقم العضوية", "Member ID")}</span>
           <span className="pass__value" dir="ltr">{card.memberId}</span>
         </div>
       </div>
       <div className="pass__barcode">
         <div className="pass__qr">
-          <QrCode value={card.qrPayload} size={190} label="رمز QR لبطاقة HOLLOW" />
+          <QrCode value={card.qrPayload} size={190} label={tr("رمز QR لبطاقة HOLLOW", "HOLLOW card QR code")} />
           <span className="pass__caption" dir="ltr">{QR_CAPTION}</span>
         </div>
       </div>

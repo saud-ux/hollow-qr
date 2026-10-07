@@ -8,6 +8,7 @@ import { useAuth } from "../../lib/auth";
 import { useCaptcha } from "../../lib/captcha";
 import { useConfig } from "../../lib/config";
 import { authErrorAr, validateEmail } from "../../lib/validation";
+import { tr } from "../../lib/i18n";
 
 export function ForgotPasswordPage() {
   const { supabase } = useAuth();
@@ -26,7 +27,7 @@ export function ForgotPasswordPage() {
       return;
     }
     if (!captcha.ready) {
-      setError("يرجى إكمال التحقق");
+      setError(tr("يرجى إكمال التحقق", "Please complete the check"));
       return;
     }
     setBusy(true);
@@ -47,18 +48,23 @@ export function ForgotPasswordPage() {
 
   return (
     <CustomerLayout>
-      <h1 className="page-title">استعادة كلمة المرور</h1>
+      <h1 className="page-title">{tr("استعادة كلمة المرور", "Reset your password")}</h1>
       {sent ? (
         <section className="card">
-          <Alert tone="success">إذا كان البريد مسجلًا لدينا فستصلك رسالة تحتوي على رابط لإعادة تعيين كلمة المرور.</Alert>
+          <Alert tone="success">
+            {tr(
+              "إذا كان البريد مسجلًا لدينا فستصلك رسالة تحتوي على رابط لإعادة تعيين كلمة المرور.",
+              "If that email is registered, you'll get a message with a link to reset your password.",
+            )}
+          </Alert>
           <Link to="/login" className="btn btn--secondary btn--block">
-            العودة لتسجيل الدخول
+            {tr("العودة لتسجيل الدخول", "Back to sign in")}
           </Link>
         </section>
       ) : (
         <form className="card form" onSubmit={onSubmit} noValidate>
           <Field
-            label="البريد الإلكتروني"
+            label={tr("البريد الإلكتروني", "Email")}
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -70,10 +76,10 @@ export function ForgotPasswordPage() {
           {captcha.enabled && <Turnstile siteKey={captcha.siteKey} onToken={captcha.setToken} resetKey={captcha.resetKey} />}
           {error && <Alert tone="error">{error}</Alert>}
           <button type="submit" className="btn btn--primary btn--block btn--lg" disabled={busy}>
-            {busy ? "جارٍ الإرسال…" : "إرسال رابط الاستعادة"}
+            {busy ? tr("جارٍ الإرسال…", "Sending…") : tr("إرسال رابط الاستعادة", "Send reset link")}
           </button>
           <p className="form__alt">
-            <Link to="/login">العودة لتسجيل الدخول</Link>
+            <Link to="/login">{tr("العودة لتسجيل الدخول", "Back to sign in")}</Link>
           </p>
         </form>
       )}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { CATEGORY_LABELS_AR, isActiveStatus, isOrderable, STATUS_LABELS_AR, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
+import { isActiveStatus, isOrderable, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
+import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
 import { Alert } from "../../components/Field";
 import { ProductSheet } from "../../components/ProductSheet";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
@@ -10,6 +11,7 @@ import { useCart } from "../../lib/cart";
 import { flyToCart, motionOn } from "../../lib/motion";
 import { riyals, useMenu } from "../../lib/menu";
 import { closedNote } from "./hours";
+import { tr } from "../../lib/i18n";
 
 const CATEGORIES: MenuCategory[] = ["drink", "dessert"];
 
@@ -24,7 +26,7 @@ export function MenuPage() {
       {!menu && !error && <MenuSkeleton />}
       {menu && !menu.shop.isOpen && (
         <div className="shop-closed" role="status">
-          <strong>لا نستقبل طلبات الآن</strong>
+          <strong>{tr("لا نستقبل طلبات الآن", "We're not taking orders right now")}</strong>
           <span>{closedNote(menu.shop.settings)}</span>
         </div>
       )}
@@ -36,7 +38,7 @@ export function MenuPage() {
           return (
             <section key={category} id={`section-${category}`} className="menu-section" aria-labelledby={`cat-${category}`}>
               <h2 id={`cat-${category}`} className="menu-section__title">
-                {CATEGORY_LABELS_AR[category]}
+                {categoryLabel(category)}
               </h2>
               <ul className="menu-grid">
                 {items.map((item) => (
@@ -70,11 +72,11 @@ function LiveOrder() {
       <span className="live-order__dot" aria-hidden="true" />
       <span className="live-order__text">
         <strong>
-          طلبك <span dir="ltr">#{order.orderNumber}</span>
+          {tr("طلبك", "Your order")} <span dir="ltr">#{order.orderNumber}</span>
         </strong>
-        <small>{STATUS_LABELS_AR[order.status]}</small>
+        <small>{statusLabel(order.status)}</small>
       </span>
-      <span className="live-order__go">تابع الطلب ›</span>
+      <span className="live-order__go">{tr("تابع الطلب ›", "Track ›")}</span>
     </Link>
   );
 }
@@ -96,7 +98,7 @@ function CategoryChips({ categories }: { categories: MenuCategory[] }) {
   }, [categories]);
   if (categories.length < 2) return null;
   return (
-    <nav className="menu-chips" aria-label="أقسام المنيو">
+    <nav className="menu-chips" aria-label={tr("أقسام المنيو", "Menu sections")}>
       {categories.map((c) => (
         <button
           key={c}
@@ -108,7 +110,7 @@ function CategoryChips({ categories }: { categories: MenuCategory[] }) {
             document.getElementById(`section-${c}`)?.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" });
           }}
         >
-          {CATEGORY_LABELS_AR[c]}
+          {categoryLabel(c)}
         </button>
       ))}
     </nav>
@@ -117,7 +119,7 @@ function CategoryChips({ categories }: { categories: MenuCategory[] }) {
 
 function MenuSkeleton() {
   return (
-    <div className="menu-grid" aria-busy="true" aria-label="جارٍ تحميل المنيو">
+    <div className="menu-grid" aria-busy="true" aria-label={tr("جارٍ تحميل المنيو", "Loading the menu")}>
       {Array.from({ length: 4 }, (_, i) => (
         <div key={i} className="menu-card skeleton-card" aria-hidden="true">
           <div className="skeleton skeleton--img" />
@@ -140,25 +142,25 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <li ref={cardRef} className={`menu-card ${soldOut ? "menu-card--soldout" : ""}`}>
-      <button type="button" className="menu-card__photo" onClick={() => setOpen(true)} aria-label={`عرض ${item.nameAr}`}>
+      <button type="button" className="menu-card__photo" onClick={() => setOpen(true)} aria-label={tr(`عرض ${item.nameAr}`, `View ${itemName(item)}`)}>
         <ItemImage item={item} className="menu-card__img" />
-        {hasOptions && <span className="menu-card__tag">{item.options.length} محاصيل</span>}
+        {hasOptions && <span className="menu-card__tag">{tr(`${item.options.length} محاصيل`, `${item.options.length} origins`)}</span>}
       </button>
       <div className="menu-card__body">
-        <h3 className="menu-card__name">{item.nameAr}</h3>
-        {item.nameEn && (
-          <span className="pass-label" dir="ltr">
-            {item.nameEn}
+        <h3 className="menu-card__name">{itemName(item)}</h3>
+        {itemSubName(item) && (
+          <span className="pass-label" dir={subNameDir()}>
+            {itemSubName(item)}
           </span>
         )}
-        {item.descriptionAr && <p className="menu-card__desc">{item.descriptionAr}</p>}
+        {itemDescription(item) && <p className="menu-card__desc">{itemDescription(item)}</p>}
         <div className="menu-card__foot">
           <span className="menu-card__price">
             {riyals(item.priceHalalas)}
-            {item.calories !== null && <small className="kcal">{item.calories} سعرة</small>}
+            {item.calories !== null && <small className="kcal">{tr(`${item.calories} سعرة`, `${item.calories} kcal`)}</small>}
           </span>
           {soldOut ? (
-            <span className="badge badge--muted">نفد</span>
+            <span className="badge badge--muted">{tr("نفد", "Sold out")}</span>
           ) : hasOptions ? (
             // Choosing an origin happens in the sheet.
             <button
@@ -166,12 +168,12 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
               className="add-btn"
               onClick={() => setOpen(true)}
               disabled={!canOrder}
-              aria-label={`اختر ${item.optionLabel ?? "النوع"} وأضف ${item.nameAr}`}
+              aria-label={tr(`اختر ${optionLabel(item)} وأضف ${item.nameAr}`, `Choose the ${optionLabel(item)} and add ${itemName(item)}`)}
             >
               {qty > 0 ? <span className="add-btn__count">{qty}</span> : "+"}
             </button>
           ) : qty > 0 ? (
-            <QtyStepper quantity={qty} onChange={(q) => cart.setQuantity(item.id, q)} label={item.nameAr} />
+            <QtyStepper quantity={qty} onChange={(q) => cart.setQuantity(item.id, q)} label={itemName(item)} />
           ) : (
             <button
               type="button"
@@ -181,7 +183,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
                 cart.add(item.id);
               }}
               disabled={!canOrder}
-              aria-label={`إضافة ${item.nameAr} إلى السلة`}
+              aria-label={tr(`إضافة ${item.nameAr} إلى السلة`, `Add ${itemName(item)} to cart`)}
             >
               +
             </button>
@@ -204,7 +206,7 @@ export function CartBar({ menu }: { menu: MenuResponse | null }) {
   return (
     <Link to="/cart" className="cart-bar">
       <span className="cart-bar__count">{count}</span>
-      <span className="cart-bar__label">عرض السلة</span>
+      <span className="cart-bar__label">{tr("عرض السلة", "View cart")}</span>
       <span className="cart-bar__total">{riyals(subtotal)}</span>
     </Link>
   );

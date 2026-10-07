@@ -9,8 +9,9 @@ import { useAuth } from "../../lib/auth";
 import { useCaptcha } from "../../lib/captcha";
 import { safeNext, withNext } from "../../lib/next";
 import { authErrorAr, validateEmail } from "../../lib/validation";
+import { tr } from "../../lib/i18n";
 
-export function LoginForm({ onSuccess, submitLabel = "تسجيل الدخول" }: { onSuccess: () => void; submitLabel?: string }) {
+export function LoginForm({ onSuccess, submitLabel = tr("تسجيل الدخول", "Sign in") }: { onSuccess: () => void; submitLabel?: string }) {
   const { supabase } = useAuth();
   const captcha = useCaptcha();
   const [email, setEmail] = useState("");
@@ -22,11 +23,11 @@ export function LoginForm({ onSuccess, submitLabel = "تسجيل الدخول" }
     e.preventDefault();
     const emailError = validateEmail(email);
     if (emailError || !password) {
-      setError(emailError ?? "يرجى إدخال كلمة المرور");
+      setError(emailError ?? tr("يرجى إدخال كلمة المرور", "Please enter your password"));
       return;
     }
     if (!captcha.ready) {
-      setError("يرجى إكمال التحقق");
+      setError(tr("يرجى إكمال التحقق", "Please complete the check"));
       return;
     }
     setBusy(true);
@@ -51,7 +52,7 @@ export function LoginForm({ onSuccess, submitLabel = "تسجيل الدخول" }
   return (
     <form className="card form" onSubmit={onSubmit} noValidate>
       <Field
-        label="البريد الإلكتروني"
+        label={tr("البريد الإلكتروني", "Email")}
         type="email"
         inputMode="email"
         autoComplete="email"
@@ -61,7 +62,7 @@ export function LoginForm({ onSuccess, submitLabel = "تسجيل الدخول" }
         required
       />
       <Field
-        label="كلمة المرور"
+        label={tr("كلمة المرور", "Password")}
         type="password"
         autoComplete="current-password"
         dir="ltr"
@@ -72,7 +73,7 @@ export function LoginForm({ onSuccess, submitLabel = "تسجيل الدخول" }
       {captcha.enabled && <Turnstile siteKey={captcha.siteKey} onToken={captcha.setToken} resetKey={captcha.resetKey} />}
       {error && <Alert tone="error">{error}</Alert>}
       <button type="submit" className="btn btn--primary btn--block btn--lg" disabled={busy}>
-        {busy ? "جارٍ الدخول…" : submitLabel}
+        {busy ? tr("جارٍ الدخول…", "Signing in…") : submitLabel}
       </button>
     </form>
   );
@@ -87,19 +88,19 @@ export function LoginPage() {
   return (
     <CustomerLayout hero>
       <section className="hero">
-        <h1 className="hero__title">أهلًا من جديد</h1>
-        <p className="hero__sub">سجّل دخولك عشان تطلب وتتابع أكوابك.</p>
+        <h1 className="hero__title">{tr("أهلًا من جديد", "Welcome back")}</h1>
+        <p className="hero__sub">{tr("سجّل دخولك عشان تطلب وتتابع أكوابك.", "Sign in to order and keep track of your cups.")}</p>
       </section>
       <LoginForm onSuccess={() => void navigate(next, { replace: true })} />
       <p className="form__alt">
-        <Link to="/forgot-password">نسيت كلمة المرور؟</Link>
+        <Link to="/forgot-password">{tr("نسيت كلمة المرور؟", "Forgot your password?")}</Link>
       </p>
       <p className="form__alt">
-        ليس لديك بطاقة؟ <Link to={params.has("next") ? withNext("/register", next) : "/register"}>انضم الآن</Link>
+        {tr("ليس لديك بطاقة؟", "No card yet?")} <Link to={params.has("next") ? withNext("/register", next) : "/register"}>{tr("انضم الآن", "Join now")}</Link>
       </p>
       {isNative && (
         <p className="form__alt">
-          <Link to="/menu">تصفّح المنيو بدون تسجيل</Link>
+          <Link to="/menu">{tr("تصفّح المنيو بدون تسجيل", "Browse the menu without signing in")}</Link>
         </p>
       )}
     </CustomerLayout>

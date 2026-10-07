@@ -166,12 +166,14 @@ type Draft = {
   nameAr: string;
   nameEn: string;
   descriptionAr: string;
+  descriptionEn: string;
   category: MenuCategory;
   price: string;
   sortOrder: string;
   isAvailable: boolean;
   isArchived: boolean;
   optionLabel: string;
+  optionLabelEn: string;
   options: MenuOption[];
   calories: string;
 };
@@ -183,12 +185,14 @@ const emptyDraft = (category: MenuCategory = "drink"): Draft => ({
   nameAr: "",
   nameEn: "",
   descriptionAr: "",
+  descriptionEn: "",
   category,
   price: "",
   sortOrder: "500",
   isAvailable: true,
   isArchived: false,
   optionLabel: "",
+  optionLabelEn: "",
   calories: "",
   options: [],
 });
@@ -270,18 +274,26 @@ function MenuPanel() {
       return setDraftError("السعرات رقم صحيح من 0 إلى 5000، أو اتركها فاضية");
     }
     const options = draft.options
-      .map((o) => ({ ...o, nameAr: o.nameAr.trim(), noteAr: o.noteAr?.trim() || null }))
+      .map((o) => ({
+        ...o,
+        nameAr: o.nameAr.trim(),
+        nameEn: o.nameEn?.trim() || null,
+        noteAr: o.noteAr?.trim() || null,
+        noteEn: o.noteEn?.trim() || null,
+      }))
       .filter((o) => o.nameAr);
     const body = {
       nameAr: draft.nameAr.trim(),
       nameEn: draft.nameEn.trim() || null,
       descriptionAr: draft.descriptionAr.trim() || null,
+      descriptionEn: draft.descriptionEn.trim() || null,
       category: draft.category,
       priceHalalas: price,
       sortOrder,
       isAvailable: draft.isAvailable,
       isArchived: draft.isArchived,
       optionLabel: options.length ? draft.optionLabel.trim() || "النوع" : null,
+      optionLabelEn: options.length ? draft.optionLabelEn.trim() || null : null,
       options,
       calories,
     };
@@ -308,12 +320,14 @@ function MenuPanel() {
       nameAr: i.nameAr,
       nameEn: i.nameEn ?? "",
       descriptionAr: i.descriptionAr ?? "",
+      descriptionEn: i.descriptionEn ?? "",
       category: i.category,
       price: sar(i.priceHalalas),
       sortOrder: String(i.sortOrder),
       isAvailable: i.isAvailable,
       isArchived: i.isArchived,
       optionLabel: i.optionLabel ?? "",
+      optionLabelEn: i.optionLabelEn ?? "",
       options: i.options,
       calories: i.calories === null ? "" : String(i.calories),
     });
@@ -382,6 +396,18 @@ function MenuPanel() {
               <label htmlFor="desc">الوصف (اختياري)</label>
               <textarea id="desc" rows={2} value={draft.descriptionAr} onChange={(e) => setDraft({ ...draft, descriptionAr: e.target.value })} maxLength={200} />
             </div>
+            <div className="field">
+              <label htmlFor="desc-en">الوصف بالإنجليزي (اختياري)</label>
+              <textarea
+                id="desc-en"
+                dir="ltr"
+                rows={2}
+                value={draft.descriptionEn}
+                onChange={(e) => setDraft({ ...draft, descriptionEn: e.target.value })}
+                maxLength={300}
+                placeholder="Shown when the app is in English"
+              />
+            </div>
             <div className="form-row">
               <div className="field">
                 <label htmlFor="cat">القسم</label>
@@ -406,13 +432,23 @@ function MenuPanel() {
             <fieldset className="options-editor">
               <legend>خيارات يختار منها العميل (مثل المحصول)</legend>
               {draft.options.length > 0 && (
-                <Field
-                  label="عنوان الاختيار"
-                  value={draft.optionLabel}
-                  onChange={(e) => setDraft({ ...draft, optionLabel: e.target.value })}
-                  maxLength={40}
-                  placeholder="المحصول"
-                />
+                <div className="form-row">
+                  <Field
+                    label="عنوان الاختيار"
+                    value={draft.optionLabel}
+                    onChange={(e) => setDraft({ ...draft, optionLabel: e.target.value })}
+                    maxLength={40}
+                    placeholder="المحصول"
+                  />
+                  <Field
+                    label="بالإنجليزي"
+                    dir="ltr"
+                    value={draft.optionLabelEn}
+                    onChange={(e) => setDraft({ ...draft, optionLabelEn: e.target.value })}
+                    maxLength={40}
+                    placeholder="origin"
+                  />
+                </div>
               )}
               {draft.options.map((o, idx) => (
                 <div key={o.id} className="options-editor__row">
@@ -431,6 +467,22 @@ function MenuPanel() {
                     placeholder="وصف الطعم، مثل: فواكه وأزهار"
                     maxLength={80}
                     aria-label="وصف الطعم"
+                  />
+                  <input
+                    dir="ltr"
+                    value={o.nameEn ?? ""}
+                    onChange={(e) => setDraft({ ...draft, options: draft.options.map((x, j) => (j === idx ? { ...x, nameEn: e.target.value } : x)) })}
+                    placeholder="English name, e.g. Ethiopian"
+                    maxLength={40}
+                    aria-label="اسم الخيار بالإنجليزي"
+                  />
+                  <input
+                    dir="ltr"
+                    value={o.noteEn ?? ""}
+                    onChange={(e) => setDraft({ ...draft, options: draft.options.map((x, j) => (j === idx ? { ...x, noteEn: e.target.value } : x)) })}
+                    placeholder="English note, e.g. fruity, floral"
+                    maxLength={80}
+                    aria-label="وصف الطعم بالإنجليزي"
                   />
                   <Toggle
                     label={o.isAvailable ? "متوفر" : "نفد"}
@@ -454,7 +506,7 @@ function MenuPanel() {
                     setDraft({
                       ...draft,
                       optionLabel: draft.optionLabel || "المحصول",
-                      options: [...draft.options, { id: newOptionId(), nameAr: "", noteAr: null, isAvailable: true }],
+                      options: [...draft.options, { id: newOptionId(), nameAr: "", nameEn: null, noteAr: null, noteEn: null, isAvailable: true }],
                     })
                   }
                 >

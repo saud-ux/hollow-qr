@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router";
-import { isActiveStatus, STATUS_LABELS_AR, type Order, type OrderStatus } from "../../../shared/ordering";
+import { isActiveStatus, type Order, type OrderStatus } from "../../../shared/ordering";
 import { Alert, Spinner } from "../../components/Field";
 import { ShopLayout } from "../../components/Shop";
 import { apiGet, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { formatDateTime } from "../../lib/dates";
-import { riyals } from "../../lib/menu";
+import { riyals, useMenu } from "../../lib/menu";
+import { lineName, lineOptionName, statusLabel } from "../../lib/menuText";
+import { tr } from "../../lib/i18n";
 
 const FLOW: Record<"pickup" | "curbside" | "delivery", OrderStatus[]> = {
   pickup: ["new", "preparing", "ready", "completed"],
@@ -23,6 +25,14 @@ function progress(o: Order): number {
 
 export function OrdersPage() {
   const { session, loading } = useAuth();
+  const { menu } = useMenu();
+  const summary = (o: Order) =>
+    o.items
+      .map((i) => {
+        const option = lineOptionName(i, menu?.items);
+        return `${i.quantity}× ${lineName(i, menu?.items)}${option ? ` (${option})` : ""}`;
+      })
+      .join(tr("، ", ", "));
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,23 +54,23 @@ export function OrdersPage() {
 
   return (
     <ShopLayout>
-      <h1 className="page-title">طلباتي</h1>
+      <h1 className="page-title">{tr("طلباتي", "My orders")}</h1>
       {error && <Alert tone="error">{error}</Alert>}
       {!orders && !error && <Spinner />}
       {orders && orders.length === 0 && (
         <div className="empty">
           <img src="/brand/tent-espresso.png" alt="" className="empty__art" />
-          <h2 className="empty__title">ما عندك طلبات للحين</h2>
-          <p className="empty__sub">أول طلب يضيف أكواب لبطاقتك.</p>
+          <h2 className="empty__title">{tr("ما عندك طلبات للحين", "No orders yet")}</h2>
+          <p className="empty__sub">{tr("أول طلب يضيف أكواب لبطاقتك.", "Your first order adds cups to your card.")}</p>
           <Link to="/menu" className="btn btn--primary">
-            اطلب الآن
+            {tr("اطلب الآن", "Order now")}
           </Link>
         </div>
       )}
       {orders && orders.some((o) => isActiveStatus(o.status)) && (
         <section className="orders-group" aria-labelledby="orders-now">
           <h2 id="orders-now" className="orders-group__title">
-            الحالي
+            {tr("الحالي", "Current")}
           </h2>
           <ul className="order-list">
             {orders
@@ -72,13 +82,13 @@ export function OrdersPage() {
                       <span className="order-live__num" dir="ltr">
                         #{o.orderNumber}
                       </span>
-                      <span className="order-live__status">{STATUS_LABELS_AR[o.status]}</span>
+                      <span className="order-live__status">{statusLabel(o.status)}</span>
                     </span>
                     <span className="order-live__bar" aria-hidden="true">
                       <i style={{ width: `${progress(o)}%` }} />
                     </span>
                     <span className="order-live__meta">
-                      <span>{o.items.map((i) => `${i.quantity}× ${i.nameAr}${i.optionNameAr ? ` (${i.optionNameAr})` : ""}`).join("، ")}</span>
+                      <span>{summary(o)}</span>
                       <span>{riyals(o.totalHalalas)}</span>
                     </span>
                   </Link>
@@ -90,7 +100,7 @@ export function OrdersPage() {
       {orders && orders.some((o) => !isActiveStatus(o.status)) && (
         <section className="orders-group" aria-labelledby="orders-past">
           <h2 id="orders-past" className="orders-group__title">
-            السابقة
+            {tr("السابقة", "Past")}
           </h2>
           <ul className="order-list">
             {orders
@@ -102,11 +112,11 @@ export function OrdersPage() {
                       #{o.orderNumber}
                     </span>
                     <span className="order-row__main">
-                      <span className="order-row__items">{o.items.map((i) => `${i.quantity}× ${i.nameAr}${i.optionNameAr ? ` (${i.optionNameAr})` : ""}`).join("، ")}</span>
+                      <span className="order-row__items">{summary(o)}</span>
                       <small>{formatDateTime(o.createdAt)}</small>
                     </span>
                     <span className="order-row__side">
-                      <span className={`status-chip status-chip--${o.status}`}>{STATUS_LABELS_AR[o.status]}</span>
+                      <span className={`status-chip status-chip--${o.status}`}>{statusLabel(o.status)}</span>
                       <small>{riyals(o.totalHalalas)}</small>
                     </span>
                   </Link>

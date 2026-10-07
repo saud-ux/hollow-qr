@@ -4,6 +4,7 @@ import { CustomerLayout } from "../../components/CustomerLayout";
 import { Alert, Field, Spinner } from "../../components/Field";
 import { useAuth } from "../../lib/auth";
 import { authErrorAr, validateConfirm, validatePassword } from "../../lib/validation";
+import { tr } from "../../lib/i18n";
 
 /**
  * Landing page for Supabase's password-recovery email link. supabase-js
@@ -45,32 +46,36 @@ export function ResetPasswordPage() {
 
   let content;
   if (loading) content = <Spinner />;
-  else if (done) content = <Alert tone="success">تم تغيير كلمة المرور بنجاح</Alert>;
+  else if (done) content = <Alert tone="success">{tr("تم تغيير كلمة المرور بنجاح", "Your password was changed")}</Alert>;
   else if (!session) {
     content = (
       <section className="card">
-        <Alert tone="error">{linkError ? "رابط الاستعادة غير صالح أو منتهي الصلاحية" : "افتح رابط الاستعادة من بريدك الإلكتروني للمتابعة"}</Alert>
+        <Alert tone="error">
+          {linkError
+            ? tr("رابط الاستعادة غير صالح أو منتهي الصلاحية", "The reset link is invalid or has expired")
+            : tr("افتح رابط الاستعادة من بريدك الإلكتروني للمتابعة", "Open the reset link from your email to continue")}
+        </Alert>
         <Link to="/forgot-password" className="btn btn--secondary btn--block">
-          طلب رابط جديد
+          {tr("طلب رابط جديد", "Get a new link")}
         </Link>
       </section>
     );
   } else {
     content = (
       <form className="card form" onSubmit={onSubmit} noValidate>
-        {!recovery && <p className="muted">أنت مسجّل الدخول، يمكنك تعيين كلمة مرور جديدة.</p>}
+        {!recovery && <p className="muted">{tr("أنت مسجّل الدخول، يمكنك تعيين كلمة مرور جديدة.", "You're signed in, you can set a new password.")}</p>}
         <Field
-          label="كلمة المرور الجديدة"
+          label={tr("كلمة المرور الجديدة", "New password")}
           type="password"
           autoComplete="new-password"
           dir="ltr"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          hint="8 أحرف على الأقل، حروف وأرقام"
+          hint={tr("8 أحرف على الأقل، حروف وأرقام", "At least 8 characters, letters and numbers")}
           required
         />
         <Field
-          label="تأكيد كلمة المرور"
+          label={tr("تأكيد كلمة المرور", "Confirm password")}
           type="password"
           autoComplete="new-password"
           dir="ltr"
@@ -80,7 +85,7 @@ export function ResetPasswordPage() {
         />
         {error && <Alert tone="error">{error}</Alert>}
         <button type="submit" className="btn btn--primary btn--block btn--lg" disabled={busy}>
-          {busy ? "جارٍ الحفظ…" : "حفظ كلمة المرور"}
+          {busy ? tr("جارٍ الحفظ…", "Saving…") : tr("حفظ كلمة المرور", "Save password")}
         </button>
       </form>
     );
@@ -88,7 +93,7 @@ export function ResetPasswordPage() {
 
   return (
     <CustomerLayout>
-      <h1 className="page-title">تعيين كلمة مرور جديدة</h1>
+      <h1 className="page-title">{tr("تعيين كلمة مرور جديدة", "Set a new password")}</h1>
       {content}
     </CustomerLayout>
   );

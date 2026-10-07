@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { apiPost } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { initMotion } from "../lib/motion";
+import { currentLang } from "../lib/i18n";
 import { initNativePush, initNativeShell, isNative, openWebsite, refreshPushIfAllowed } from "../lib/native";
 
 /** iOS app glue: push registration and notification taps. Renders nothing. */
@@ -21,7 +22,7 @@ export function NativeBridge() {
     initMotion();
     void initNativePush({
       register: (token) => {
-        if (signedIn.current) void apiPost("/api/me/push-devices", { token }).catch(() => undefined);
+        if (signedIn.current) void apiPost("/api/me/push-devices", { token, lang: currentLang() }).catch(() => undefined);
       },
       open: (target) => {
         if (target.kind === "order") void navigate(`/orders/${target.orderId}`);
@@ -31,7 +32,9 @@ export function NativeBridge() {
     }).catch(() => undefined);
   }, [navigate]);
 
-  // Signing in on a phone that already allowed notifications links it to this user.
+  // Signing in on a phone that already allowed notifications links it to this
+  // user. This also runs after a language change (the app re-renders keyed by
+  // language), so order notifications follow the app's language.
   useEffect(() => {
     if (isNative && userId) void refreshPushIfAllowed().catch(() => undefined);
   }, [userId]);

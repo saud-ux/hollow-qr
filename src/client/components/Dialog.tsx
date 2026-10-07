@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { tr } from "../lib/i18n";
 
 /** Accessible modal built on the native <dialog> element (focus trap + Esc). */
 export function Dialog({
@@ -71,10 +72,10 @@ export function ConfirmDialog({
       actions={
         <>
           <button type="button" className={`btn ${tone === "danger" ? "btn--danger" : "btn--primary"}`} onClick={onConfirm} disabled={busy} autoFocus>
-            {busy ? "جارٍ التنفيذ…" : confirmLabel}
+            {busy ? tr("جارٍ التنفيذ…", "Working…") : confirmLabel}
           </button>
           <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={busy}>
-            إلغاء
+            {tr("إلغاء", "Cancel")}
           </button>
         </>
       }

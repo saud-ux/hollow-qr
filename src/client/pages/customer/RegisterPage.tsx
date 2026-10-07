@@ -9,6 +9,7 @@ import { useCaptcha } from "../../lib/captcha";
 import { useConfig } from "../../lib/config";
 import { safeNext, withNext } from "../../lib/next";
 import { authErrorAr, validateConfirm, validateEmail, validateName, validatePassword } from "../../lib/validation";
+import { tr } from "../../lib/i18n";
 
 type Errors = Partial<Record<"name" | "email" | "password" | "confirm", string | null>>;
 
@@ -46,7 +47,7 @@ export function RegisterPage() {
     setExisting(false);
     if (Object.values(next).some(Boolean)) return;
     if (!captcha.ready) {
-      setFormError("يرجى إكمال التحقق");
+      setFormError(tr("يرجى إكمال التحقق", "Please complete the check"));
       return;
     }
     setBusy(true);
@@ -62,7 +63,7 @@ export function RegisterPage() {
       });
       if (error) {
         const message = authErrorAr(error);
-        if (message === "هذا البريد مسجل مسبقًا") setExisting(true);
+        if (message === tr("هذا البريد مسجل مسبقًا", "This email is already registered")) setExisting(true);
         else setFormError(message);
         return;
       }
@@ -87,10 +88,15 @@ export function RegisterPage() {
     return (
       <CustomerLayout>
         <section className="card center">
-          <h1>تم إنشاء بطاقتك بنجاح</h1>
-          <p>أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتح الرابط لتفعيل حسابك ثم أضف بطاقتك إلى Apple Wallet.</p>
+          <h1>{tr("تم إنشاء بطاقتك بنجاح", "Your card is ready")}</h1>
+          <p>
+            {tr(
+              "أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتح الرابط لتفعيل حسابك ثم أضف بطاقتك إلى Apple Wallet.",
+              "We sent a confirmation link to your email. Open it to activate your account, then add your card to Apple Wallet.",
+            )}
+          </p>
           <Link to={loginLink} className="btn btn--secondary">
-            تسجيل الدخول
+            {tr("تسجيل الدخول", "Sign in")}
           </Link>
         </section>
       </CustomerLayout>
@@ -100,13 +106,13 @@ export function RegisterPage() {
   return (
     <CustomerLayout hero>
       <section className="hero">
-        <h1 className="hero__title">اشترِ 5 أكواب واحصل على السادس مجانًا</h1>
-        <p className="hero__sub">بطاقة ولاء HOLLOW في Apple Wallet بدون تطبيق.</p>
+        <h1 className="hero__title">{tr("اشترِ 5 أكواب واحصل على السادس مجانًا", "Buy 5 cups, get the 6th free")}</h1>
+        <p className="hero__sub">{tr("بطاقة ولاء HOLLOW في Apple Wallet بدون تطبيق.", "Your HOLLOW loyalty card, right in Apple Wallet.")}</p>
       </section>
       <form className="card form" onSubmit={onSubmit} noValidate>
-        <Field label="الاسم" name="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} maxLength={80} required />
+        <Field label={tr("الاسم", "Name")} name="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} maxLength={80} required />
         <Field
-          label="البريد الإلكتروني"
+          label={tr("البريد الإلكتروني", "Email")}
           name="email"
           type="email"
           inputMode="email"
@@ -118,7 +124,7 @@ export function RegisterPage() {
           required
         />
         <Field
-          label="كلمة المرور"
+          label={tr("كلمة المرور", "Password")}
           name="password"
           type="password"
           autoComplete="new-password"
@@ -126,11 +132,11 @@ export function RegisterPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
-          hint="8 أحرف على الأقل، حروف وأرقام"
+          hint={tr("8 أحرف على الأقل، حروف وأرقام", "At least 8 characters, letters and numbers")}
           required
         />
         <Field
-          label="تأكيد كلمة المرور"
+          label={tr("تأكيد كلمة المرور", "Confirm password")}
           name="confirm"
           type="password"
           autoComplete="new-password"
@@ -143,16 +149,16 @@ export function RegisterPage() {
         {captcha.enabled && <Turnstile siteKey={captcha.siteKey} onToken={captcha.setToken} resetKey={captcha.resetKey} />}
         {existing && (
           <Alert tone="warning">
-            هذا البريد مسجل مسبقًا. <Link to={loginLink}>سجّل الدخول</Link> للوصول إلى بطاقتك، أو{" "}
-            <Link to="/forgot-password">استعد كلمة المرور</Link>.
+            {tr("هذا البريد مسجل مسبقًا.", "This email is already registered.")} <Link to={loginLink}>{tr("سجّل الدخول", "Sign in")}</Link>{" "}
+            {tr("للوصول إلى بطاقتك، أو", "to reach your card, or")} <Link to="/forgot-password">{tr("استعد كلمة المرور", "reset your password")}</Link>.
           </Alert>
         )}
         {formError && <Alert tone="error">{formError}</Alert>}
         <button type="submit" className="btn btn--primary btn--block btn--lg" disabled={busy}>
-          {busy ? "جارٍ الإنشاء…" : "انضم الآن"}
+          {busy ? tr("جارٍ الإنشاء…", "Creating…") : tr("انضم الآن", "Join now")}
         </button>
         <p className="form__alt">
-          لديك حساب؟ <Link to={loginLink}>تسجيل الدخول</Link>
+          {tr("لديك حساب؟", "Have an account?")} <Link to={loginLink}>{tr("تسجيل الدخول", "Sign in")}</Link>
         </p>
       </form>
     </CustomerLayout>

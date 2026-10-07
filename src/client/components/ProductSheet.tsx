@@ -3,7 +3,9 @@ import { isOrderable, MAX_LINE_QUANTITY, type MenuItem } from "../../shared/orde
 import { useCart } from "../lib/cart";
 import { riyals } from "../lib/menu";
 import { flyToCart } from "../lib/motion";
+import { itemDescription, itemName, itemSubName, optionLabel, optionName, optionNote, subNameDir } from "../lib/menuText";
 import { ItemImage } from "./Shop";
+import { tr } from "../lib/i18n";
 
 /**
  * A product up close: a large photo (tap it to see it full screen), the
@@ -52,12 +54,12 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
         aria-labelledby="product-sheet-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <button ref={closeRef} type="button" className="product-sheet__close" onClick={onClose} aria-label="إغلاق">
+        <button ref={closeRef} type="button" className="product-sheet__close" onClick={onClose} aria-label={tr("إغلاق", "Close")}>
           ×
         </button>
         <div ref={photoRef} className="product-sheet__photo">
           {item.imageUrl ? (
-            <button type="button" className="product-sheet__zoom" onClick={() => setZoomed(true)} aria-label="عرض الصورة بحجم الشاشة">
+            <button type="button" className="product-sheet__zoom" onClick={() => setZoomed(true)} aria-label={tr("عرض الصورة بحجم الشاشة", "View photo full screen")}>
               <ItemImage item={item} className="product-sheet__img" />
             </button>
           ) : (
@@ -69,24 +71,24 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
           <div className="product-sheet__head">
             <div>
               <h2 id="product-sheet-title" className="product-sheet__name">
-                {item.nameAr}
+                {itemName(item)}
               </h2>
-              {item.nameEn && (
-                <span className="pass-label" dir="ltr">
-                  {item.nameEn}
+              {itemSubName(item) && (
+                <span className="pass-label" dir={subNameDir()}>
+                  {itemSubName(item)}
                 </span>
               )}
             </div>
             <span className="product-sheet__price">
               {riyals(item.priceHalalas)}
-              {item.calories !== null && <small className="kcal">{item.calories} سعرة حرارية</small>}
+              {item.calories !== null && <small className="kcal">{tr(`${item.calories} سعرة حرارية`, `${item.calories} kcal`)}</small>}
             </span>
           </div>
-          {item.descriptionAr && <p className="product-sheet__desc">{item.descriptionAr}</p>}
+          {itemDescription(item) && <p className="product-sheet__desc">{itemDescription(item)}</p>}
 
           {hasOptions && (
             <fieldset className="origin-picker">
-              <legend>اختر {item.optionLabel ?? "النوع"}</legend>
+              <legend>{tr(`اختر ${optionLabel(item)}`, `Choose the ${optionLabel(item)}`)}</legend>
               {item.options.map((o) => (
                 <label key={o.id} className={`origin ${optionId === o.id ? "is-on" : ""} ${o.isAvailable ? "" : "is-out"}`}>
                   <input
@@ -98,32 +100,36 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
                     onChange={() => setOptionId(o.id)}
                   />
                   <span className="origin__text">
-                    <strong>{o.nameAr}</strong>
-                    {o.noteAr && <small>{o.noteAr}</small>}
+                    <strong>{optionName(o)}</strong>
+                    {optionNote(o) && <small>{optionNote(o)}</small>}
                   </span>
-                  {!o.isAvailable && <span className="badge badge--muted">نفد</span>}
+                  {!o.isAvailable && <span className="badge badge--muted">{tr("نفد", "Sold out")}</span>}
                 </label>
               ))}
             </fieldset>
           )}
 
           <div className="product-sheet__actions">
-            <div className="stepper" role="group" aria-label={`الكمية: ${item.nameAr}`}>
-              <button type="button" className="stepper__btn" onClick={() => setQuantity((q) => Math.min(q + 1, MAX_LINE_QUANTITY))} aria-label="زيادة">
+            <div className="stepper" role="group" aria-label={tr(`الكمية: ${item.nameAr}`, `Quantity: ${itemName(item)}`)}>
+              <button type="button" className="stepper__btn" onClick={() => setQuantity((q) => Math.min(q + 1, MAX_LINE_QUANTITY))} aria-label={tr("زيادة", "Increase")}>
                 +
               </button>
               <span className="stepper__value" aria-live="polite">
                 {quantity}
               </span>
-              <button type="button" className="stepper__btn" onClick={() => setQuantity((q) => Math.max(q - 1, 1))} aria-label="إنقاص">
+              <button type="button" className="stepper__btn" onClick={() => setQuantity((q) => Math.max(q - 1, 1))} aria-label={tr("إنقاص", "Decrease")}>
                 −
               </button>
             </div>
             <button type="button" className="btn btn--primary btn--lg product-sheet__add" disabled={!orderable} onClick={add}>
-              {!canOrder ? "لا نستقبل طلبات الآن" : !isOrderable(item) ? "نفد" : `أضف للسلة · ${riyals(item.priceHalalas * quantity)}`}
+              {!canOrder
+                ? tr("لا نستقبل طلبات الآن", "Not taking orders now")
+                : !isOrderable(item)
+                  ? tr("نفد", "Sold out")
+                  : tr(`أضف للسلة · ${riyals(item.priceHalalas * quantity)}`, `Add to cart · ${riyals(item.priceHalalas * quantity)}`)}
             </button>
           </div>
-          {inCart > 0 && <p className="muted small center">في سلتك الآن: {inCart}</p>}
+          {inCart > 0 && <p className="muted small center">{tr(`في سلتك الآن: ${inCart}`, `In your cart: ${inCart}`)}</p>}
         </div>
       </div>
 
@@ -132,14 +138,14 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
           className="photo-viewer"
           role="dialog"
           aria-modal="true"
-          aria-label={item.nameAr}
+          aria-label={itemName(item)}
           onClick={(e) => {
             e.stopPropagation();
             setZoomed(false);
           }}
         >
-          <img src={item.imageUrl} alt={item.nameAr} className="photo-viewer__img" />
-          <span className="photo-viewer__hint">اضغط للإغلاق</span>
+          <img src={item.imageUrl} alt={itemName(item)} className="photo-viewer__img" />
+          <span className="photo-viewer__hint">{tr("اضغط للإغلاق", "Tap to close")}</span>
         </div>
       )}
     </div>

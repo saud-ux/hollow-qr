@@ -6,6 +6,7 @@ import { Alert, Spinner } from "../../components/Field";
 import { apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useConfig } from "../../lib/config";
+import { tr } from "../../lib/i18n";
 
 /**
  * /c/:token — what opens if someone scans the pass QR with a phone camera.
@@ -38,10 +39,10 @@ export function QrLandingPage() {
   return (
     <CustomerLayout>
       <section className="card center">
-        <h1>بطاقة HOLLOW Rewards</h1>
-        {error ? <Alert tone="error">{error}</Alert> : <p>اعرض هذا الرمز للموظف عند الدفع لإضافة أكوابك.</p>}
+        <h1>{tr("بطاقة HOLLOW Rewards", "HOLLOW Rewards card")}</h1>
+        {error ? <Alert tone="error">{error}</Alert> : <p>{tr("اعرض هذا الرمز للموظف عند الدفع لإضافة أكوابك.", "Show this code to staff when you pay to collect your cups.")}</p>}
         <Link to="/wallet" className="btn btn--secondary">
-          بطاقتي
+          {tr("بطاقتي", "My card")}
         </Link>
       </section>
     </CustomerLayout>

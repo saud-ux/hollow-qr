@@ -8,6 +8,7 @@ import { useCart } from "../lib/cart";
 import { Wordmark } from "./Brand";
 import { CupStrip } from "./CupStrip";
 import { ThemeToggle } from "./ThemeToggle";
+import { tr } from "../lib/i18n";
 
 /**
  * Ordering screens share the look of the Wallet card: a cream header with the
@@ -19,12 +20,12 @@ export function ShopLayout({ children, bottom }: { children: ReactNode; bottom?:
   return (
     <div className="shop">
       <header className="shop__header">
-        <Link to="/menu" className="shop__brand" aria-label="HOLLOW، المنيو">
+        <Link to="/menu" className="shop__brand" aria-label={tr("HOLLOW، المنيو", "HOLLOW, menu")}>
           <Wordmark />
         </Link>
         <div className="shop__header-end">
           {card && card.membershipStatus === "active" && (
-            <Link to="/wallet" className="shop__cups" dir="ltr" aria-label={`${card.stampCount} من ${MAX_STAMPS} أكواب`}>
+            <Link to="/wallet" className="shop__cups" dir="ltr" aria-label={tr(`${card.stampCount} من ${MAX_STAMPS} أكواب`, `${card.stampCount} of ${MAX_STAMPS} cups`)}>
               <span className="pass-label">CUPS</span>
               <span className="shop__cups-value">
                 {card.stampCount} / {MAX_STAMPS}
@@ -46,23 +47,23 @@ export function ShopLayout({ children, bottom }: { children: ReactNode; bottom?:
 export function TabBar() {
   const { count } = useCart();
   return (
-    <nav className="tabbar" aria-label="التنقل">
+    <nav className="tabbar" aria-label={tr("التنقل", "Navigation")}>
       <NavLink to="/menu" className="tabbar__item">
         <MenuIcon />
-        <span>المنيو</span>
+        <span>{tr("المنيو", "Menu")}</span>
       </NavLink>
       <NavLink to="/cart" className="tabbar__item">
         <BagIcon />
-        <span>السلة</span>
+        <span>{tr("السلة", "Cart")}</span>
         {count > 0 && <span className="tabbar__badge">{count}</span>}
       </NavLink>
       <NavLink to="/orders" className="tabbar__item">
         <ReceiptIcon />
-        <span>طلباتي</span>
+        <span>{tr("طلباتي", "Orders")}</span>
       </NavLink>
       <NavLink to="/wallet" className="tabbar__item">
         <CardIcon />
-        <span>بطاقتي</span>
+        <span>{tr("بطاقتي", "My card")}</span>
       </NavLink>
     </nav>
   );
@@ -76,7 +77,7 @@ export function LoyaltyBand({ card }: { card: CustomerCard | null }) {
         <img src="/wallet-preview/strip-0.png" alt="" className="band__strip" />
         <span className="band__caption">
           <span className="pass-label pass-label--light">HOLLOW REWARDS</span>
-          <span>سجّل واجمع 5 أكواب، والسادس مجاني</span>
+          <span>{tr("سجّل واجمع 5 أكواب، والسادس مجاني", "Sign up, collect 5 cups, the 6th is free")}</span>
         </span>
       </Link>
     );
@@ -86,13 +87,13 @@ export function LoyaltyBand({ card }: { card: CustomerCard | null }) {
     <Link to="/wallet" className="band band--link">
       <CupStrip count={card.stampCount} memberId={card.memberId} stamp="new" className="band__strip" />
       <span className="band__caption">
-        <span className="pass-label pass-label--light">المكافأة</span>
+        <span className="pass-label pass-label--light">{tr("المكافأة", "Reward")}</span>
         <span className={card.rewardAvailable ? "band__reward" : undefined}>
           {card.rewardAvailable
-            ? "لك مشروب مجاني، استخدمه في طلبك"
+            ? tr("لك مشروب مجاني، استخدمه في طلبك", "You have a free drink, use it in your order")
             : remaining === 1
-              ? "باقي كوب واحد للمشروب المجاني"
-              : `باقي ${remaining} أكواب للمشروب المجاني`}
+              ? tr("باقي كوب واحد للمشروب المجاني", "1 more cup to your free drink")
+              : tr(`باقي ${remaining} أكواب للمشروب المجاني`, `${remaining} more cups to your free drink`)}
         </span>
       </span>
     </Link>
@@ -126,14 +127,14 @@ export function QtyStepper({
   label: string;
 }) {
   return (
-    <div className="stepper" role="group" aria-label={`الكمية: ${label}`}>
-      <button type="button" className="stepper__btn" onClick={() => onChange(quantity + 1)} disabled={quantity >= max} aria-label="زيادة">
+    <div className="stepper" role="group" aria-label={tr(`الكمية: ${label}`, `Quantity: ${label}`)}>
+      <button type="button" className="stepper__btn" onClick={() => onChange(quantity + 1)} disabled={quantity >= max} aria-label={tr("زيادة", "Increase")}>
         +
       </button>
       <span className="stepper__value" aria-live="polite">
         {quantity}
       </span>
-      <button type="button" className="stepper__btn" onClick={() => onChange(quantity - 1)} aria-label={quantity === 1 ? "حذف" : "إنقاص"}>
+      <button type="button" className="stepper__btn" onClick={() => onChange(quantity - 1)} aria-label={quantity === 1 ? tr("حذف", "Remove") : tr("إنقاص", "Decrease")}>
         {quantity === 1 ? <TrashIcon /> : "−"}
       </button>
     </div>
