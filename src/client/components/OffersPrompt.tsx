@@ -84,7 +84,7 @@ export function OffersPrompt() {
       </span>
       <div className="offers-prompt__text">
         <h2 id="offers-prompt-title">{tr("تبي يوصلك إشعار بالعروض؟", "Want to hear about offers?")}</h2>
-        <p>{tr("نرسل لك إذا نزل عرض أو صنف جديد، بدون إزعاج.", "We'll tell you about offers and new items, nothing more.")}</p>
+        <p>{tr("نرسل لك إذا نزل عرض أو صنف جديد.", "We'll tell you about offers and new items.")}</p>
       </div>
       <div className="offers-prompt__actions">
         <button type="button" className="btn btn--primary btn--small" onClick={() => void answer(true)} disabled={busy}>
