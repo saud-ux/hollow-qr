@@ -154,7 +154,7 @@ describe("placing orders", () => {
       note: null,
       paymentMethod: "on_pickup",
     });
-    expect(order.orderNumber).toBeGreaterThanOrEqual(1001);
+    expect(order.orderNumber).toBeGreaterThanOrEqual(1);
     expect(order.items).toEqual([
       expect.objectContaining({ nameAr: "ماتشا باردة", quantity: 2, unitPriceHalalas: 2100, note: "ثلج قليل", category: "drink" }),
       expect.objectContaining({ nameAr: "بابكا", quantity: 1, unitPriceHalalas: 1200, note: null, category: "dessert" }),

@@ -78,6 +78,14 @@ export function CartPage() {
         .map((l) => ({ line: l, item: menu.items.find((i) => i.id === l.menuItemId) }))
         .filter((x): x is { line: (typeof cart.lines)[number]; item: MenuItem } => Boolean(x.item));
 
+  // iOS app: ask for notifications as soon as there is something in the cart,
+  // so the phone is registered before the order and "we got your order"
+  // arrives for the very first one. iOS shows its prompt only once.
+  const hasLines = lines.length > 0;
+  useEffect(() => {
+    if (hasLines) void enablePush().catch(() => undefined);
+  }, [hasLines]);
+
   // Drop lines whose item left the menu (archived) once the menu is known.
   useEffect(() => {
     if (!menu) return;
@@ -168,9 +176,6 @@ export function CartPage() {
       if (fulfillment === "delivery") remember(ADDRESS_KEY, address.trim());
       cart.clear();
       successFeedback();
-      // iOS app: ask for notifications right after the first order, when
-      // "we'll tell you when it's ready" makes sense.
-      void enablePush().catch(() => undefined);
       void navigate(`/orders/${order.id}`, { replace: true });
     } catch (err) {
       // A rejected order is final for this key; a new attempt gets a new one.
