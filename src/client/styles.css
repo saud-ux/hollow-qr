@@ -2795,6 +2795,11 @@ html.native[data-theme="dark"] :is(.cart-bar, .live-order, .order-live, .band) {
 html.native[data-theme="dark"] .cart-bar__count {
   color: #2b1e16;
 }
+/* The gold "cups added" note stays gold, so its text stays dark. */
+html.native[data-theme="dark"] .loyalty-note {
+  color: #2b1e16;
+  border-color: #c9a227;
+}
 html.native[data-theme="dark"] .order-live__meta {
   color: #c9b79f;
 }
