@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { isOrderable, MAX_LINE_QUANTITY, type MenuItem } from "../../shared/ordering";
+import { isOrderable, MAX_LINE_QUANTITY, priceOf, type MenuItem } from "../../shared/ordering";
+import { SalePrice } from "./SalePrice";
 import { useCart } from "../lib/cart";
 import { riyals } from "../lib/menu";
 import { flyToCart, motionOn, openFromCard } from "../lib/motion";
@@ -99,7 +100,7 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
               )}
             </div>
             <span className="product-sheet__price">
-              {riyals(item.priceHalalas)}
+              <SalePrice item={item} />
               {item.calories !== null && <small className="kcal">{tr(`${item.calories} سعرة حرارية`, `${item.calories} kcal`)}</small>}
             </span>
           </div>
@@ -150,7 +151,7 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
                 ? tr("لا نستقبل طلبات الآن", "Not taking orders now")
                 : !isOrderable(item)
                   ? tr("نفد", "Sold out")
-                  : tr(`أضف للسلة · ${riyals(item.priceHalalas * quantity)}`, `Add to cart · ${riyals(item.priceHalalas * quantity)}`)}
+                  : tr(`أضف للسلة · ${riyals(priceOf(item) * quantity)}`, `Add to cart · ${riyals(priceOf(item) * quantity)}`)}
             </button>
           </div>
           {inCart > 0 && <p className="muted small center">{tr(`في سلتك الآن: ${inCart}`, `In your cart: ${inCart}`)}</p>}

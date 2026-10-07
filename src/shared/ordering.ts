@@ -47,6 +47,37 @@ export interface MenuItem {
    * count; customers only when LOW_STOCK or fewer are left.
    */
   stockQuantity: number | null;
+  /** While a discount covers the item (customer menu only): its percentage and the price after it. */
+  discountPercent: number | null;
+  salePriceHalalas: number | null;
+}
+
+/** What the customer pays for one now: the discounted price while a discount covers the item. */
+export function priceOf(item: Pick<MenuItem, "priceHalalas" | "salePriceHalalas">): number {
+  return item.salePriceHalalas ?? item.priceHalalas;
+}
+
+export const MAX_DISCOUNT_PERCENT = 90;
+
+/** The owner's discount: one percentage off the whole menu or chosen items. */
+export interface Discount {
+  percent: number;
+  scope: "all" | "items";
+  /** The chosen items when scope is "items". */
+  itemIds: string[];
+  /** It switches itself off at this time (null: until switched off by hand). */
+  endsAt: string | null;
+  startedAt: string | null;
+}
+
+/** On now: set, and not past its end time. */
+export function isDiscountLive(d: Discount | null, now: number): d is Discount {
+  return d !== null && (d.endsAt === null || new Date(d.endsAt).getTime() > now);
+}
+
+/** Price after `percent` off, to the halala (the order SQL rounds the same way). */
+export function discountedPrice(priceHalalas: number, percent: number): number {
+  return Math.round((priceHalalas * (100 - percent)) / 100);
 }
 
 /** At or below this many left, customers see «باقي 2 فقط». */
@@ -87,7 +118,10 @@ export interface OrderLine {
   menuItemId: string;
   nameAr: string;
   category: MenuCategory;
+  /** What the customer paid for one (after any discount). */
   unitPriceHalalas: number;
+  /** The menu price before the discount (null: no discount on this line). */
+  listPriceHalalas: number | null;
   quantity: number;
   note: string | null;
   /** The chosen option, e.g. "إثيوبي". */
@@ -136,6 +170,9 @@ export interface Order {
   rating: number | null;
   ratingComment: string | null;
   ratedAt: string | null;
+  /** The discount the order was placed under, and how much it saved. */
+  promoPercent: number | null;
+  promoSavingsHalalas: number;
 }
 
 export const MAX_RATING_COMMENT = 300;

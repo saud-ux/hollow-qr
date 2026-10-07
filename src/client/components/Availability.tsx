@@ -36,9 +36,6 @@ export function AvailabilityList({ scroll = false }: { scroll?: boolean }) {
 
   return (
     <div className="avail">
-      <p className="muted small">
-        أطفئ الصنف إذا نفد، ويظهر للعملاء «نفد» فورًا. ولو حددت كمية، كل طلب ينقص منها وقت ما يوصل، والطلب الملغي يرجع لها، ولما توصل صفر يتقفل الصنف لين تضيف كمية.
-      </p>
       {error && <Alert tone="error">{error}</Alert>}
       {!items && !error && <Spinner />}
       {items && (

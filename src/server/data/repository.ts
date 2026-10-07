@@ -5,6 +5,7 @@
  */
 import type {
   Broadcast,
+  Discount,
   FulfillmentType,
   MenuCategory,
   MenuOption,
@@ -280,6 +281,10 @@ export interface Repository {
 
   getShopSettings(): Promise<ShopSettings>;
   updateShopSettings(patch: Partial<ShopSettings>): Promise<ShopSettings>;
+  /** The owner's discount as saved (it may be past its end time), or null. */
+  getDiscount(): Promise<Discount | null>;
+  /** Saves the discount (null switches it off). `startedAt` is kept while it stays on. */
+  setDiscount(discount: Omit<Discount, "startedAt"> | null): Promise<Discount | null>;
   isShopOpen(timeZone: string): Promise<boolean>;
 
   placeOrder(params: PlaceOrderParams): Promise<OrderRpcResult>;

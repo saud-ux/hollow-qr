@@ -20,6 +20,8 @@ const item = (nameAr: string, nameEn: string | null, extra: Partial<MenuItem> = 
   calories: null,
   isBestSeller: false,
   stockQuantity: null,
+  discountPercent: null,
+  salePriceHalalas: null,
   ...extra,
 });
 

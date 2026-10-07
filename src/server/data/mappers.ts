@@ -2,6 +2,7 @@
 import type {
   Broadcast,
   DayHours,
+  Discount,
   LoyaltyResult,
   MenuOption,
   NotificationPrefs,
@@ -211,6 +212,7 @@ function mapOrderLine(r: Raw): OrderLine {
     nameAr: str(r.name_ar),
     category: str(r.category) as OrderLine["category"],
     unitPriceHalalas: num(r.unit_price_halalas),
+    listPriceHalalas: numOrNull(r.list_price_halalas),
     quantity: num(r.quantity),
     note: strOrNull(r.note),
     optionId: strOrNull(r.option_id),
@@ -264,6 +266,8 @@ export function mapOrder(r: Raw): Order {
     rating: numOrNull(r.rating),
     ratingComment: strOrNull(r.rating_comment),
     ratedAt: isoOrNull(r.rated_at),
+    promoPercent: numOrNull(r.promo_percent),
+    promoSavingsHalalas: num(r.promo_savings_halalas ?? 0),
   };
 }
 
@@ -280,6 +284,20 @@ export function mapOrderHistory(r: Raw): Omit<OrderHistoryPage, "page" | "pageSi
     revenueHalalas: num(r.revenue_halalas),
   };
 }
+
+/** The discount columns of shop_settings (null when no percentage is set). */
+export function mapDiscount(r: Raw): Discount | null {
+  if (r.discount_percent === null || r.discount_percent === undefined) return null;
+  return {
+    percent: num(r.discount_percent),
+    scope: r.discount_scope === "items" ? "items" : "all",
+    itemIds: Array.isArray(r.discount_item_ids) ? (r.discount_item_ids as unknown[]).map(String) : [],
+    endsAt: isoOrNull(r.discount_ends_at),
+    startedAt: isoOrNull(r.discount_started_at),
+  };
+}
+
+export const DISCOUNT_COLUMNS = "discount_percent, discount_scope, discount_item_ids, discount_ends_at, discount_started_at";
 
 export function mapBroadcast(r: Raw): Broadcast {
   return {

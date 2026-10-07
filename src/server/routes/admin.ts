@@ -2,7 +2,15 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { BUSINESS_TIME_ZONE, DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../../shared/constants";
 import { formatRiyadh, normalizeEmail } from "../../shared/format";
-import { BROADCAST_BODY_MAX, BROADCAST_TITLE_MAX, type AdminOrder, type OrderHistoryPage } from "../../shared/ordering";
+import {
+  BROADCAST_BODY_MAX,
+  BROADCAST_TITLE_MAX,
+  MAX_DISCOUNT_PERCENT,
+  isDiscountLive,
+  type AdminOrder,
+  type Discount,
+  type OrderHistoryPage,
+} from "../../shared/ordering";
 import type { Paginated, TransactionItem } from "../../shared/types";
 import { ApiError } from "../http/errors";
 import { repoOf, type HonoEnv } from "../http/context";
@@ -39,6 +47,13 @@ const createStaffSchema = z.object({
 const pageQuery = z.object({
   page: z.coerce.number().int().min(1).max(10_000).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(25),
+});
+
+const discountSchema = z.object({
+  percent: z.number().int().min(1).max(MAX_DISCOUNT_PERCENT),
+  scope: z.enum(["all", "items"]),
+  itemIds: z.array(z.uuid()).max(200).optional().default([]),
+  endsAt: z.iso.datetime({ offset: true }).nullable().optional().default(null),
 });
 
 const localDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -90,6 +105,8 @@ function orderCsvRow(o: AdminOrder): unknown[] {
     riyals(o.subtotalHalalas),
     riyals(o.deliveryFeeHalalas),
     riyals(o.discountHalalas),
+    o.promoPercent ?? "",
+    riyals(o.promoSavingsHalalas),
     riyals(o.totalHalalas),
     o.paymentMethod,
     o.useReward ? "yes" : "no",
@@ -129,6 +146,8 @@ const ORDER_CSV_HEADER = [
   "subtotal_sar",
   "delivery_fee_sar",
   "discount_sar",
+  "promo_percent",
+  "promo_savings_sar",
   "total_sar",
   "payment_method",
   "used_free_drink",
@@ -297,6 +316,42 @@ export const adminRoutes = new Hono<HonoEnv>()
       rows,
     );
     return csvResponse(`hollow-transactions-${stamp(c.get("deps").now())}.csv`, csv);
+  })
+
+  // Discount: one percentage off the whole menu or chosen items.
+  .get("/discount", async (c) => {
+    const discount = await repoOf(c).getDiscount();
+    c.header("Cache-Control", "no-store");
+    return c.json({ discount, live: isDiscountLive(discount, c.get("deps").now().getTime()) });
+  })
+
+  .put("/discount", async (c) => {
+    const body = await parseJsonBody(c, discountSchema);
+    const { now, logger } = c.get("deps");
+    const repo = repoOf(c);
+    if (body.endsAt && new Date(body.endsAt).getTime() <= now().getTime()) {
+      throw new ApiError(400, "INVALID_REQUEST", undefined, "وقت انتهاء الخصم لازم يكون بعد الحين");
+    }
+    let itemIds: string[] = [];
+    if (body.scope === "items") {
+      const onMenu = new Set((await repo.listMenuItems(false)).map((i) => i.id));
+      itemIds = [...new Set(body.itemIds)].filter((id) => onMenu.has(id));
+      if (itemIds.length === 0) throw new ApiError(400, "INVALID_REQUEST", undefined, "اختر صنفًا واحدًا على الأقل");
+    }
+    const saved: Discount | null = await repo.setDiscount({
+      percent: body.percent,
+      scope: body.scope,
+      itemIds,
+      endsAt: body.endsAt ? new Date(body.endsAt).toISOString() : null,
+    });
+    logger.info("discount.saved", { percent: body.percent, scope: body.scope, items: itemIds.length, endsAt: body.endsAt, actor: c.get("user").id });
+    return c.json({ discount: saved, live: isDiscountLive(saved, now().getTime()) });
+  })
+
+  .delete("/discount", async (c) => {
+    await repoOf(c).setDiscount(null);
+    c.get("deps").logger.info("discount.stopped", { actor: c.get("user").id });
+    return c.json({ discount: null, live: false });
   })
 
   // Order history: every order, open or finished, with all its details.

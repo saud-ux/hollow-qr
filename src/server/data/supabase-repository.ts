@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Broadcast, NotificationPrefs, Order, OrderStatus, RatingOverview, SalesRange, SalesReport, ShopSettings } from "../../shared/ordering";
-import { MENU_IMAGE_BUCKET } from "../../shared/ordering";
+import type { Broadcast, Discount, NotificationPrefs, Order, OrderStatus, RatingOverview, SalesRange, SalesReport, ShopSettings } from "../../shared/ordering";
+import { MENU_IMAGE_BUCKET, isDiscountLive } from "../../shared/ordering";
 import type { SavedPlace } from "../../shared/types";
 import {
   mapAccount,
@@ -10,6 +10,8 @@ import {
   mapOrder,
   mapOrderSummary,
   mapRatingOverview,
+  DISCOUNT_COLUMNS,
+  mapDiscount,
   mapOrderHistory,
   mapSalesReport,
   notificationPrefsColumns,
@@ -287,6 +289,29 @@ export class SupabaseRepository implements Repository {
       .single()) as DbResult;
     if (error) throw new RepositoryError("updateShopSettings", error);
     return mapShopSettings(data as Raw);
+  }
+
+  async getDiscount(): Promise<Discount | null> {
+    const { data, error } = (await this.db.from("shop_settings").select(DISCOUNT_COLUMNS).eq("id", 1).single()) as DbResult;
+    if (error) throw new RepositoryError("getDiscount", error);
+    return mapDiscount(data as Raw);
+  }
+
+  async setDiscount(d: Omit<Discount, "startedAt"> | null): Promise<Discount | null> {
+    const current = await this.getDiscount();
+    const startedAt = d && isDiscountLive(current, Date.now()) ? current.startedAt : new Date().toISOString();
+    const { data, error } = (await this.db
+      .from("shop_settings")
+      .update(
+        d
+          ? { discount_percent: d.percent, discount_scope: d.scope, discount_item_ids: d.scope === "items" ? d.itemIds : [], discount_ends_at: d.endsAt, discount_started_at: startedAt }
+          : { discount_percent: null, discount_item_ids: [], discount_ends_at: null, discount_started_at: null },
+      )
+      .eq("id", 1)
+      .select(DISCOUNT_COLUMNS)
+      .single()) as DbResult;
+    if (error) throw new RepositoryError("setDiscount", error);
+    return mapDiscount(data as Raw);
   }
 
   async isShopOpen(timeZone: string): Promise<boolean> {

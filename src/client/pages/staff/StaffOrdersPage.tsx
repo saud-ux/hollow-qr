@@ -393,6 +393,7 @@ function OrderTicket({
           <dd>
             <strong>{riyals(o.totalHalalas)}</strong> · الدفع عند الاستلام
             {o.useReward && <span className="badge badge--gold">مشروب مجاني −{riyals(o.discountHalalas)}</span>}
+            {o.promoPercent !== null && <span className="badge badge--gold">خصم {o.promoPercent}%</span>}
           </dd>
         </div>
       </dl>

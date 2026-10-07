@@ -11,6 +11,8 @@ import {
   mapOrder,
   mapOrderSummary,
   mapRatingOverview,
+  DISCOUNT_COLUMNS,
+  mapDiscount,
   mapOrderHistory,
   mapSalesReport,
   notificationPrefsColumns,
@@ -23,7 +25,7 @@ import {
   shopSettingsColumns,
   totalFrom,
 } from "../../src/server/data/mappers";
-import type { NotificationPrefs, OrderStatus, SalesRange, ShopSettings } from "../../src/shared/ordering";
+import { isDiscountLive, type Discount, type NotificationPrefs, type OrderStatus, type SalesRange, type ShopSettings } from "../../src/shared/ordering";
 import type { SavedPlace } from "../../src/shared/types";
 import type {
   ApplyActionParams,
@@ -190,6 +192,22 @@ export class PgliteRepository implements Repository {
     const { sql, values } = assignments(shopSettingsColumns(patch), ["weekly_hours"]);
     if (sql) await this.db.query(`update public.shop_settings set ${sql} where id = 1`, values);
     return this.getShopSettings();
+  }
+  async getDiscount() {
+    return mapDiscount((await this.one(`select ${DISCOUNT_COLUMNS} from public.shop_settings where id = 1`, []))!);
+  }
+  async setDiscount(d: Omit<Discount, "startedAt"> | null) {
+    const current = await this.getDiscount();
+    const startedAt = d && isDiscountLive(current, Date.now()) ? current.startedAt : new Date().toISOString();
+    if (d) {
+      await this.db.query(
+        "update public.shop_settings set discount_percent = $1, discount_scope = $2, discount_item_ids = $3::uuid[], discount_ends_at = $4, discount_started_at = $5 where id = 1",
+        [d.percent, d.scope, d.scope === "items" ? d.itemIds : [], d.endsAt, startedAt],
+      );
+    } else {
+      await this.db.query("update public.shop_settings set discount_percent = null, discount_item_ids = '{}', discount_ends_at = null, discount_started_at = null where id = 1");
+    }
+    return this.getDiscount();
   }
   async isShopOpen(timeZone: string) {
     const r = await this.one("select public.shop_is_open(now(), $1) as open", [timeZone]);

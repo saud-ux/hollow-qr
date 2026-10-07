@@ -254,7 +254,10 @@ export function OrderPage() {
                 {line.optionNameAr && <small className="receipt__option">{lineOptionName(line, menu?.items)}</small>}
                 {line.note && <small className="receipt__note">{line.note}</small>}
               </span>
-              <span>{riyals(line.unitPriceHalalas * line.quantity)}</span>
+              <span className="sale-price">
+                <span className={line.listPriceHalalas !== null ? "price-now price-now--sale" : "price-now"}>{riyals(line.unitPriceHalalas * line.quantity)}</span>
+                {line.listPriceHalalas !== null && <s className="price-was">{riyals(line.listPriceHalalas * line.quantity)}</s>}
+              </span>
             </li>
           ))}
         </ul>
@@ -276,6 +279,11 @@ export function OrderPage() {
             <span>{tr("الإجمالي", "Total")}</span>
             <span>{riyals(order.totalHalalas)}</span>
           </div>
+          {order.promoSavingsHalalas > 0 && (
+            <p className="summary__saved">
+              {tr(`وفّرت ${riyals(order.promoSavingsHalalas)} مع خصم ${order.promoPercent}%`, `You saved ${riyals(order.promoSavingsHalalas)} with ${order.promoPercent}% off`)}
+            </p>
+          )}
           <p className="summary__pay">{tr("الدفع عند الاستلام", "Pay on pickup")} · {formatDateTime(order.createdAt)}</p>
         </div>
       </section>

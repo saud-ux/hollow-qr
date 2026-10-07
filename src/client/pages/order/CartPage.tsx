@@ -4,6 +4,7 @@ import {
   isOrderable,
   MAX_LINE_QUANTITY,
   normalizeSaudiPhone,
+  priceOf,
   type FulfillmentType,
   type MenuItem,
   type Order,
@@ -18,6 +19,7 @@ import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { enablePush, successFeedback } from "../../lib/native";
 import { CALM, motionOn, play } from "../../lib/motion";
 import { Rolling } from "../../components/Rolling";
+import { SalePrice } from "../../components/SalePrice";
 import { SwipeToDelete } from "../../components/SwipeToDelete";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
@@ -122,10 +124,13 @@ export function CartPage() {
   // Fall back to the first enabled option if the admin turned one off.
   const fulfillment: FulfillmentType = options.includes(chosen) ? chosen : (options[0] ?? "pickup");
 
-  const subtotal = lines.reduce((s, { line, item }) => s + item.priceHalalas * line.quantity, 0);
+  const subtotal = lines.reduce((s, { line, item }) => s + priceOf(item) * line.quantity, 0);
+  // What the discount takes off (already out of the subtotal).
+  const saved = lines.reduce((s, { line, item }) => s + (item.priceHalalas - priceOf(item)) * line.quantity, 0);
   const drinks = lines.filter(({ item }) => item.category === "drink");
   const rewardApplies = rewardAvailable && useReward && drinks.length > 0;
-  const discount = rewardApplies ? Math.max(...drinks.map(({ item }) => item.priceHalalas)) : 0;
+  // The free drink is the dearest drink, at its discounted price (as the server prices it).
+  const discount = rewardApplies ? Math.max(...drinks.map(({ item }) => priceOf(item))) : 0;
   const fee = fulfillment === "delivery" ? (settings?.deliveryFeeHalalas ?? 0) : 0;
   const total = subtotal + fee - discount;
   // A line can't be ordered when the item is off, or its origin is missing or out of stock.
@@ -267,7 +272,9 @@ export function CartPage() {
                   <div className="cart-line__body">
                     <div className="cart-line__top">
                       <span className="cart-line__name">{itemName(item)}</span>
-                      <Rolling className="cart-line__price" text={riyals(item.priceHalalas * line.quantity)} />
+                      <span className="cart-line__price">
+                        <SalePrice item={item} quantity={line.quantity} rolling />
+                      </span>
                     </div>
                     {item.options.length > 0 && (
                       <div className="cart-origins" role="radiogroup" aria-label={optionLabel(item)}>
@@ -494,6 +501,7 @@ export function CartPage() {
             <span>{tr("الإجمالي", "Total")}</span>
             <Rolling text={riyals(total)} />
           </div>
+          {saved > 0 && <p className="summary__saved">{tr(`وفّرت ${riyals(saved)} مع الخصم`, `You save ${riyals(saved)} with the discount`)}</p>}
           <p className="summary__pay">{tr("الدفع عند الاستلام", "Pay on pickup")}</p>
         </section>
 
