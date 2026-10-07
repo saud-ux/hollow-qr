@@ -22,7 +22,7 @@ function arabicText(order: Order): PushText | null {
       return { title: "شغّالين على طلبك! ☕", body: `طلبك رقم ${n} قيد التحضير، جهّز نفسك!` };
     case "ready":
       if (order.fulfillment === "pickup") return { title: "قهوتك تناديك! 📣", body: `طلبك رقم ${n} جاهز، ننتظرك عند الكاشير!` };
-      if (order.fulfillment === "curbside") return { title: "طلبك جاهز للتحريك! 🚗", body: `طلبك رقم ${n} جاهز. اضغط «وصلت» وبنجيبه لسيارتك!` };
+      if (order.fulfillment === "curbside") return { title: "طلبك جاهز! 🚗", body: `طلبك رقم ${n} جاهز. اضغط «وصلت» وبنجيبه لسيارتك!` };
       return { title: TITLE, body: `طلبك #${n} جاهز وبيطلع لك مع المندوب قريبًا` };
     case "out_for_delivery":
       return { title: "قهوتك في الطريق! 🛵", body: `طلبك رقم ${n} طلع مع المندوب وجاي لك!` };
@@ -47,7 +47,7 @@ function englishText(order: Order): PushText | null {
       return { title: "We're on it! ☕", body: `Your order #${n} is being prepared. Ready soon!` };
     case "ready":
       if (order.fulfillment === "pickup") return { title: "Ready at the counter! 📣", body: `Order #${n} is waiting for you at the counter.` };
-      if (order.fulfillment === "curbside") return { title: "Ready to roll! 🚗", body: `Order #${n} is ready. Tap "I'm here" on arrival!` };
+      if (order.fulfillment === "curbside") return { title: "Your order is ready! 🚗", body: `Order #${n} is ready. Tap "I'm here" on arrival!` };
       return { title: TITLE, body: `Your order #${n} is ready and leaving with the driver soon` };
     case "out_for_delivery":
       return { title: "On its way! 🛵", body: `Order #${n} is with the driver, heading your way!` };

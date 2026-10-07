@@ -4,6 +4,7 @@ import { Spinner } from "./components/Field";
 import { NativeBridge } from "./components/NativeBridge";
 import { RouteTransitions } from "./components/RouteTransitions";
 import { StaffGuard } from "./components/StaffGuard";
+import { Toaster } from "./components/Toast";
 import { LangProvider } from "./lib/i18n";
 import { isNative } from "./lib/native";
 import { ForgotPasswordPage } from "./pages/customer/ForgotPasswordPage";
@@ -34,6 +35,7 @@ export function App() {
     <BrowserRouter>
       <LangProvider>
         <NativeBridge />
+        <Toaster />
         <Suspense fallback={<Spinner />}>
           {isNative ? <NativeRoutes /> : <WebRoutes />}
         </Suspense>

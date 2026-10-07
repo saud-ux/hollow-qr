@@ -7,6 +7,7 @@ import { CustomerSearch } from "../../components/CustomerSearch";
 import { ConfirmDialog } from "../../components/Dialog";
 import { Alert, Field } from "../../components/Field";
 import { StaffLayout } from "../../components/StaffLayout";
+import { StockPanel } from "../../components/StockCount";
 import { apiDownload, apiGet, apiPost, errorText } from "../../lib/api";
 import { formatDate } from "../../lib/dates";
 import { validateEmail, validateName, validatePassword } from "../../lib/validation";
@@ -194,6 +195,7 @@ export function AdminPage() {
       </section>
 
       <SalesPanel />
+      <StockPanel />
       <OffersPanel />
       <RatingsPanel />
 

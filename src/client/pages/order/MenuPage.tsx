@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { isActiveStatus, isOrderable, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
+import { isActiveStatus, isOrderable, MAX_LINE_QUANTITY, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
 import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
 import { searchMenu } from "../../../shared/menu-search";
 import { Alert } from "../../components/Field";
 import { SearchField, SearchPill } from "../../components/MenuSearch";
+import { showToast } from "../../components/Toast";
 import { ProductSheet } from "../../components/ProductSheet";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
 import { apiGet } from "../../lib/api";
@@ -13,6 +14,7 @@ import { useCart } from "../../lib/cart";
 import { flyToCart, motionOn } from "../../lib/motion";
 import { isNative } from "../../lib/native";
 import { riyals, useMenu } from "../../lib/menu";
+import { lowStockBadge, stockLeftText, stockRoom } from "../../lib/stock";
 import { closedNote } from "./hours";
 import { tr } from "../../lib/i18n";
 
@@ -225,6 +227,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
   const hasOptions = item.options.length > 0;
   const qty = hasOptions ? cart.totalOf(item.id) : cart.quantityOf(item.id);
   const soldOut = !isOrderable(item);
+  const room = stockRoom(item, cart.lines);
   const cardRef = useRef<HTMLLIElement>(null);
   const [open, setOpen] = useState(false);
   return (
@@ -233,6 +236,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
         <ItemImage item={item} className="menu-card__img" />
         {hasOptions && <span className="menu-card__tag">{tr(`${item.options.length} محاصيل`, `${item.options.length} origins`)}</span>}
         {item.isBestSeller && <span className="menu-card__ribbon">{tr("الأفضل مبيعًا", "Best seller")}</span>}
+        {!soldOut && item.stockQuantity != null && <span className="menu-card__low">{lowStockBadge(item.stockQuantity)}</span>}
       </button>
       <div className="menu-card__body">
         <h3 className="menu-card__name">{itemName(item)}</h3>
@@ -261,7 +265,13 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
               {qty > 0 ? <span className="add-btn__count">{qty}</span> : "+"}
             </button>
           ) : qty > 0 ? (
-            <QtyStepper quantity={qty} onChange={(q) => cart.setQuantity(item.id, q)} label={itemName(item)} />
+            <QtyStepper
+              quantity={qty}
+              onChange={(q) => cart.setQuantity(item.id, q)}
+              max={Math.min(MAX_LINE_QUANTITY, qty + room)}
+              onLimit={room === 0 ? () => showToast(stockLeftText(item, item.stockQuantity ?? 0)) : undefined}
+              label={itemName(item)}
+            />
           ) : (
             <button
               type="button"

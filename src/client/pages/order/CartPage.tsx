@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   isOrderable,
+  MAX_LINE_QUANTITY,
   normalizeSaudiPhone,
   type FulfillmentType,
   type MenuItem,
@@ -9,6 +10,8 @@ import {
   type PlaceOrderRequest,
 } from "../../../shared/ordering";
 import { Alert, Field } from "../../components/Field";
+import { showToast } from "../../components/Toast";
+import { inCart, stockLeftText, stockRoom } from "../../lib/stock";
 import { CartSkeleton } from "../../components/Skeletons";
 import { CarIcon, ItemImage, QtyStepper, ScooterIcon, ShopLayout, StoreIcon } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
@@ -115,8 +118,10 @@ export function CartPage() {
   const fee = fulfillment === "delivery" ? (settings?.deliveryFeeHalalas ?? 0) : 0;
   const total = subtotal + fee - discount;
   // A line can't be ordered when the item is off, or its origin is missing or out of stock.
-  const lineProblem = ({ line, item }: (typeof lines)[number]): "soldout" | "choose" | "option-out" | null => {
+  const lineProblem = ({ line, item }: (typeof lines)[number]): "soldout" | "choose" | "option-out" | "too-many" | null => {
     if (!isOrderable(item)) return "soldout";
+    // Fewer left than the cart holds (e.g. someone ordered the last ones meanwhile).
+    if (item.stockQuantity != null && inCart(cart.lines, item.id) > item.stockQuantity) return "too-many";
     if (item.options.length === 0) return null;
     const option = item.options.find((o) => o.id === line.optionId);
     if (!option) return "choose";
@@ -186,8 +191,10 @@ export function CartPage() {
     } catch (err) {
       // A rejected order is final for this key; a new attempt gets a new one.
       if (err instanceof ApiClientError && err.status !== 0) idempotencyKey.current = newIdempotencyKey();
-      if (err instanceof ApiClientError && (err.code === "ITEM_UNAVAILABLE" || err.code === "SHOP_CLOSED")) void reload();
-      setFormError(errorText(err));
+      if (err instanceof ApiClientError && (err.code === "ITEM_UNAVAILABLE" || err.code === "SHOP_CLOSED" || err.code === "NOT_ENOUGH_STOCK")) void reload();
+      // Say which item and how many are left: «باقي حبة وحدة بس من وافل بيكان».
+      const short = err instanceof ApiClientError && err.code === "NOT_ENOUGH_STOCK" ? menu?.items.find((i) => i.id === err.details.menuItemId) : undefined;
+      setFormError(short && err instanceof ApiClientError ? stockLeftText(short, Number(err.details.remaining ?? 0)) : errorText(err));
     } finally {
       setBusy(false);
     }
@@ -266,10 +273,13 @@ export function CartPage() {
                     {problem === "soldout" && <span className="badge badge--danger">{tr("نفد، احذفه من السلة", "Sold out, remove it from your cart")}</span>}
                     {problem === "choose" && <span className="badge badge--warning">{tr(`اختر ${optionLabel(item)}`, `Choose the ${optionLabel(item)}`)}</span>}
                     {problem === "option-out" && <span className="badge badge--danger">{tr("هذا المحصول نفد، اختر غيره", "This origin ran out, choose another")}</span>}
+                    {problem === "too-many" && <span className="badge badge--warning">{`${stockLeftText(item, item.stockQuantity ?? 0)}، ${tr("قلّل الكمية", "lower the quantity")}`}</span>}
                     <div className="cart-line__actions">
                       <QtyStepper
                         quantity={line.quantity}
                         onChange={(q) => cart.setQuantity(item.id, q, line.optionId)}
+                        max={Math.min(MAX_LINE_QUANTITY, line.quantity + stockRoom(item, cart.lines))}
+                        onLimit={stockRoom(item, cart.lines) === 0 ? () => showToast(stockLeftText(item, item.stockQuantity ?? 0)) : undefined}
                         label={itemName(item)}
                       />
                       {!openNotes.has(key) && !line.note ? (

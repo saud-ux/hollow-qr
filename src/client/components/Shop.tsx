@@ -127,15 +127,24 @@ export function QtyStepper({
   onChange,
   max = 20,
   label,
+  onLimit,
 }: {
   quantity: number;
   onChange: (q: number) => void;
   max?: number;
   label: string;
+  /** Called instead of going past `max` (e.g. to say how many are left); without it, + is disabled at max. */
+  onLimit?: () => void;
 }) {
   return (
     <div className="stepper" role="group" aria-label={tr(`الكمية: ${label}`, `Quantity: ${label}`)}>
-      <button type="button" className="stepper__btn" onClick={() => onChange(quantity + 1)} disabled={quantity >= max} aria-label={tr("زيادة", "Increase")}>
+      <button
+        type="button"
+        className={`stepper__btn ${onLimit && quantity >= max ? "is-limit" : ""}`}
+        onClick={() => (quantity >= max ? onLimit?.() : onChange(quantity + 1))}
+        disabled={quantity >= max && !onLimit}
+        aria-label={tr("زيادة", "Increase")}
+      >
         +
       </button>
       <span className="stepper__value" aria-live="polite">

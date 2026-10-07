@@ -12,6 +12,7 @@ import {
 } from "../../../shared/ordering";
 import { Dialog } from "../../components/Dialog";
 import { Alert, Spinner } from "../../components/Field";
+import { StockCount } from "../../components/StockCount";
 import { CarIcon, ScooterIcon, StoreIcon } from "../../components/Shop";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiGet, apiPost, errorText } from "../../lib/api";
@@ -316,7 +317,7 @@ function StockDialog({ onClose }: { onClose: () => void }) {
   return (
     <Dialog
       open
-      title="المتوفر الآن"
+      title="المتوفر والكميات"
       onClose={onClose}
       actions={
         <button type="button" className="btn btn--primary" onClick={onClose}>
@@ -324,7 +325,7 @@ function StockDialog({ onClose }: { onClose: () => void }) {
         </button>
       }
     >
-      <p className="muted small">أطفئ الصنف إذا نفد، ويظهر للعملاء «نفد» فورًا.</p>
+      <p className="muted small">أطفئ الصنف إذا نفد، ويظهر للعملاء «نفد» فورًا. ولو حددت كمية، كل طلب ينقص منها ويتقفل الصنف لما توصل صفر.</p>
       {error && <Alert tone="error">{error}</Alert>}
       {!items && !error && <Spinner />}
       {items && (
@@ -348,6 +349,12 @@ function StockDialog({ onClose }: { onClose: () => void }) {
                         onChange={(e) => void toggle(item, e.target.checked)}
                       />
                     </label>
+                    {item.isAvailable && (
+                      <div className="stock__row stock__row--option">
+                        <span>الكمية</span>
+                        <StockCount item={item} onSaved={(saved) => setItems((list) => list?.map((i) => (i.id === saved.id ? saved : i)) ?? list)} />
+                      </div>
+                    )}
                     {item.isAvailable &&
                       item.options.map((o) => (
                         <label key={o.id} className="stock__row stock__row--option">

@@ -4374,3 +4374,101 @@ html.native[data-theme="dark"] :is(.place-kind, .place-chip) {
 html.native[data-theme="dark"] .place-chip--add {
   border-color: #4a3a2d;
 }
+
+/* ---------- Stock counts ---------- */
+/* «باقي حبتين» on the menu card photo, opposite the best-seller ribbon. */
+.menu-card__low {
+  position: absolute;
+  bottom: 8px;
+  inset-inline-start: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgb(43 30 22 / 82%);
+  color: #f3d77d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  backdrop-filter: blur(4px);
+}
+.product-sheet__low {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--label);
+}
+/* + at the limit still answers (with the toast), it just looks spent. */
+.stepper__btn.is-limit {
+  opacity: 0.4;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(150px + env(safe-area-inset-bottom));
+  z-index: 1000;
+  transform: translateX(-50%);
+  max-width: min(92vw, 420px);
+  padding: 11px 18px;
+  border-radius: 14px;
+  background: #2b1e16;
+  color: #f4ede0;
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 30%);
+  animation: toast-in 0.25s ease-out both;
+}
+html.native[data-theme="dark"] .toast {
+  background: #f1e8da;
+  color: #2b1e16;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+.stock-count {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.stock-count__none {
+  color: #8a7868;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+.stock-count__value {
+  min-width: 38px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 800;
+  color: inherit;
+  cursor: text;
+}
+.stock-count__value.is-out {
+  color: var(--danger);
+}
+.stock-count__input {
+  width: 80px;
+  padding: 6px 10px;
+  font: inherit;
+  text-align: center;
+  border: 1px solid var(--sand);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--espresso);
+}
+.stock-count__stop {
+  font-size: 0.8rem;
+}
+.stock__row--count {
+  border-bottom: 1px solid #ece3d3;
+}

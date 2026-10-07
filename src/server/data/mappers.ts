@@ -149,6 +149,7 @@ export function mapMenuItem(r: Raw): MenuItemRow {
     options: mapOptions(r.options),
     calories: numOrNull(r.calories),
     isBestSeller: Boolean(r.is_best_seller),
+    stockQuantity: numOrNull(r.stock_quantity),
   };
 }
 
@@ -170,6 +171,7 @@ export function menuItemColumns(patch: Partial<MenuItemRow>): Raw {
   if (patch.options !== undefined) out.options = optionsColumn(patch.options);
   if (patch.calories !== undefined) out.calories = patch.calories;
   if (patch.isBestSeller !== undefined) out.is_best_seller = patch.isBestSeller;
+  if (patch.stockQuantity !== undefined) out.stock_quantity = patch.stockQuantity;
   return out;
 }
 

@@ -167,7 +167,7 @@ export class PgliteRepository implements Repository {
     );
     return mapMenuItem(r!);
   }
-  async updateMenuItem(id: string, patch: Partial<MenuItemInput> & { imagePath?: string | null }) {
+  async updateMenuItem(id: string, patch: Partial<MenuItemInput> & { imagePath?: string | null; stockQuantity?: number | null }) {
     const { sql, values } = assignments(menuItemColumns(patch), ["options"]);
     if (!sql) return this.getMenuItem(id);
     const r = await this.one(`update public.menu_items set ${sql} where id = $${values.length + 1} returning *`, [...values, id]);

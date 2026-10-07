@@ -42,6 +42,13 @@ export function successFeedback(): void {
     .catch(() => undefined);
 }
 
+export function warnFeedback(): void {
+  if (!isNative) return;
+  void import("@capacitor/haptics")
+    .then(({ Haptics, NotificationType }) => Haptics.notification({ type: NotificationType.Warning }))
+    .catch(() => undefined);
+}
+
 // ---------------------------------------------------------------------------
 // Push notifications (order status)
 // ---------------------------------------------------------------------------
