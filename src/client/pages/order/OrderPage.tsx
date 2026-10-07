@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { isActiveStatus, MAX_RATING_COMMENT, type Order, type OrderStatus } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
+import { OffersPrompt } from "../../components/OffersPrompt";
 import { Alert, Spinner } from "../../components/Field";
 import { ShopLayout } from "../../components/Shop";
 import { apiGet, apiPost, errorText } from "../../lib/api";
@@ -212,6 +213,7 @@ export function OrderPage() {
       )}
 
       {order.status === "completed" && <RateOrder order={order} onRated={setOrder} />}
+      {order.status !== "cancelled" && <OffersPrompt />}
 
       <section className="sheet">
         <h2 className="pass-label">{fulfillmentLabel(order.fulfillment)}</h2>

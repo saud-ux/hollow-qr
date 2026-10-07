@@ -3372,3 +3372,33 @@ button.rate__star:active {
 [dir="ltr"] .stepper {
   flex-direction: row-reverse;
 }
+
+/* ---------- After an order: ask once about offers ---------- */
+.offers-prompt {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  align-items: center;
+}
+.offers-prompt__icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.offers-prompt__text h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.offers-prompt__text p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--label);
+}
+.offers-prompt__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.offers-prompt__actions .btn {
+  flex: 1;
+}
