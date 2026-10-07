@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   FULFILLMENT_LABELS_AR,
   isActiveStatus,
@@ -16,6 +16,7 @@ import { StaffLayout } from "../../components/StaffLayout";
 import { apiGet, apiPost, errorText } from "../../lib/api";
 import { isAudioReady, orderChime, primeAudio } from "../../lib/feedback";
 import { riyals } from "../../lib/menu";
+import { animateBoard, newBoardMemory } from "../../lib/motion";
 
 const POLL_MS = 5_000;
 
@@ -79,8 +80,19 @@ export function StaffOrdersPage() {
   const [now, setNow] = useState(() => Date.now());
   const seen = useRef<Set<string> | null>(null);
   const [stockOpen, setStockOpen] = useState(false);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const boardMemory = useRef(newBoardMemory());
 
   useWakeLock(soundOn);
+
+  // New orders slide in; a ticket that changes column glides across.
+  useLayoutEffect(() => animateBoard(boardRef.current, boardMemory.current), [board]);
+  useLayoutEffect(() => animateBoard(boardRef.current, boardMemory.current, true), [tab]);
+  useEffect(() => {
+    const remeasure = () => animateBoard(boardRef.current, boardMemory.current, true);
+    window.addEventListener("resize", remeasure);
+    return () => window.removeEventListener("resize", remeasure);
+  }, []);
 
   const load = useCallback(
     () =>
@@ -206,7 +218,7 @@ export function StaffOrdersPage() {
               );
             })}
           </div>
-          <div className="board">
+          <div className="board" ref={boardRef}>
             {COLUMNS.map((c) => {
               const list = active.filter((o) => c.statuses.includes(o.status));
               return (
@@ -322,7 +334,7 @@ function OrderTicket({
   const map = mapsUrl(o);
   const arrived = o.fulfillment === "curbside" && o.customerArrivedAt !== null;
   return (
-    <article className={`ticket-card ticket-card--${o.status} ${arrived ? "ticket-card--arrived" : ""}`}>
+    <article data-ticket={o.id} className={`ticket-card ticket-card--${o.status} ${arrived ? "ticket-card--arrived" : ""}`}>
       <header className="ticket-card__head">
         <span className="ticket-card__num" dir="ltr">
           #{o.orderNumber}

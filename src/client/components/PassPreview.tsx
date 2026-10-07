@@ -1,9 +1,11 @@
+import { useEffect, useRef } from "react";
 import { MAX_STAMPS, QR_CAPTION } from "../../shared/constants";
 import { cupsLabel } from "../../shared/format";
 import type { CustomerCard } from "../../shared/types";
 import { CupStrip } from "./CupStrip";
 import { QrCode } from "./QrCode";
 import { tr } from "../lib/i18n";
+import { tiltCard } from "../lib/motion";
 
 /**
  * Web PREVIEW of the Apple Wallet store card. It mirrors the real pass fields
@@ -13,8 +15,10 @@ export function PassPreview({ card }: { card: CustomerCard }) {
   const cancelled = card.membershipStatus === "cancelled";
   const strip = cancelled ? "strip-cancelled" : `strip-${Math.min(card.stampCount, MAX_STAMPS)}`;
   const remaining = MAX_STAMPS - card.stampCount;
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => tiltCard(ref.current), []);
   return (
-    <figure className={`pass ${cancelled ? "pass--void" : ""}`} aria-label={tr("بطاقة HOLLOW Rewards", "HOLLOW Rewards card")}>
+    <figure ref={ref} className={`pass ${cancelled ? "pass--void" : ""}`} aria-label={tr("بطاقة HOLLOW Rewards", "HOLLOW Rewards card")}>
       <div className="pass__header">
         <img src="/wallet-preview/logo.png" alt="HOLLOW" className="pass__logo" />
         <span className="pass__logo-text">Rewards</span>
@@ -65,6 +69,7 @@ export function PassPreview({ card }: { card: CustomerCard }) {
         </div>
       </div>
       {cancelled && <div className="pass__void-badge">VOID</div>}
+      <span className="pass__gloss" aria-hidden="true" />
     </figure>
   );
 }

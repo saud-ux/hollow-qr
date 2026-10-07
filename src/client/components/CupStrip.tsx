@@ -57,7 +57,8 @@ export function CupStrip({
     else if (stamp === "all") from = 0;
     else from = Math.min(readSeen(memberId) ?? cups, cups);
     writeSeen(memberId, cups);
-    stampCups(ref.current, from, cups);
+    // Opening My card replays the cups quietly; only newly earned ones tap the phone.
+    stampCups(ref.current, from, cups, prev !== null || stamp === "new");
   }, [cups, memberId, stamp]);
 
   if (!isNative) return <img src={`/wallet-preview/strip-${cups}.png`} alt="" className={className} />;
@@ -78,6 +79,7 @@ export function CupStrip({
       ))}
       {/* Free drink: the full reward strip (gold glow, sparkles) over the stamped cups. */}
       {cups === MAX_STAMPS && <img src={`/wallet-preview/strip-${MAX_STAMPS}.png`} alt="" className="cup-strip__reward" />}
+      {cups === MAX_STAMPS && <span className="cup-strip__sheen" aria-hidden="true" />}
     </div>
   );
 }

@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { isActiveStatus, isOrderable, MAX_LINE_QUANTITY, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
 import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
 import { searchMenu } from "../../../shared/menu-search";
 import { Alert } from "../../components/Field";
 import { SearchField, SearchPill } from "../../components/MenuSearch";
+import { Rolling } from "../../components/Rolling";
 import { showToast } from "../../components/Toast";
 import { ProductSheet } from "../../components/ProductSheet";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
 import { apiGet } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
-import { flyToCart, motionOn } from "../../lib/motion";
+import { flyToCart, growStepper, motionOn } from "../../lib/motion";
 import { isNative } from "../../lib/native";
 import { riyals, useMenu } from "../../lib/menu";
 import { lowStockBadge, stockLeftText, stockRoom } from "../../lib/stock";
@@ -230,9 +231,25 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
   const room = stockRoom(item, cart.lines);
   const cardRef = useRef<HTMLLIElement>(null);
   const [open, setOpen] = useState(false);
+  // Where the photo sat when the sheet opened, so the sheet's photo can grow out of it.
+  const [origin, setOrigin] = useState<DOMRect | null>(null);
+  const openSheet = () => {
+    setOrigin(cardRef.current?.querySelector(".menu-card__img")?.getBoundingClientRect() ?? null);
+    setOpen(true);
+  };
+  // + grows into the stepper when the first one goes in the cart.
+  const lastQty = useRef(qty);
+  const addWidth = useRef(40);
+  useLayoutEffect(() => {
+    const was = lastQty.current;
+    lastQty.current = qty;
+    const add = cardRef.current?.querySelector(".menu-card__foot .add-btn");
+    if (add) addWidth.current = add.getBoundingClientRect().width || addWidth.current;
+    if (was === 0 && qty > 0 && !hasOptions) growStepper(cardRef.current?.querySelector(".menu-card__foot .stepper") ?? null, addWidth.current);
+  }, [qty, hasOptions]);
   return (
     <li ref={cardRef} className={`menu-card ${soldOut ? "menu-card--soldout" : ""}`}>
-      <button type="button" className="menu-card__photo" onClick={() => setOpen(true)} aria-label={tr(`عرض ${item.nameAr}`, `View ${itemName(item)}`)}>
+      <button type="button" className="menu-card__photo" onClick={openSheet} aria-label={tr(`عرض ${item.nameAr}`, `View ${itemName(item)}`)}>
         <ItemImage item={item} className="menu-card__img" />
         {hasOptions && <span className="menu-card__tag">{tr(`${item.options.length} محاصيل`, `${item.options.length} origins`)}</span>}
         {item.isBestSeller && <span className="menu-card__ribbon">{tr("الأفضل مبيعًا", "Best seller")}</span>}
@@ -258,7 +275,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
             <button
               type="button"
               className="add-btn"
-              onClick={() => setOpen(true)}
+              onClick={openSheet}
               disabled={!canOrder}
               aria-label={tr(`اختر ${optionLabel(item)} وأضف ${item.nameAr}`, `Choose the ${optionLabel(item)} and add ${itemName(item)}`)}
             >
@@ -288,7 +305,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
           )}
         </div>
       </div>
-      {open && <ProductSheet item={item} canOrder={canOrder} onClose={() => setOpen(false)} />}
+      {open && <ProductSheet item={item} canOrder={canOrder} origin={origin} onClose={() => setOpen(false)} />}
     </li>
   );
 }
@@ -305,7 +322,7 @@ export function CartBar({ menu }: { menu: MenuResponse | null }) {
     <Link to="/cart" className="cart-bar">
       <span className="cart-bar__count">{count}</span>
       <span className="cart-bar__label">{tr("عرض السلة", "View cart")}</span>
-      <span className="cart-bar__total">{riyals(subtotal)}</span>
+      <Rolling className="cart-bar__total" text={riyals(subtotal)} />
     </Link>
   );
 }

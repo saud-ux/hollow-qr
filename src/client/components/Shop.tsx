@@ -1,10 +1,11 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 import { MAX_STAMPS } from "../../shared/constants";
 import type { MenuItem } from "../../shared/ordering";
 import type { CustomerCard } from "../../shared/types";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
+import { CALM, play } from "../lib/motion";
 import { Wordmark } from "./Brand";
 import { CupStrip } from "./CupStrip";
 import { PullToRefresh } from "./PullToRefresh";
@@ -49,11 +50,33 @@ export function ShopLayout({ children, bottom, onRefresh }: { children: ReactNod
   );
 }
 
+/** Which tab a page belongs to (-1: none), for the sliding highlight. */
+function tabIndex(pathname: string): number {
+  if (/^\/menu(\/|$)/.test(pathname)) return 0;
+  if (/^\/cart(\/|$)/.test(pathname)) return 1;
+  if (/^\/orders(\/|$)/.test(pathname)) return 2;
+  if (/^\/(account|wallet)(\/|$)/.test(pathname)) return 3;
+  return -1;
+}
+
 export function TabBar() {
   const { count } = useCart();
   const { pathname } = useLocation();
+  const index = tabIndex(pathname);
+  const navRef = useRef<HTMLElement>(null);
+  const lastIndex = useRef(index);
+  // The highlight slides to the new tab (CSS) and its icon gives a small nod.
+  useEffect(() => {
+    if (lastIndex.current === index) return;
+    lastIndex.current = index;
+    void play(navRef.current?.querySelector(".tabbar__item.active svg"), [{ transform: "scale(1)" }, { transform: "scale(1.12) translateY(-1px)", offset: 0.45 }, { transform: "scale(1)" }], {
+      duration: 340,
+      easing: CALM.easing,
+    });
+  }, [index]);
   return (
-    <nav className="tabbar" aria-label={tr("التنقل", "Navigation")}>
+    <nav ref={navRef} className="tabbar" aria-label={tr("التنقل", "Navigation")}>
+      {index >= 0 && <span className="tabbar__pill" aria-hidden="true" style={{ "--tab": index } as CSSProperties} />}
       <NavLink to="/menu" className="tabbar__item">
         <MenuIcon />
         <span>{tr("المنيو", "Menu")}</span>
