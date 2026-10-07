@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Broadcast, NotificationPrefs, Order, OrderStatus, RatingOverview, SalesRange, SalesReport, ShopSettings } from "../../shared/ordering";
 import { MENU_IMAGE_BUCKET } from "../../shared/ordering";
+import type { SavedPlace } from "../../shared/types";
 import {
   mapAccount,
   mapBroadcast,
@@ -33,6 +34,7 @@ import type {
   MenuItemRow,
   OrderRpcResult,
   OrderSummary,
+  PlaceInput,
   PlaceOrderParams,
   ProfileRow,
   PushLang,
@@ -42,7 +44,7 @@ import type {
   Repository,
   StaffAlertKind,
 } from "./repository";
-import { deleteAccountCode } from "./repository";
+import { deleteAccountCode, savePlaceResult } from "./repository";
 
 type Raw = Record<string, unknown>;
 type DbError = { message: string; code?: string } | null;
@@ -527,6 +529,34 @@ export class SupabaseRepository implements Repository {
       p_since_micros: sinceMicros === null ? null : sinceMicros.toString(),
     });
     return ((data ?? []) as Raw[]).map((r) => ({ serial: r.pass_serial as string, tag: BigInt(r.update_tag as string | number) }));
+  }
+
+  async listPlaces(userId: string) {
+    return (await this.rpc("places_list", { p_user_id: userId })) as SavedPlace[];
+  }
+
+  async savePlace(userId: string, id: string | null, input: PlaceInput) {
+    return savePlaceResult(
+      await this.rpc("place_save", {
+        p_user_id: userId,
+        p_id: id,
+        p_kind: input.kind,
+        p_label: input.label,
+        p_address: input.address,
+        p_details: input.details,
+        p_lat: input.lat,
+        p_lng: input.lng,
+      }),
+    );
+  }
+
+  async deletePlace(userId: string, id: string) {
+    return (await this.rpc("place_delete", { p_user_id: userId, p_id: id })) === true;
+  }
+
+  async setDisplayName(userId: string, name: string) {
+    const r = (await this.rpc("set_display_name", { p_user_id: userId, p_name: name })) as { ok: boolean; passSerial?: string | null };
+    return r.ok ? { passSerial: r.passSerial ?? null } : (false as const);
   }
 
   async walletPushTargets(serial: string): Promise<PushTarget[]> {

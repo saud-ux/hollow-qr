@@ -23,6 +23,7 @@ import {
   totalFrom,
 } from "../../src/server/data/mappers";
 import type { NotificationPrefs, OrderStatus, SalesRange, ShopSettings } from "../../src/shared/ordering";
+import type { SavedPlace } from "../../src/shared/types";
 import type {
   ApplyActionParams,
   ApplyActionResult,
@@ -33,13 +34,14 @@ import type {
   ListOrdersParams,
   MenuItemInput,
   OrderRpcResult,
+  PlaceInput,
   PlaceOrderParams,
   RemoveStaffResult,
   PushLang,
   Repository,
   StaffAlertKind,
 } from "../../src/server/data/repository";
-import { deleteAccountCode } from "../../src/server/data/repository";
+import { deleteAccountCode, savePlaceResult } from "../../src/server/data/repository";
 
 type Raw = Record<string, unknown>;
 
@@ -354,6 +356,29 @@ export class PgliteRepository implements Repository {
     await this.db.query("update public.orders set rating_comment = null where customer_id = $1", [userId]);
     await this.db.query("update auth.users set email = $2 where id = $1", [userId, `deleted-${userId}@deleted.invalid`]);
     return { ok: true };
+  }
+  async listPlaces(userId: string) {
+    return (await this.one("select public.places_list($1) as r", [userId]))!.r as SavedPlace[];
+  }
+  async savePlace(userId: string, id: string | null, input: PlaceInput) {
+    const r = await this.one("select public.place_save($1, $2, $3, $4, $5, $6, $7, $8) as r", [
+      userId,
+      id,
+      input.kind,
+      input.label,
+      input.address,
+      input.details,
+      input.lat,
+      input.lng,
+    ]);
+    return savePlaceResult(r!.r);
+  }
+  async deletePlace(userId: string, id: string) {
+    return (await this.one("select public.place_delete($1, $2) as r", [userId, id]))!.r === true;
+  }
+  async setDisplayName(userId: string, name: string) {
+    const r = (await this.one("select public.set_display_name($1, $2) as r", [userId, name]))!.r as { ok: boolean; passSerial?: string | null };
+    return r.ok ? { passSerial: r.passSerial ?? null } : (false as const);
   }
   async walletPushTargets(serial: string) {
     const res = await this.db.query<Raw>(

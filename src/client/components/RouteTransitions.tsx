@@ -3,8 +3,9 @@ import { useLocation, useNavigationType, type Location } from "react-router";
 import { motionOn, runPageTransition, type TransitionKind } from "../lib/motion";
 import { TabBar } from "./Shop";
 
-const TABS = ["/menu", "/cart", "/orders", "/wallet"];
-const tabIndex = (path: string) => TABS.findIndex((t) => path === t || path.startsWith(`${t}/`));
+const TABS = ["/menu", "/cart", "/orders", "/account"];
+// The card page opens from Account, so it belongs to that tab.
+const tabIndex = (path: string) => TABS.findIndex((t) => path === t || path.startsWith(`${t}/`) || (t === "/account" && path === "/wallet"));
 
 /** push: deeper or a tab further left (RTL). back: a tab to the right. pop: back up a level. */
 function transitionKind(from: string, to: string, navigationType: string): TransitionKind | null {

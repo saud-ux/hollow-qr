@@ -16,7 +16,7 @@ import type {
   SalesReport,
   ShopSettings,
 } from "../../shared/ordering";
-import type { AppRole, LoyaltyAction, MembershipStatus } from "../../shared/types";
+import type { AppRole, LoyaltyAction, MembershipStatus, PlaceKind, SavedPlace } from "../../shared/types";
 
 export interface ProfileRow {
   id: string;
@@ -139,6 +139,22 @@ export interface CreateStaffParams {
 export type CreateStaffResult = { ok: true; userId: string } | { ok: false; code: "EMAIL_EXISTS" | "WEAK_PASSWORD" };
 export type RemoveStaffResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_STAFF" | "ALREADY_REMOVED" };
 export type DeleteAccountResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_A_CUSTOMER" | "ACTIVE_ORDER" };
+
+export interface PlaceInput {
+  kind: PlaceKind;
+  label: string | null;
+  address: string;
+  details: string | null;
+  lat: number;
+  lng: number;
+}
+export type SavePlaceResult = { ok: true; place: SavedPlace } | { ok: false; code: "NOT_FOUND" | "KIND_TAKEN" | "PLACES_LIMIT" };
+
+export function savePlaceResult(raw: unknown): SavePlaceResult {
+  const r = raw as { ok: boolean; code?: string; place?: SavedPlace };
+  if (r.ok && r.place) return { ok: true, place: r.place };
+  return { ok: false, code: r.code === "KIND_TAKEN" || r.code === "PLACES_LIMIT" ? r.code : "NOT_FOUND" };
+}
 
 export function deleteAccountCode(code: string | undefined): "NOT_FOUND" | "NOT_A_CUSTOMER" | "ACTIVE_ORDER" {
   return code === "NOT_A_CUSTOMER" || code === "ACTIVE_ORDER" ? code : "NOT_FOUND";
@@ -294,6 +310,14 @@ export interface Repository {
    * (delete_customer_account), then frees the email and blocks sign-in.
    */
   deleteCustomerAccount(userId: string): Promise<DeleteAccountResult>;
+
+  /** The customer's saved delivery places: home, work, then named ones. */
+  listPlaces(userId: string): Promise<SavedPlace[]>;
+  /** Adds (id null) or edits a place; a new home or work replaces the old one. */
+  savePlace(userId: string, id: string | null, input: PlaceInput): Promise<SavePlaceResult>;
+  deletePlace(userId: string, id: string): Promise<boolean>;
+  /** Renames the user; returns their pass serial (to refresh Wallet) or null, or false if not found. */
+  setDisplayName(userId: string, name: string): Promise<{ passSerial: string | null } | false>;
 
   walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string): Promise<"created" | "exists" | "unknown_pass">;
   walletUnregisterDevice(device: string, passTypeIdentifier: string, serial: string): Promise<void>;

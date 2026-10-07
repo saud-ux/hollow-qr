@@ -11,6 +11,9 @@ import { LoginPage } from "./pages/customer/LoginPage";
 import { QrLandingPage } from "./pages/customer/QrLandingPage";
 import { RegisterPage } from "./pages/customer/RegisterPage";
 import { ResetPasswordPage } from "./pages/customer/ResetPasswordPage";
+import { AccountPage } from "./pages/customer/AccountPage";
+import { NotificationsPage } from "./pages/customer/NotificationsPage";
+import { PlacePage } from "./pages/customer/PlacePage";
 import { WalletPage } from "./pages/customer/WalletPage";
 import { CartPage } from "./pages/order/CartPage";
 import { MenuPage } from "./pages/order/MenuPage";
@@ -50,6 +53,11 @@ function NativeRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/account/places/:id" element={<PlacePage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/account/notifications" element={<NotificationsPage />} />
+          <Route path="/account/places/:id" element={<PlacePage />} />
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/orders" element={<OrdersPage />} />
@@ -74,6 +82,8 @@ function WebRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/account/places/:id" element={<PlacePage />} />
         <Route path="/menu" element={<MenuPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/orders" element={<OrdersPage />} />

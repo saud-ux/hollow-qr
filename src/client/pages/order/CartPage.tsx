@@ -20,6 +20,9 @@ import { riyals, useMenu } from "../../lib/menu";
 import { withNext } from "../../lib/next";
 import { fulfillmentLabel, itemName, optionLabel, optionName } from "../../lib/menuText";
 import { closedNote } from "./hours";
+import { MAX_PLACES } from "../../../shared/types";
+import { AccountIcon } from "../../components/AccountIcons";
+import { placeAddress, placeIcon, placeName, usePlaces } from "../../lib/places";
 import { tr } from "../../lib/i18n";
 
 const PHONE_KEY = "hollow.phone";
@@ -59,6 +62,8 @@ export function CartPage() {
   const [car, setCar] = useState(() => remembered(CAR_KEY));
   const [address, setAddress] = useState(() => remembered(ADDRESS_KEY));
   const [coords, setCoords] = useState<Coords | null>(null);
+  const places = usePlaces(!!session);
+  const [placeId, setPlaceId] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -351,13 +356,51 @@ export function CartPage() {
           )}
           {options.length > 0 && fulfillment === "delivery" && (
             <div className="delivery-fields">
+              {session && places && (
+                <div className="place-chips" role="radiogroup" aria-label={tr("عناويني", "My places")}>
+                  {places.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={placeId === p.id}
+                      className={`place-chip ${placeId === p.id ? "is-on" : ""}`}
+                      onClick={() => {
+                        setPlaceId(p.id);
+                        setAddress(placeAddress(p));
+                        setCoords({ lat: p.lat, lng: p.lng });
+                        setLocError(null);
+                        setErrors((e) => ({ ...e, address: null }));
+                      }}
+                    >
+                      <AccountIcon name={placeIcon(p.kind)} className="place-chip__icon" />
+                      {placeName(p)}
+                    </button>
+                  ))}
+                  {places.length < MAX_PLACES && (
+                    <Link
+                      to={`/account/places/new?kind=${places.some((p) => p.kind === "home") ? (places.some((p) => p.kind === "work") ? "other" : "work") : "home"}&back=/cart`}
+                      className="place-chip place-chip--add"
+                    >
+                      {tr("+ عنوان جديد", "+ New place")}
+                    </Link>
+                  )}
+                </div>
+              )}
               <div className={`field ${errors.address ? "field--error" : ""}`}>
                 <label htmlFor="address">{tr("عنوان التوصيل", "Delivery address")}</label>
                 <textarea
                   id="address"
                   rows={3}
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    // Typing a different address: the saved place's pin no longer applies.
+                    if (placeId) {
+                      setPlaceId(null);
+                      setCoords(null);
+                    }
+                  }}
                   placeholder={tr("الحي، الشارع، رقم البيت، وأي وصف يساعد المندوب", "District, street, house number, and anything that helps the driver")}
                   maxLength={300}
                   aria-invalid={Boolean(errors.address)}

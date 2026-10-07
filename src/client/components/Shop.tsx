@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from "react";
-import { Link, NavLink } from "react-router";
+import { Link, NavLink, useLocation } from "react-router";
 import { MAX_STAMPS } from "../../shared/constants";
 import type { MenuItem } from "../../shared/ordering";
 import type { CustomerCard } from "../../shared/types";
@@ -51,6 +51,7 @@ export function ShopLayout({ children, bottom, onRefresh }: { children: ReactNod
 
 export function TabBar() {
   const { count } = useCart();
+  const { pathname } = useLocation();
   return (
     <nav className="tabbar" aria-label={tr("التنقل", "Navigation")}>
       <NavLink to="/menu" className="tabbar__item">
@@ -66,9 +67,10 @@ export function TabBar() {
         <ReceiptIcon />
         <span>{tr("طلباتي", "Orders")}</span>
       </NavLink>
-      <NavLink to="/wallet" className="tabbar__item">
-        <CardIcon />
-        <span>{tr("بطاقتي", "My card")}</span>
+      {/* The card and the places live inside Account, so the tab stays lit there. */}
+      <NavLink to="/account" className={() => `tabbar__item ${/^\/(account|wallet)(\/|$)/.test(pathname) ? "active" : ""}`}>
+        <UserIcon />
+        <span>{tr("حسابي", "Account")}</span>
       </NavLink>
     </nav>
   );
@@ -170,6 +172,14 @@ export function ReceiptIcon() {
     <svg {...icon} aria-hidden="true">
       <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" />
       <path d="M9 8h6M9 12h6" />
+    </svg>
+  );
+}
+export function UserIcon() {
+  return (
+    <svg {...icon} aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M5 20c.8-3.5 3.6-5.5 7-5.5s6.2 2 7 5.5" />
     </svg>
   );
 }

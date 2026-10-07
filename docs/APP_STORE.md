@@ -155,8 +155,9 @@ How to test
 1. Browse the menu (no sign-in needed), add items, open the cart and sign in with the demo account.
 2. Choose "استلام من الكاشير" (counter pickup), enter any Saudi mobile number such as 0512345678, and place the order. Payment is in person at pickup; there are no in-app payments.
 3. Allow notifications when asked. Our staff move the order through Preparing → Ready → Completed from the café's order board, and each step sends a push notification. If you place an order outside opening hours, the app shows the shop as closed.
-4. "بطاقتي" (My card) shows the loyalty card. "Add to Apple Wallet" presents the native PKAddPassesViewController.
-5. Account deletion: "بطاقتي" → "حذف الحساب" (Delete account) at the bottom of the page.
+4. "حسابي" (Account) tab → "بطاقتي" (My card) shows the loyalty card. "Add to Apple Wallet" presents the native PKAddPassesViewController.
+5. Account deletion: "حسابي" (Account) tab → "حذف الحساب" (Delete account) at the bottom of the page.
+6. Saved places: "حسابي" (Account) → "عناويني" (My places). The map uses OpenStreetMap; location is asked for only when adding a place or tapping "Use my current location".
 
 Native features: APNs order-status notifications, PassKit (Apple Wallet) loyalty pass, haptics.
 Contact: hollowcoffee.sa@gmail.com
