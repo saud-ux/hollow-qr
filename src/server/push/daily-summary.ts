@@ -35,6 +35,13 @@ function zonedInstant(year: number, month: number, day: number, hhmm: string, ti
   return new Date(guess - offset);
 }
 
+/** Midnight on the wall clock of `timeZone`, `daysBack` days before the day `now` falls on. */
+export function startOfLocalDay(now: Date, timeZone: string, daysBack = 0): Date {
+  const t = zoned(now, timeZone);
+  const day = new Date(Date.UTC(t.year, t.month - 1, t.day - daysBack));
+  return zonedInstant(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), "00:00", timeZone);
+}
+
 export interface BusinessWindow {
   /** Local date the shift opened on (YYYY-MM-DD). */
   businessDate: string;

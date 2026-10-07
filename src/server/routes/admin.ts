@@ -10,6 +10,7 @@ import { rateLimit, requireRole, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
 import { toCsv } from "../lib/csv";
 import { toDashboardStats, toStaffMember, toTransactionItem } from "../loyalty/presenters";
+import { startOfLocalDay } from "../push/daily-summary";
 import { sendToTokens } from "../push/order-notifications";
 
 const EXPORT_PAGE = 1000;
@@ -189,6 +190,20 @@ export const adminRoutes = new Hono<HonoEnv>()
       rows,
     );
     return csvResponse(`hollow-transactions-${stamp(c.get("deps").now())}.csv`, csv);
+  })
+
+  // Sales dashboard. "today" compares with yesterday up to the same time;
+  // 7d / 30d compare with the 7 / 30 days before.
+  .get("/sales", async (c) => {
+    const range = parseWith(z.enum(["today", "7d", "30d"]).default("7d"), c.req.query("range"));
+    const now = c.get("deps").now();
+    const days = range === "today" ? 1 : range === "7d" ? 7 : 30;
+    const from = startOfLocalDay(now, BUSINESS_TIME_ZONE, days - 1);
+    const span = days * 24 * 60 * 60 * 1000;
+    const prevFrom = new Date(from.getTime() - span);
+    const prevTo = new Date(now.getTime() - span);
+    c.header("Cache-Control", "no-store");
+    return c.json(await repoOf(c).salesReport(range, from, now, prevFrom, prevTo, BUSINESS_TIME_ZONE));
   })
 
   .get("/ratings", async (c) => {
