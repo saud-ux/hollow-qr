@@ -31,7 +31,7 @@ In the app:
   sends one notification per device. Notifications for the same order replace each other (`apns-collapse-id`).
   Tapping one opens the order.
 - Signing out unlinks the device. A device token moves to whoever signed in last on that phone.
-- **Delete account** (My card page, App Store guideline 5.1.1(v)): `POST /api/me/delete` with `{"confirm":"DELETE"}`.
+- **Delete account** (Account tab, App Store guideline 5.1.1(v)): `POST /api/me/delete` with `{"confirm":"DELETE"}`.
   - It cancels orders that are still `new` and anonymizes all orders (name, phone, car, address, notes).
   - It cancels the loyalty card; the Wallet pass refreshes into its voided state.
   - It removes device tokens and disables the profile.

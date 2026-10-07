@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { CustomerCard, MeResponse } from "../../shared/types";
+import { DISPLAY_NAME_MAX_LENGTH } from "../../shared/constants";
 import { assertCoreSecrets } from "../config";
-import type { AccountRow } from "../data/repository";
+import type { AccountRow, PlaceInput, SavePlaceResult } from "../data/repository";
 import { ApiError } from "../http/errors";
 import { repoOf, runInBackground, walletOf, type AppContext, type HonoEnv } from "../http/context";
 import { rateLimit, requireUser } from "../http/middleware";
@@ -26,6 +27,37 @@ const prefsSchema = z
   .object({ offers: z.boolean(), newOrders: z.boolean(), dailySummary: z.boolean() })
   .partial()
   .refine((p) => Object.keys(p).length > 0, "nothing to update");
+
+const placeSchema = z
+  .object({
+    kind: z.enum(["home", "work", "other"]),
+    label: z.string().trim().max(30).nullish(),
+    address: z.string().trim().min(1).max(300),
+    details: z.string().trim().max(200).nullish(),
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  })
+  .refine((p) => p.kind !== "other" || (p.label ?? "").length > 0, { message: "a named place needs a name", path: ["label"] });
+
+const profileSchema = z.object({ displayName: z.string().trim().min(1).max(DISPLAY_NAME_MAX_LENGTH) });
+
+function placeInput(body: z.infer<typeof placeSchema>): PlaceInput {
+  return {
+    kind: body.kind,
+    label: body.kind === "other" ? (body.label ?? null) : null,
+    address: body.address,
+    details: body.details ? body.details : null,
+    lat: body.lat,
+    lng: body.lng,
+  };
+}
+
+function savedOrThrow(result: SavePlaceResult) {
+  if (result.ok) return result.place;
+  if (result.code === "PLACES_LIMIT") throw new ApiError(409, "PLACES_LIMIT");
+  if (result.code === "KIND_TAKEN") throw new ApiError(409, "PLACE_KIND_TAKEN");
+  throw new ApiError(404, "NOT_FOUND");
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -143,6 +175,39 @@ export const meRoutes = new Hono<HonoEnv>()
     const patch = await parseJsonBody(c, prefsSchema);
     const prefs = await repoOf(c).setNotificationPrefs(c.get("user").id, patch);
     return c.json({ prefs });
+  })
+
+  // Account page: the customer's own name (also shown on the Wallet pass).
+  .put("/me/profile", requireUser, rateLimit("api", "user"), async (c) => {
+    const { displayName } = await parseJsonBody(c, profileSchema);
+    const result = await repoOf(c).setDisplayName(c.get("user").id, displayName);
+    if (!result) throw new ApiError(404, "NOT_FOUND");
+    if (result.passSerial) runInBackground(c, walletOf(c).passChanged(result.passSerial));
+    return c.json({ displayName });
+  })
+
+  // Saved delivery places (home, work and named ones).
+  .get("/me/places", requireUser, rateLimit("api", "user"), async (c) => {
+    return c.json({ places: await repoOf(c).listPlaces(c.get("user").id) });
+  })
+
+  .post("/me/places", requireUser, rateLimit("api", "user"), async (c) => {
+    const body = await parseJsonBody(c, placeSchema);
+    const place = savedOrThrow(await repoOf(c).savePlace(c.get("user").id, null, placeInput(body)));
+    return c.json({ place }, 201);
+  })
+
+  .put("/me/places/:id", requireUser, rateLimit("api", "user"), async (c) => {
+    const id = c.req.param("id");
+    if (!UUID_RE.test(id)) throw new ApiError(404, "NOT_FOUND");
+    const body = await parseJsonBody(c, placeSchema);
+    return c.json({ place: savedOrThrow(await repoOf(c).savePlace(c.get("user").id, id, placeInput(body))) });
+  })
+
+  .delete("/me/places/:id", requireUser, rateLimit("api", "user"), async (c) => {
+    const id = c.req.param("id");
+    if (!UUID_RE.test(id) || !(await repoOf(c).deletePlace(c.get("user").id, id))) throw new ApiError(404, "NOT_FOUND");
+    return c.json({ ok: true });
   })
 
   // Called on sign-out so the device stops receiving this user's updates.

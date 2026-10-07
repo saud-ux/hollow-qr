@@ -158,3 +158,17 @@ export interface ApiErrorBody {
     details?: Record<string, unknown>;
   };
 }
+
+/** A delivery place the customer saved on their Account page. */
+export type PlaceKind = "home" | "work" | "other";
+export interface SavedPlace {
+  id: string;
+  kind: PlaceKind;
+  /** Only for "other" places; home and work are named by the app. */
+  label: string | null;
+  address: string;
+  details: string | null;
+  lat: number;
+  lng: number;
+}
+export const MAX_PLACES = 5;
