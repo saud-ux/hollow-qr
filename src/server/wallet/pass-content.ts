@@ -3,14 +3,17 @@
  *
  * Layout (Apple Wallet store card):
  *   header      CUPS            "3 / 5"            (visible when cards are stacked)
- *   strip       five HOLLOW cups (pre-rendered per state, see assets.ts)
- *   secondary   HOLLOW REWARDS  "3 / 5 Cups"   |   المكافأة "لك مشروب مجاني" / remaining
- *   auxiliary   الاسم  <customer name>         |   رقم العضوية  HLW-XXXXXX
+ *   strip       five HOLLOW cups, and under them "3 / 5 Cups" and the reward
+ *               line, drawn into the image (pre-rendered per state, see assets.ts)
+ *   secondary   الاسم  <customer name>         |   رقم العضوية  HLW-XXXXXX
  *   barcode     QR (opaque signed URL) with altText "SCAN AT CHECKOUT"
- *   back        program terms, shop, links
+ *   back        reward, program terms, shop, links
  *
- * Wallet decides fonts and exact placement; Arabic values render RTL with
- * PKTextAlignmentNatural. We deliberately do not use primaryFields because on
+ * Wallet puts every field under the strip in one row and picks the fonts, so
+ * the progress line lives in the strip image where we control its layout,
+ * like the in-app card. The reward also stays a (back) field: its
+ * changeMessage is what shows on the lock screen when it changes, and the
+ * image cannot do that. We deliberately do not use primaryFields because on
  * store cards they are drawn on top of the strip and would cover the cups.
  */
 import { MAX_STAMPS, PROGRAM_NAME, QR_CAPTION, SHOP_LABEL } from "../../shared/constants";
@@ -78,22 +81,6 @@ export function buildPassJson(account: AccountRow, identity: PassIdentity): Reco
       ],
       secondaryFields: [
         {
-          key: "progress",
-          label: PROGRAM_NAME.toUpperCase(),
-          value: cupsLabel(account.stampCount),
-        },
-        {
-          key: "reward",
-          label: "المكافأة",
-          value: rewardText(account),
-          textAlignment: "PKTextAlignmentNatural",
-          // Lock-screen notice when the value changes (e.g. reward unlocked).
-          // This is the standard pass-update message, not a marketing push.
-          changeMessage: "%@",
-        },
-      ],
-      auxiliaryFields: [
-        {
           key: "name",
           label: "الاسم",
           value: account.displayName,
@@ -107,6 +94,15 @@ export function buildPassJson(account: AccountRow, identity: PassIdentity): Reco
         },
       ],
       backFields: [
+        {
+          key: "reward",
+          label: "المكافأة",
+          value: rewardText(account),
+          // Lock-screen notice when the value changes (e.g. reward unlocked).
+          // This is the standard pass-update message, not a marketing push.
+          changeMessage: "%@",
+        },
+        { key: "progress", label: PROGRAM_NAME, value: cupsLabel(account.stampCount) },
         {
           key: "program",
           label: "برنامج الولاء",
