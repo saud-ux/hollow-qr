@@ -13,7 +13,7 @@ import { useAuth } from "../../lib/auth";
 import { tr, useLang, type LangChoice } from "../../lib/i18n";
 import { isNative } from "../../lib/native";
 import { placeIcon, placeName, usePlaces } from "../../lib/places";
-import { getThemeChoice, setThemeChoice, type ThemeChoice } from "../../lib/theme";
+import { getThemeChoice, revealOrigin, setThemeChoice, type ThemeChoice } from "../../lib/theme";
 
 // Each language is written in itself so it can be found from either one.
 const langs = (): { value: LangChoice; label: string }[] => [
@@ -254,8 +254,8 @@ export function AccountPage() {
                   role="radio"
                   aria-checked={theme === t.value}
                   className={`theme-switch__opt ${theme === t.value ? "is-on" : ""}`}
-                  onClick={() => {
-                    setThemeChoice(t.value);
+                  onClick={(e) => {
+                    setThemeChoice(t.value, revealOrigin(e.currentTarget));
                     setTheme(t.value);
                   }}
                 >

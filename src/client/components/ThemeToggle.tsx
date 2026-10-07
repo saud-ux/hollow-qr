@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { isNative } from "../lib/native";
-import { currentTheme, onThemeChange, toggleTheme } from "../lib/theme";
+import { currentTheme, onThemeChange, revealOrigin, toggleTheme } from "../lib/theme";
 import { tr } from "../lib/i18n";
 
 /** Sun / moon button in the page header (iOS app only). */
@@ -13,7 +13,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     <button
       type="button"
       className={`theme-toggle ${className}`}
-      onClick={toggleTheme}
+      onClick={(e) => toggleTheme(revealOrigin(e.currentTarget))}
       aria-label={dark ? tr("الوضع الفاتح", "Light mode") : tr("الوضع الداكن", "Dark mode")}
       title={dark ? tr("الوضع الفاتح", "Light mode") : tr("الوضع الداكن", "Dark mode")}
     >

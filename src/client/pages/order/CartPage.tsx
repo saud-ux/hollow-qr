@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   isOrderable,
@@ -16,6 +16,9 @@ import { CartSkeleton } from "../../components/Skeletons";
 import { CarIcon, ItemImage, QtyStepper, ScooterIcon, ShopLayout, StoreIcon } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { enablePush, successFeedback } from "../../lib/native";
+import { CALM, motionOn, play } from "../../lib/motion";
+import { Rolling } from "../../components/Rolling";
+import { SwipeToDelete } from "../../components/SwipeToDelete";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { newIdempotencyKey } from "../../lib/hooks";
@@ -75,6 +78,14 @@ export function CartPage() {
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [placed, setPlaced] = useState(false);
+  const submitRef = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    const el = submitRef.current;
+    if (!placed || !el) return;
+    void play(el, [{ width: `${el.getBoundingClientRect().width}px` }, { width: "58px" }], { duration: 320, easing: CALM.easing, fill: "forwards" });
+    void play(el.querySelector("path"), [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 380, easing: "ease-out", delay: 200, fill: "both" });
+  }, [placed]);
   // One key per checkout attempt: a retry after a network error replays it.
   const idempotencyKey = useRef(newIdempotencyKey());
 
@@ -185,8 +196,13 @@ export function CartPage() {
       remember(PHONE_KEY, normalizedPhone!);
       if (fulfillment === "curbside") remember(CAR_KEY, car.trim());
       if (fulfillment === "delivery") remember(ADDRESS_KEY, address.trim());
-      cart.clear();
       successFeedback();
+      // The button turns into a check for a moment before the order opens.
+      if (motionOn()) {
+        setPlaced(true);
+        await new Promise((r) => setTimeout(r, 750));
+      }
+      cart.clear();
       void navigate(`/orders/${order.id}`, { replace: true });
     } catch (err) {
       // A rejected order is final for this key; a new attempt gets a new one.
@@ -246,12 +262,12 @@ export function CartPage() {
               const key = `${line.menuItemId}|${line.optionId ?? ""}`;
               const problem = lineProblem(entry);
               return (
-                <li key={key} className={`cart-line ${problem === "soldout" ? "cart-line--soldout" : ""}`}>
+                <SwipeToDelete key={key} className={`cart-line ${problem === "soldout" ? "cart-line--soldout" : ""}`} onDelete={() => cart.remove(item.id, line.optionId)}>
                   <ItemImage item={item} className="cart-line__img" />
                   <div className="cart-line__body">
                     <div className="cart-line__top">
                       <span className="cart-line__name">{itemName(item)}</span>
-                      <span className="cart-line__price">{riyals(item.priceHalalas * line.quantity)}</span>
+                      <Rolling className="cart-line__price" text={riyals(item.priceHalalas * line.quantity)} />
                     </div>
                     {item.options.length > 0 && (
                       <div className="cart-origins" role="radiogroup" aria-label={optionLabel(item)}>
@@ -299,7 +315,7 @@ export function CartPage() {
                       />
                     )}
                   </div>
-                </li>
+                </SwipeToDelete>
               );
             })}
           </ul>
@@ -460,7 +476,7 @@ export function CartPage() {
         <section className="sheet summary" aria-label={tr("ملخص الطلب", "Order summary")}>
           <div className="summary__row">
             <span>{tr("المجموع", "Subtotal")}</span>
-            <span>{riyals(subtotal)}</span>
+            <Rolling text={riyals(subtotal)} />
           </div>
           {fee > 0 && (
             <div className="summary__row">
@@ -476,7 +492,7 @@ export function CartPage() {
           )}
           <div className="summary__row summary__row--total">
             <span>{tr("الإجمالي", "Total")}</span>
-            <span>{riyals(total)}</span>
+            <Rolling text={riyals(total)} />
           </div>
           <p className="summary__pay">{tr("الدفع عند الاستلام", "Pay on pickup")}</p>
         </section>
@@ -485,11 +501,24 @@ export function CartPage() {
         {session ? (
           <div className="checkout__submit">
             <button
+              ref={submitRef}
               type="submit"
-              className="btn btn--primary btn--block btn--lg"
+              className={`btn btn--primary btn--block btn--lg ${placed ? "btn--placed" : ""}`}
               disabled={busy || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
+              aria-label={placed ? tr("تم إرسال الطلب", "Order placed") : undefined}
             >
-              {busy ? tr("جارٍ إرسال الطلب…", "Sending your order…") : tr(`تأكيد الطلب · ${riyals(total)}`, `Place order · ${riyals(total)}`)}
+              {placed ? (
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1} />
+                </svg>
+              ) : busy ? (
+                tr("جارٍ إرسال الطلب…", "Sending your order…")
+              ) : (
+                <>
+                  {tr("تأكيد الطلب · ", "Place order · ")}
+                  <Rolling text={riyals(total)} />
+                </>
+              )}
             </button>
           </div>
         ) : (

@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { isOrderable, MAX_LINE_QUANTITY, type MenuItem } from "../../shared/ordering";
 import { useCart } from "../lib/cart";
 import { riyals } from "../lib/menu";
-import { flyToCart, motionOn } from "../lib/motion";
+import { flyToCart, motionOn, openFromCard } from "../lib/motion";
 import { isNative } from "../lib/native";
 import { itemDescription, itemName, itemSubName, optionLabel, optionName, optionNote, subNameDir } from "../lib/menuText";
 import { stockLeftText, stockRoom } from "../lib/stock";
@@ -14,7 +14,7 @@ import { tr } from "../lib/i18n";
  * A product up close: a large photo (tap it to see it full screen), the
  * description, and, for items like V60, the origin to choose.
  */
-export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canOrder: boolean; onClose: () => void }) {
+export function ProductSheet({ item, canOrder, origin = null, onClose }: { item: MenuItem; canOrder: boolean; origin?: DOMRect | null; onClose: () => void }) {
   const cart = useCart();
   const hasOptions = item.options.length > 0;
   const firstAvailable = item.options.find((o) => o.isAvailable)?.id ?? null;
@@ -25,6 +25,15 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
   const photoRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   useSheetDrag(sheetRef, photoRef, onClose);
+  // Opened from a menu card: the photo grows out of the card instead of the sheet sliding up.
+  const [zoomIn] = useState(() => origin !== null && motionOn());
+  useLayoutEffect(() => {
+    if (!zoomIn) return;
+    const body = sheetRef.current?.querySelector(".product-sheet__body");
+    openFromCard(origin, photoRef.current, body ? [...body.children] : []);
+    // Only on opening.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -58,7 +67,7 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
     <div className="sheet-backdrop" onClick={onClose}>
       <div
         ref={sheetRef}
-        className="product-sheet"
+        className={`product-sheet ${zoomIn ? "product-sheet--zoom" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-sheet-title"
