@@ -42,13 +42,22 @@ export interface MenuItem {
   calories: number | null;
   /** Picked by the owner: listed under «الأفضل مبيعًا» and badged in its category. */
   isBestSeller: boolean;
+  /**
+   * How many are left (null: not counted). Staff and admins get the exact
+   * count; customers only when LOW_STOCK or fewer are left.
+   */
+  stockQuantity: number | null;
 }
+
+/** At or below this many left, customers see «باقي 2 فقط». */
+export const LOW_STOCK = 3;
+export const MAX_STOCK = 9999;
 
 export const MAX_MENU_OPTIONS = 12;
 
 /** The customer can order it: the item is on, and if it has options at least one is in stock. */
-export function isOrderable(item: Pick<MenuItem, "isAvailable" | "options">): boolean {
-  return item.isAvailable && (item.options.length === 0 || item.options.some((o) => o.isAvailable));
+export function isOrderable(item: Pick<MenuItem, "isAvailable" | "options" | "stockQuantity">): boolean {
+  return item.isAvailable && item.stockQuantity !== 0 && (item.options.length === 0 || item.options.some((o) => o.isAvailable));
 }
 
 export interface DayHours {

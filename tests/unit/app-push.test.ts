@@ -103,7 +103,7 @@ describe("orderStatusMessage", () => {
     expect(orderStatusMessage({ ...base, status: "preparing" })).toMatchObject({ title: "شغّالين على طلبك! ☕", body: "طلبك رقم 12 قيد التحضير، جهّز نفسك!" });
     expect(orderStatusMessage({ ...base, status: "ready" })).toMatchObject({ title: "قهوتك تناديك! 📣", body: "طلبك رقم 12 جاهز، ننتظرك عند الكاشير!" });
     expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "curbside" })).toMatchObject({
-      title: "طلبك جاهز للتحريك! 🚗",
+      title: "طلبك جاهز! 🚗",
       body: "طلبك رقم 12 جاهز. اضغط «وصلت» وبنجيبه لسيارتك!",
     });
     expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "delivery" })!.body).toContain("المندوب");

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { BUSINESS_TIME_ZONE } from "../../shared/constants";
+import { MAX_STOCK } from "../../shared/ordering";
 import { ApiError } from "../http/errors";
 import { repoOf, runInBackground, walletOf, type HonoEnv } from "../http/context";
 import { rateLimit, requireRole, requireUser } from "../http/middleware";
@@ -15,6 +16,9 @@ const availabilitySchema = z.object({
   /** One origin of the item; without it the whole item is switched. */
   optionId: z.string().min(1).max(40).optional(),
 });
+
+/** A count to set (0 = sold out), or null to stop counting the item. */
+const stockSchema = z.object({ quantity: z.number().int().min(0).max(MAX_STOCK).nullable() });
 
 const statusSchema = z.object({
   status: z.enum(["preparing", "ready", "out_for_delivery", "completed", "cancelled"]),
@@ -62,6 +66,19 @@ export const staffOrderRoutes = new Hono<HonoEnv>()
     const rows = await repoOf(c).listMenuItems(false);
     c.header("Cache-Control", "no-store");
     return c.json({ items: rows.map((r) => toMenuItem(config, r)) });
+  })
+
+  // Stock count: staff top it up when a fresh batch is ready; orders take from it.
+  .post("/menu/:id/stock", async (c) => {
+    const id = parseWith(uuid, c.req.param("id"));
+    const { quantity } = await parseJsonBody(c, stockSchema);
+    const repo = repoOf(c);
+    const item = await repo.getMenuItem(id);
+    if (!item || item.isArchived) throw new ApiError(404, "NOT_FOUND");
+    const row = await repo.updateMenuItem(id, { stockQuantity: quantity });
+    if (!row) throw new ApiError(404, "NOT_FOUND");
+    c.get("deps").logger.info("menu.stock", { itemId: id, quantity, actor: c.get("user").id });
+    return c.json({ item: toMenuItem(c.get("deps").config, row) });
   })
 
   .post("/menu/:id/availability", async (c) => {

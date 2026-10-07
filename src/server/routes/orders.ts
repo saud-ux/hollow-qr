@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { BUSINESS_TIME_ZONE } from "../../shared/constants";
 import {
+  LOW_STOCK,
   MAX_LINE_QUANTITY,
   MAX_ORDER_LINES,
   MAX_RATING_COMMENT,
@@ -52,6 +53,17 @@ export function toMenuItem(config: Pick<AppConfig, "supabaseUrl">, row: MenuItem
     options: row.options,
     calories: row.calories,
     isBestSeller: row.isBestSeller,
+    stockQuantity: row.stockQuantity,
+  };
+}
+
+/** The menu as customers get it: a counted item at 0 is sold out, and the count shows only when it runs low. */
+export function forCustomers(item: MenuItem): MenuItem {
+  const stock = item.stockQuantity;
+  return {
+    ...item,
+    isAvailable: item.isAvailable && stock !== 0,
+    stockQuantity: stock !== null && stock <= LOW_STOCK ? stock : null,
   };
 }
 
@@ -77,6 +89,7 @@ export function throwOrderError(result: OrderRpcResult): never {
   if (result.current) details.current = result.current;
   if (result.minimum !== undefined) details.minimum = result.minimum;
   if (result.menu_item_id) details.menuItemId = result.menu_item_id;
+  if (result.remaining !== undefined) details.remaining = result.remaining;
   throw new ApiError(
     statusForOrderCode(code),
     code === "NOT_FOUND" ? "ORDER_NOT_FOUND" : code,
@@ -145,7 +158,7 @@ export const orderRoutes = new Hono<HonoEnv>()
       repo.getShopSettings(),
       repo.isShopOpen(BUSINESS_TIME_ZONE),
     ]);
-    const body: MenuResponse = { items: rows.map((r) => toMenuItem(config, r)), shop: { isOpen, settings } };
+    const body: MenuResponse = { items: rows.map((r) => forCustomers(toMenuItem(config, r))), shop: { isOpen, settings } };
     c.header("Cache-Control", "no-store");
     return c.json(body);
   })

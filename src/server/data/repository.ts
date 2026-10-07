@@ -178,9 +178,12 @@ export interface MenuItemRow {
   calories: number | null;
   /** Marked by the owner; shown at the top of the menu. */
   isBestSeller: boolean;
+  /** How many are left, taken by each order; null when the item isn't counted. */
+  stockQuantity: number | null;
 }
 
-export type MenuItemInput = Omit<MenuItemRow, "id" | "imagePath">;
+/** What the admin menu editor sends; the stock count is set on its own. */
+export type MenuItemInput = Omit<MenuItemRow, "id" | "imagePath" | "stockQuantity">;
 
 export interface PlaceOrderParams {
   customerId: string;
@@ -207,6 +210,8 @@ export interface OrderRpcResult {
   current?: OrderStatus;
   minimum?: number;
   menu_item_id?: string;
+  /** NOT_ENOUGH_STOCK: how many of the item are left. */
+  remaining?: number;
   loyalty_changed?: boolean;
   pass_serial?: string | null;
 }
@@ -255,7 +260,7 @@ export interface Repository {
   listMenuItems(includeArchived: boolean): Promise<MenuItemRow[]>;
   getMenuItem(id: string): Promise<MenuItemRow | null>;
   createMenuItem(input: MenuItemInput): Promise<MenuItemRow>;
-  updateMenuItem(id: string, patch: Partial<MenuItemInput> & { imagePath?: string | null }): Promise<MenuItemRow | null>;
+  updateMenuItem(id: string, patch: Partial<MenuItemInput> & { imagePath?: string | null; stockQuantity?: number | null }): Promise<MenuItemRow | null>;
   /** Stores an image in the public menu bucket. */
   uploadMenuImage(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
   deleteMenuImage(path: string): Promise<void>;

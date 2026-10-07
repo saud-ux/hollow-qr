@@ -57,7 +57,7 @@ describe("notifications in the app's language", () => {
     expect(orderStatusMessage({ ...base, status: "new" }, "en")).toMatchObject({ title: "Got your order #12! 🤩", body: "Total SAR 15.50, pay on pickup. Loading up..." });
     expect(orderStatusMessage({ ...base, status: "ready" }, "en")).toMatchObject({ title: "Ready at the counter! 📣", body: "Order #12 is waiting for you at the counter." });
     expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "curbside" }, "en")).toMatchObject({
-      title: "Ready to roll! 🚗",
+      title: "Your order is ready! 🚗",
       body: 'Order #12 is ready. Tap "I\'m here" on arrival!',
     });
     expect(orderStatusMessage({ ...base, status: "out_for_delivery", fulfillment: "delivery" }, "en")).toMatchObject({

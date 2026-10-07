@@ -19,6 +19,7 @@ const item = (nameAr: string, nameEn: string | null, extra: Partial<MenuItem> = 
   options: [],
   calories: null,
   isBestSeller: false,
+  stockQuantity: null,
   ...extra,
 });
 

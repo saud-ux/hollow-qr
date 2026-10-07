@@ -5,7 +5,9 @@ import { riyals } from "../lib/menu";
 import { flyToCart, motionOn } from "../lib/motion";
 import { isNative } from "../lib/native";
 import { itemDescription, itemName, itemSubName, optionLabel, optionName, optionNote, subNameDir } from "../lib/menuText";
+import { stockLeftText, stockRoom } from "../lib/stock";
 import { ItemImage } from "./Shop";
+import { showToast } from "./Toast";
 import { tr } from "../lib/i18n";
 
 /**
@@ -41,6 +43,10 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
 
   const orderable = canOrder && isOrderable(item) && (!hasOptions || optionId !== null);
   const inCart = cart.totalOf(item.id);
+  // Few left: the stepper stops at what is left (counting what's already in the cart).
+  const room = stockRoom(item, cart.lines);
+  const maxHere = Math.min(MAX_LINE_QUANTITY, room);
+  const tooMany = () => showToast(stockLeftText(item, item.stockQuantity ?? 0));
 
   function add() {
     flyToCart(photoRef.current?.querySelector(".item-img") ?? null);
@@ -115,7 +121,12 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
 
           <div className="product-sheet__actions">
             <div className="stepper" role="group" aria-label={tr(`الكمية: ${item.nameAr}`, `Quantity: ${itemName(item)}`)}>
-              <button type="button" className="stepper__btn" onClick={() => setQuantity((q) => Math.min(q + 1, MAX_LINE_QUANTITY))} aria-label={tr("زيادة", "Increase")}>
+              <button
+                type="button"
+                className={`stepper__btn ${quantity >= room ? "is-limit" : ""}`}
+                onClick={() => (quantity >= room ? tooMany() : setQuantity((q) => Math.min(q + 1, maxHere)))}
+                aria-label={tr("زيادة", "Increase")}
+              >
                 +
               </button>
               <span className="stepper__value" aria-live="polite">
@@ -125,7 +136,7 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
                 −
               </button>
             </div>
-            <button type="button" className="btn btn--primary btn--lg product-sheet__add" disabled={!orderable} onClick={add}>
+            <button type="button" className="btn btn--primary btn--lg product-sheet__add" disabled={!orderable} onClick={room < quantity ? tooMany : add}>
               {!canOrder
                 ? tr("لا نستقبل طلبات الآن", "Not taking orders now")
                 : !isOrderable(item)
@@ -134,6 +145,7 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
             </button>
           </div>
           {inCart > 0 && <p className="muted small center">{tr(`في سلتك الآن: ${inCart}`, `In your cart: ${inCart}`)}</p>}
+          {isOrderable(item) && item.stockQuantity != null && <p className="product-sheet__low">{stockLeftText(item, item.stockQuantity)}</p>}
         </div>
       </div>
 
