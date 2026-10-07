@@ -24,3 +24,10 @@ export const QR_CAPTION = "SCAN AT CHECKOUT";
 
 export const PASSWORD_MIN_LENGTH = 8;
 export const DISPLAY_NAME_MAX_LENGTH = 80;
+
+/** The café's social accounts, linked from the customer's card page. */
+export const SOCIAL_LINKS = {
+  instagram: "https://www.instagram.com/hollow.zu",
+  tiktok: "https://www.tiktok.com/@hollow.zu",
+  snapchat: "https://snapchat.com/t/5WHeKitl",
+} as const;

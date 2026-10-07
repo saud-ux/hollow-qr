@@ -8,6 +8,7 @@ import { Alert } from "../../components/Field";
 import { CardSkeleton } from "../../components/Skeletons";
 import { PassPreview } from "../../components/PassPreview";
 import { TabBar } from "../../components/Shop";
+import { SocialLinks } from "../../components/SocialLinks";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { isAppleMobile } from "../../lib/hooks";
@@ -213,6 +214,7 @@ export function WalletPage() {
         )}
       </nav>
       {deleteError && <Alert tone="error">{deleteError}</Alert>}
+      <SocialLinks />
       <ConfirmDialog
         open={deleteOpen}
         title={tr("حذف حسابك نهائيًا؟", "Delete your account for good?")}
