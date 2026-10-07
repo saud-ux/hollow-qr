@@ -8,7 +8,8 @@ import {
   type Order,
   type PlaceOrderRequest,
 } from "../../../shared/ordering";
-import { Alert, Field, Spinner } from "../../components/Field";
+import { Alert, Field } from "../../components/Field";
+import { CartSkeleton } from "../../components/Skeletons";
 import { CarIcon, ItemImage, QtyStepper, ScooterIcon, ShopLayout, StoreIcon } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { enablePush, successFeedback } from "../../lib/native";
@@ -191,7 +192,7 @@ export function CartPage() {
     return (
       <ShopLayout>
         <h1 className="page-title">{tr("السلة", "Cart")}</h1>
-        {menuError ? <Alert tone="error">{menuError}</Alert> : <Spinner />}
+        {menuError ? <Alert tone="error">{menuError}</Alert> : <CartSkeleton />}
       </ShopLayout>
     );
   }

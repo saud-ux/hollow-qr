@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { isOrderable, MAX_LINE_QUANTITY, type MenuItem } from "../../shared/ordering";
 import { useCart } from "../lib/cart";
 import { riyals } from "../lib/menu";
-import { flyToCart } from "../lib/motion";
+import { flyToCart, motionOn } from "../lib/motion";
+import { isNative } from "../lib/native";
 import { itemDescription, itemName, itemSubName, optionLabel, optionName, optionNote, subNameDir } from "../lib/menuText";
 import { ItemImage } from "./Shop";
 import { tr } from "../lib/i18n";
@@ -20,6 +21,8 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
   const [zoomed, setZoomed] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const photoRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useSheetDrag(sheetRef, photoRef, onClose);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -48,6 +51,7 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div
+        ref={sheetRef}
         className="product-sheet"
         role="dialog"
         aria-modal="true"
@@ -150,4 +154,84 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
       )}
     </div>
   );
+}
+
+/** How far down the sheet must be dragged to close it. */
+const DISMISS_PX = 110;
+
+/**
+ * iOS app: drag the sheet down from the top to close it; the photo stretches
+ * as you pull, and drifts slower than the text as you scroll (parallax).
+ */
+function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef: React.RefObject<HTMLDivElement | null>, onClose: () => void) {
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!isNative || !sheet) return;
+    const img = () => photoRef.current?.querySelector<HTMLElement>(".product-sheet__img") ?? null;
+    let startY: number | null = null;
+    let drag = 0;
+
+    const onScroll = () => {
+      const photo = img();
+      if (photo && motionOn() && startY === null) photo.style.transform = sheet.scrollTop > 0 ? `translateY(${sheet.scrollTop * 0.35}px)` : "";
+    };
+    const onStart = (e: TouchEvent) => {
+      startY = sheet.scrollTop <= 0 && e.touches.length === 1 ? e.touches[0]!.clientY : null;
+      drag = 0;
+      sheet.style.transition = "none";
+    };
+    const onMove = (e: TouchEvent) => {
+      if (startY === null) return;
+      const dy = e.touches[0]!.clientY - startY;
+      if (dy <= 0) {
+        if (drag > 0) sheet.style.transform = "";
+        drag = 0;
+        return;
+      }
+      // Pulling down from the top: the sheet follows instead of scrolling.
+      e.preventDefault();
+      drag = dy;
+      sheet.style.transform = `translateY(${dy}px)`;
+      const photo = img();
+      if (photo && motionOn()) {
+        photo.style.transformOrigin = "50% 100%";
+        photo.style.transform = `scale(${1 + Math.min(dy / 500, 0.18)})`;
+      }
+    };
+    const onEnd = () => {
+      if (startY === null) return;
+      startY = null;
+      const photo = img();
+      const smooth = motionOn();
+      sheet.style.transition = smooth ? "transform 280ms cubic-bezier(.2,.8,.2,1)" : "none";
+      if (photo) {
+        photo.style.transition = smooth ? "transform 280ms cubic-bezier(.2,.8,.2,1)" : "none";
+        photo.style.transform = "";
+      }
+      if (drag >= DISMISS_PX) {
+        sheet.style.transform = "translateY(100%)";
+        if (smooth) window.setTimeout(() => closeRef.current(), 260);
+        else closeRef.current();
+      } else sheet.style.transform = "";
+      drag = 0;
+    };
+
+    sheet.addEventListener("scroll", onScroll, { passive: true });
+    sheet.addEventListener("touchstart", onStart, { passive: true });
+    sheet.addEventListener("touchmove", onMove, { passive: false });
+    sheet.addEventListener("touchend", onEnd);
+    sheet.addEventListener("touchcancel", onEnd);
+    return () => {
+      sheet.removeEventListener("scroll", onScroll);
+      sheet.removeEventListener("touchstart", onStart);
+      sheet.removeEventListener("touchmove", onMove);
+      sheet.removeEventListener("touchend", onEnd);
+      sheet.removeEventListener("touchcancel", onEnd);
+    };
+  }, [sheetRef, photoRef]);
 }

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router";
 import { isActiveStatus, type Order, type OrderStatus } from "../../../shared/ordering";
-import { Alert, Spinner } from "../../components/Field";
+import { Alert } from "../../components/Field";
+import { OrdersSkeleton } from "../../components/Skeletons";
 import { ShopLayout } from "../../components/Shop";
 import { apiGet, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -36,27 +37,36 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(
+    () =>
+      apiGet<{ items: Order[] }>("/api/orders")
+        .then((r) => {
+          setOrders(r.items);
+          setError(null);
+        })
+        .catch((err: unknown) => setError(errorText(err))),
+    [],
+  );
+
   useEffect(() => {
-    if (!session) return;
-    apiGet<{ items: Order[] }>("/api/orders")
-      .then((r) => setOrders(r.items))
-      .catch((err: unknown) => setError(errorText(err)));
-  }, [session]);
+    if (session) void load();
+  }, [session, load]);
 
   if (loading) {
     return (
       <ShopLayout>
-        <Spinner />
+        <h1 className="page-title">{tr("طلباتي", "My orders")}</h1>
+        <OrdersSkeleton />
       </ShopLayout>
     );
   }
   if (!session) return <Navigate to="/login?next=%2Forders" replace />;
 
   return (
-    <ShopLayout>
+    <ShopLayout onRefresh={load}>
       <h1 className="page-title">{tr("طلباتي", "My orders")}</h1>
       {error && <Alert tone="error">{error}</Alert>}
-      {!orders && !error && <Spinner />}
+      {!orders && !error && <OrdersSkeleton />}
       {orders && orders.length === 0 && (
         <div className="empty">
           <img src="/brand/tent-espresso.png" alt="" className="empty__art" />

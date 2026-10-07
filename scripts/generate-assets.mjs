@@ -34,6 +34,8 @@ export const COLORS = {
   cupInk: [122, 78, 45],
   gold: [201, 162, 39],
   grey: [140, 134, 128],
+  coffee: [92, 58, 34],
+  crema: [196, 150, 98],
 };
 const rgb = (c, a = 1) => (a === 1 ? `rgb(${c.join(",")})` : `rgba(${c.join(",")},${a})`);
 
@@ -60,9 +62,13 @@ async function size(buf) {
 /**
  * One HOLLOW paper cup, inspired by the real cup: cream paper body, white lid,
  * HOLLOW wordmark and tent line-art printed in brown. Drawn in a 60x80 box.
+ * `open` leaves the lid off, shows the coffee and is a little shorter (the
+ * app's "ready" cup).
  */
-function cupSvg({ state, wordmark, tent }) {
-  const body = "M9 15 L51 15 L46.5 74 Q46.2 77 43 77 L17 77 Q13.8 77 13.5 74 Z";
+function cupSvg({ state, wordmark, tent, open = false }) {
+  const body = open
+    ? "M9 15 L51 15 L47.2 65 Q46.9 68 43.7 68 L16.3 68 Q13.1 68 12.8 65 Z"
+    : "M9 15 L51 15 L46.5 74 Q46.2 77 43 77 L17 77 Q13.8 77 13.5 74 Z";
   const id = Math.random().toString(36).slice(2, 8);
   if (state === "empty") {
     return `
@@ -79,12 +85,18 @@ function cupSvg({ state, wordmark, tent }) {
     <defs><clipPath id="c${id}"><path d="${body}"/></clipPath></defs>
     <path d="${body}" fill="${paper}" stroke="${rgb(COLORS.cupInk, 0.55 * ink)}" stroke-width="0.8" stroke-linejoin="round"/>
     <g clip-path="url(#c${id})" opacity="${ink}">
-      <rect x="0" y="66" width="60" height="12" fill="${rgb(COLORS.beige, 0.65)}"/>
+      <rect x="0" y="${open ? 60 : 66}" width="60" height="12" fill="${rgb(COLORS.beige, 0.65)}"/>
       <image href="${wordmark.uri}" x="15" y="24" width="30" height="${(30 * wordmark.h) / wordmark.w}" preserveAspectRatio="xMidYMid meet"/>
       <image href="${tent.uri}" x="11" y="38" width="38" height="${(38 * tent.h) / tent.w}" preserveAspectRatio="xMidYMid meet"/>
     </g>
-    <rect x="6" y="8" width="48" height="8" rx="3" fill="${lid}" stroke="${rgb(COLORS.cupInk, 0.45 * ink)}" stroke-width="0.8"/>
-    <rect x="8.5" y="5" width="43" height="4.5" rx="2" fill="${lid}" stroke="${rgb(COLORS.cupInk, 0.35 * ink)}" stroke-width="0.6"/>`;
+    ${
+      open
+        ? `<ellipse cx="30" cy="15.4" rx="21.4" ry="3.6" fill="${paper}" stroke="${rgb(COLORS.cupInk, 0.55 * ink)}" stroke-width="0.8"/>
+    <ellipse cx="30" cy="15.7" rx="19" ry="2.6" fill="${rgb(COLORS.coffee)}"/>
+    <ellipse cx="27" cy="15.2" rx="9" ry="0.9" fill="${rgb(COLORS.crema, 0.55)}"/>`
+        : `<rect x="6" y="8" width="48" height="8" rx="3" fill="${lid}" stroke="${rgb(COLORS.cupInk, 0.45 * ink)}" stroke-width="0.8"/>
+    <rect x="8.5" y="5" width="43" height="4.5" rx="2" fill="${lid}" stroke="${rgb(COLORS.cupInk, 0.35 * ink)}" stroke-width="0.6"/>`
+    }`;
 }
 
 /** Store-card strip: five cups showing progress (375x144 pt). */
@@ -219,6 +231,13 @@ async function main() {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="240" viewBox="0 0 60 80">${cupSvg({ state, wordmark: cupWordmark, tent: cupTent })}</svg>`;
     await writeFile(join(PUBLIC_WALLET, `cup-${state}.png`), await png(svg));
   }
+  // The open cup (no lid) that steams on a ready order, drawn larger for the order screen.
+  await writeFile(
+    join(PUBLIC_WALLET, "cup-open.png"),
+    await png(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="284" viewBox="0 0 60 71">${cupSvg({ state: "filled", wordmark: cupWordmark, tent: cupTent, open: true })}</svg>`,
+    ),
+  );
 
   let total = 0;
   const lines = Object.entries(passImages)

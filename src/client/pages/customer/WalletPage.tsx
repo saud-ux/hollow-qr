@@ -4,7 +4,8 @@ import { AddToWalletButton } from "../../components/AddToWalletButton";
 import { CustomerLayout } from "../../components/CustomerLayout";
 import { NotificationSettings } from "../../components/NotificationSettings";
 import { ConfirmDialog } from "../../components/Dialog";
-import { Alert, Spinner } from "../../components/Field";
+import { Alert } from "../../components/Field";
+import { CardSkeleton } from "../../components/Skeletons";
 import { PassPreview } from "../../components/PassPreview";
 import { TabBar } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
@@ -55,7 +56,7 @@ export function WalletPage() {
   if (loading) {
     return (
       <CustomerLayout dock={<TabBar />}>
-        <Spinner />
+        <CardSkeleton />
       </CustomerLayout>
     );
   }
@@ -103,8 +104,8 @@ export function WalletPage() {
   const emailError = meError instanceof ApiClientError && meError.code === "EMAIL_NOT_CONFIRMED";
 
   return (
-    <CustomerLayout dock={<TabBar />}>
-      {!me && !meError && <Spinner />}
+    <CustomerLayout dock={<TabBar />} onRefresh={refreshMe}>
+      {!me && !meError && <CardSkeleton />}
       {meError !== null && !emailError && <Alert tone="error">{errorText(meError)}</Alert>}
       {(notConfirmed || emailError) && (
         <Alert tone="warning">{tr("يرجى تأكيد بريدك الإلكتروني من الرسالة المرسلة إليك، ثم حدّث الصفحة.", "Please confirm your email from the message we sent, then refresh.")}</Alert>

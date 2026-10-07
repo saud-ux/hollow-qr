@@ -3,7 +3,8 @@ import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { isActiveStatus, MAX_RATING_COMMENT, type Order, type OrderStatus } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
 import { OffersPrompt } from "../../components/OffersPrompt";
-import { Alert, Spinner } from "../../components/Field";
+import { Alert } from "../../components/Field";
+import { TicketSkeleton } from "../../components/Skeletons";
 import { ShopLayout } from "../../components/Shop";
 import { apiGet, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -11,7 +12,8 @@ import { useCart } from "../../lib/cart";
 import { formatDateTime } from "../../lib/dates";
 import { riyals, useMenu } from "../../lib/menu";
 import { fulfillmentLabel, lineName, lineOptionName, statusLabel } from "../../lib/menuText";
-import { animateTracker } from "../../lib/motion";
+import { animateTracker, serveCup } from "../../lib/motion";
+import { successFeedback } from "../../lib/native";
 import { tr } from "../../lib/i18n";
 
 const POLL_MS = 8_000;
@@ -57,6 +59,24 @@ function headline(order: Order): string {
   }
 }
 
+/** The HOLLOW cup, steaming, on a ready order. */
+function ReadyCup() {
+  return (
+    <div className="ready-cup" aria-hidden="true">
+      <svg className="ready-cup__steam" viewBox="0 0 70 38">
+        <path d="M23 36 C17 28 29 20 23 8" />
+        <path d="M35 34 C29 24 41 16 35 2" />
+        <path d="M47 36 C41 28 53 20 47 8" />
+      </svg>
+      <img className="ready-cup__img" src="/wallet-preview/cup-open.png" alt="" width={66} height={78} />
+      <svg className="ready-cup__badge" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="14" />
+        <path d="M10 16.5 L14.2 20.5 L22 12" pathLength={1} />
+      </svg>
+    </div>
+  );
+}
+
 export function OrderPage() {
   const { id = "" } = useParams();
   const { session, loading, refreshMe } = useAuth();
@@ -96,7 +116,13 @@ export function OrderPage() {
     if (!order || stepIndex < 0) return;
     const prev = shownStep.current?.id === order.id ? shownStep.current.index : -1;
     shownStep.current = { id: order.id, index: stepIndex };
-    if (prev !== stepIndex) animateTracker(ticketRef.current, prev, stepIndex);
+    if (prev === stepIndex) return;
+    animateTracker(ticketRef.current, prev, stepIndex);
+    if (order.status === "ready") {
+      serveCup(ticketRef.current);
+      // Turned ready while the customer is watching: a tap they can feel.
+      if (prev >= 0) successFeedback();
+    }
   }, [order, stepIndex]);
 
   const active = order ? isActiveStatus(order.status) : false;
@@ -114,7 +140,7 @@ export function OrderPage() {
   if (loading) {
     return (
       <ShopLayout>
-        <Spinner />
+        <TicketSkeleton />
       </ShopLayout>
     );
   }
@@ -137,7 +163,7 @@ export function OrderPage() {
   if (!order) {
     return (
       <ShopLayout>
-        {error ? <Alert tone="error">{error}</Alert> : <Spinner />}
+        {error ? <Alert tone="error">{error}</Alert> : <TicketSkeleton />}
       </ShopLayout>
     );
   }
@@ -147,7 +173,7 @@ export function OrderPage() {
   const cancelled = order.status === "cancelled";
 
   return (
-    <ShopLayout>
+    <ShopLayout onRefresh={load}>
       <section ref={ticketRef} className={`ticket ${cancelled ? "ticket--cancelled" : ""}`} aria-live="polite">
         <div className="ticket__band">
           <span className="ticket__sheen" aria-hidden="true" />
@@ -157,6 +183,7 @@ export function OrderPage() {
           </span>
           <span className="ticket__status">{statusLabel(order.status)}</span>
         </div>
+        {order.status === "ready" && <ReadyCup />}
         <p className="ticket__headline">{headline(order)}</p>
         {!cancelled && (
           <ol className="steps">
