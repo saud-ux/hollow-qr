@@ -3898,3 +3898,120 @@ html.native[data-theme="dark"] .menu-section__title--best {
   border-color: var(--gold);
   color: #2b1e16;
 }
+
+/* ---------- Menu search (app): floating button, field above the keyboard ---------- */
+.search-pill-row {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 10px;
+  pointer-events: none;
+}
+.search-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--gold);
+  background: rgb(251 248 242 / 90%);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--espresso);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgb(43 30 22 / 22%);
+  cursor: pointer;
+  transition:
+    opacity 220ms ease,
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.search-pill.is-away {
+  opacity: 0;
+  transform: translateY(14px) scale(0.96);
+  pointer-events: none;
+}
+.search-bar {
+  position: fixed;
+  inset-inline: 0;
+  z-index: 30;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgb(244 237 224 / 95%);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid #e2d5bf;
+}
+.motion .search-bar {
+  animation: hollow-rise 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.search-bar__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--gold);
+  background: var(--paper);
+  color: var(--espresso);
+}
+.search-bar__field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  /* 16px or more: iOS doesn't zoom the page when the field is focused. */
+  font-size: 16px;
+  outline: none;
+}
+.search-bar__field input::-webkit-search-cancel-button {
+  display: none;
+}
+.search-bar__clear {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--beige);
+  color: var(--espresso);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.search-bar__cancel {
+  border: 0;
+  background: none;
+  color: var(--brown);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.search-results {
+  padding-bottom: 72px;
+}
+.search-results__empty {
+  margin: 0;
+}
+html.native[data-theme="dark"] .search-pill {
+  background: rgb(34 25 20 / 88%);
+  color: #f1e8da;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 45%);
+}
+html.native[data-theme="dark"] .search-bar {
+  background: rgb(23 17 13 / 95%);
+  border-top-color: #3a2c22;
+}
+html.sheet-open .search-pill-row {
+  visibility: hidden;
+}

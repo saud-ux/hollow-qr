@@ -2,13 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { isActiveStatus, isOrderable, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
 import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
+import { searchMenu } from "../../../shared/menu-search";
 import { Alert } from "../../components/Field";
+import { SearchField, SearchPill } from "../../components/MenuSearch";
 import { ProductSheet } from "../../components/ProductSheet";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
 import { apiGet } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { flyToCart, motionOn } from "../../lib/motion";
+import { isNative } from "../../lib/native";
 import { riyals, useMenu } from "../../lib/menu";
 import { closedNote } from "./hours";
 import { tr } from "../../lib/i18n";
@@ -32,6 +35,15 @@ export function MenuPage() {
   const { me, session, refreshMe } = useAuth();
   const { menu, error, reload } = useMenu();
   const sections = menu ? menuSections(menu.items) : [];
+  // iOS app: null while the search is closed; the menu filters as you type.
+  const [search, setSearch] = useState<string | null>(null);
+  const query = search?.trim() ?? "";
+  const results = menu && query ? searchMenu(menu.items, query) : null;
+  const closeSearch = useCallback(() => setSearch(null), []);
+  // New results start from the top.
+  useEffect(() => {
+    if (query) window.scrollTo({ top: 0 });
+  }, [query]);
   // Bumped by pull-to-refresh so the live order reloads too.
   const [refreshes, setRefreshes] = useState(0);
   const refresh = useCallback(() => {
@@ -39,9 +51,64 @@ export function MenuPage() {
     return Promise.all([reload(), session ? refreshMe() : null]);
   }, [reload, refreshMe, session]);
   return (
-    <ShopLayout bottom={<CartBar menu={menu} />} onRefresh={refresh}>
+    <ShopLayout
+      bottom={
+        <>
+          {isNative && menu && search === null && <SearchPill onOpen={() => setSearch("")} />}
+          <CartBar menu={menu} />
+        </>
+      }
+      onRefresh={refresh}
+    >
+      {search !== null && <SearchField value={search} onChange={setSearch} onClose={closeSearch} />}
+      {results && menu ? (
+        <SearchResults query={query} items={results} canOrder={menu.shop.isOpen} />
+      ) : (
+        <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} />
+      )}
+    </ShopLayout>
+  );
+}
+
+/** What the search found, in the same cards as the menu. */
+function SearchResults({ query, items, canOrder }: { query: string; items: MenuItem[]; canOrder: boolean }) {
+  return (
+    <section className="menu-section search-results" aria-live="polite">
+      <h2 className="menu-section__title">
+        {items.length === 0
+          ? tr(`لا نتائج لـ «${query}»`, `No results for “${query}”`)
+          : tr(`${items.length} ${items.length === 1 ? "نتيجة" : "نتائج"} لـ «${query}»`, `${items.length} ${items.length === 1 ? "result" : "results"} for “${query}”`)}
+      </h2>
+      {items.length === 0 ? (
+        <p className="muted search-results__empty">{tr("جرّب اسمًا ثانيًا، مثل «ماتشا» أو «V60».", "Try another name, like “Matcha” or “V60”.")}</p>
+      ) : (
+        <ul className="menu-grid">
+          {items.map((item) => (
+            <MenuCard key={item.id} item={item} canOrder={canOrder} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function FullMenu({
+  menu,
+  error,
+  sections,
+  refreshes,
+  card,
+}: {
+  menu: MenuResponse | null;
+  error: string | null;
+  sections: Section[];
+  refreshes: number;
+  card: Parameters<typeof LoyaltyBand>[0]["card"];
+}) {
+  return (
+    <>
       <LiveOrder refreshes={refreshes} />
-      <LoyaltyBand card={me?.card ?? null} />
+      <LoyaltyBand card={card} />
       {error && !menu && <Alert tone="error">{error}</Alert>}
       {!menu && !error && <MenuSkeleton />}
       {menu && !menu.shop.isOpen && (
@@ -64,7 +131,7 @@ export function MenuPage() {
             </ul>
           </section>
         ))}
-    </ShopLayout>
+    </>
   );
 }
 
