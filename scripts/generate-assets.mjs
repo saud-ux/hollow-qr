@@ -204,6 +204,13 @@ async function main() {
       await writeFile(join(PUBLIC_WALLET, name.replace("@2x", "")), buf);
     }
   }
+  // The app cuts each cup out of a strip and stamps it in. They come from this
+  // plain strip (five cups, no reward glow) so no glow is cut out with the cup;
+  // the full reward strip then fades in over them.
+  await writeFile(
+    join(PUBLIC_WALLET, "strip-5-plain.png"),
+    await png(stripSvg({ filled: 5, variant: "progress", wordmark: cupWordmark, tent: cupTent, tentBg: tentCream, scale: 2 })),
+  );
   await writeFile(join(PUBLIC_WALLET, "logo.png"), passImages["logo@2x.png"]);
   await writeFile(join(PUBLIC_WALLET, "icon.png"), passImages["icon@2x.png"]);
 

@@ -28,7 +28,8 @@ function writeSeen(memberId: string, count: number) {
 
 /**
  * The Wallet strip with the customer's cups. In the iOS app each filled cup
- * is its own layer so it can stamp onto the card:
+ * is its own layer (cut from a plain five-cup strip) so it can stamp onto the
+ * card; a full card then glows gold as the reward strip fades in:
  *   - "all": every cup stamps in when the card opens (My card).
  *   - "new": only cups earned since this phone last showed the card (menu band).
  */
@@ -66,7 +67,7 @@ export function CupStrip({
       {CUP_CENTERS.slice(0, cups).map((center, i) => (
         <img
           key={i}
-          src={`/wallet-preview/strip-${i + 1}.png`}
+          src="/wallet-preview/strip-5-plain.png"
           alt=""
           className="cup-strip__cup"
           style={{
@@ -75,6 +76,8 @@ export function CupStrip({
           }}
         />
       ))}
+      {/* Free drink: the full reward strip (gold glow, sparkles) over the stamped cups. */}
+      {cups === MAX_STAMPS && <img src={`/wallet-preview/strip-${MAX_STAMPS}.png`} alt="" className="cup-strip__reward" />}
     </div>
   );
 }

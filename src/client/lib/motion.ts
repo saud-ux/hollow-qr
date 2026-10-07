@@ -179,6 +179,12 @@ export function stampCups(root: Element | null, from: number, to: number): void 
   if (!root || !motionOn() || to <= from) return;
   const cups = root.querySelectorAll(".cup-strip__cup");
   const card = root.closest(".pass, .band") ?? root;
+  // A full card: once the last cup lands, the gold glow and sparkles fade in.
+  const reward = root.querySelector(".cup-strip__reward");
+  if (reward) {
+    const after = 250 + (to - from - 1) * 380 + 420;
+    void play(reward, [{ opacity: 0 }, { opacity: 1 }], { duration: 900, easing: "cubic-bezier(.2,.8,.2,1)", delay: after });
+  }
   for (let i = from; i < to; i++) {
     const delay = 250 + (i - from) * 380;
     void play(
