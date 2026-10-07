@@ -3,7 +3,17 @@
  * (PostgREST + RPC) with the service-role key; tests use a PGlite-backed
  * implementation that runs the very same SQL migrations.
  */
-import type { FulfillmentType, MenuCategory, MenuOption, Order, OrderStatus, ShopSettings } from "../../shared/ordering";
+import type {
+  Broadcast,
+  FulfillmentType,
+  MenuCategory,
+  MenuOption,
+  NotificationPrefs,
+  Order,
+  OrderStatus,
+  RatingOverview,
+  ShopSettings,
+} from "../../shared/ordering";
 import type { AppRole, LoyaltyAction, MembershipStatus } from "../../shared/types";
 
 export interface ProfileRow {
@@ -145,6 +155,7 @@ export interface MenuItemRow {
   sortOrder: number;
   optionLabel: string | null;
   options: MenuOption[];
+  calories: number | null;
 }
 
 export type MenuItemInput = Omit<MenuItemRow, "id" | "imagePath">;
@@ -176,6 +187,18 @@ export interface OrderRpcResult {
   menu_item_id?: string;
   loyalty_changed?: boolean;
   pass_serial?: string | null;
+}
+
+export type StaffAlertKind = "new_orders" | "daily_summary";
+
+export type RateOrderResult = "ok" | "NOT_FOUND" | "NOT_COMPLETED" | "ALREADY_RATED";
+
+export interface OrderSummary {
+  completed: number;
+  cancelled: number;
+  open: number;
+  revenueHalalas: number;
+  topItem: { nameAr: string; quantity: number } | null;
 }
 
 export interface ListOrdersParams {
@@ -227,6 +250,27 @@ export interface Repository {
   unregisterPushDevice(userId: string, token: string): Promise<void>;
   pushTokensForOrder(orderId: string): Promise<string[]>;
   deletePushToken(token: string): Promise<void>;
+  /** Devices of staff/admins who want new-order alerts, or of admins who want the daily summary. */
+  staffPushTokens(kind: StaffAlertKind): Promise<string[]>;
+  /** Devices that opted in to offers, in token order (`after` is the last token of the previous batch). */
+  offerPushTokens(after: string | null, limit: number): Promise<string[]>;
+  offerPushCount(): Promise<number>;
+
+  getNotificationPrefs(userId: string): Promise<NotificationPrefs>;
+  setNotificationPrefs(userId: string, patch: Partial<NotificationPrefs>): Promise<NotificationPrefs>;
+
+  createBroadcast(input: { title: string; body: string; sentBy: string; recipients: number }): Promise<Broadcast>;
+  getBroadcast(id: string): Promise<Broadcast | null>;
+  setBroadcastSent(id: string, sent: number): Promise<void>;
+  listBroadcasts(limit: number): Promise<Broadcast[]>;
+
+  rateOrder(customerId: string, orderId: string, rating: number, comment: string | null): Promise<RateOrderResult>;
+  ratingOverview(limit: number): Promise<RatingOverview>;
+
+  /** Orders created in [from, to), for the end-of-day summary. */
+  orderSummary(from: Date, to: Date): Promise<OrderSummary>;
+  /** True the first time it is called for a business day (YYYY-MM-DD). */
+  claimDailySummary(businessDate: string): Promise<boolean>;
 
   /**
    * App Store account deletion: anonymizes the customer's data

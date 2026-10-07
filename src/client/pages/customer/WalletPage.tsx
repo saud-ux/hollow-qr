@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { AddToWalletButton } from "../../components/AddToWalletButton";
 import { CustomerLayout } from "../../components/CustomerLayout";
+import { NotificationSettings } from "../../components/NotificationSettings";
 import { ConfirmDialog } from "../../components/Dialog";
 import { Alert, Spinner } from "../../components/Field";
 import { PassPreview } from "../../components/PassPreview";
@@ -130,6 +131,13 @@ export function WalletPage() {
             </div>
           )}
           <p className="muted small center">اعرض رمز QR للموظف عند الدفع.</p>
+        </>
+      )}
+      {isNative && me && (
+        <>
+          <h2 className="settings__title">الإشعارات</h2>
+          <NotificationSettings role={me.user.role} />
+          <h2 className="settings__title">الحساب</h2>
         </>
       )}
       <nav className="settings" aria-label="الحساب">

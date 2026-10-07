@@ -20,6 +20,11 @@ const pushTokenSchema = z.object({
     .regex(/^[0-9a-f]{64,200}$/),
 });
 
+const prefsSchema = z
+  .object({ offers: z.boolean(), newOrders: z.boolean(), dailySummary: z.boolean() })
+  .partial()
+  .refine((p) => Object.keys(p).length > 0, "nothing to update");
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function ownAccount(c: AppContext): Promise<AccountRow> {
@@ -125,6 +130,17 @@ export const meRoutes = new Hono<HonoEnv>()
     const { token } = await parseJsonBody(c, pushTokenSchema);
     await repoOf(c).registerPushDevice(c.get("user").id, token);
     return c.json({ ok: true });
+  })
+
+  // Push switches. Offers are opt-in; staff alerts only matter for staff/admin.
+  .get("/me/notification-prefs", requireUser, rateLimit("api", "user"), async (c) => {
+    return c.json({ prefs: await repoOf(c).getNotificationPrefs(c.get("user").id) });
+  })
+
+  .put("/me/notification-prefs", requireUser, rateLimit("api", "user"), async (c) => {
+    const patch = await parseJsonBody(c, prefsSchema);
+    const prefs = await repoOf(c).setNotificationPrefs(c.get("user").id, patch);
+    return c.json({ prefs });
   })
 
   // Called on sign-out so the device stops receiving this user's updates.

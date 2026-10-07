@@ -5,6 +5,7 @@
  * /api/* and /v1/* (Apple Wallet web service) reach this code — see
  * `run_worker_first` in wrangler.jsonc.
  */
+import { BUSINESS_TIME_ZONE } from "../shared/constants";
 import { createApp } from "./app";
 import { SupabaseAuthVerifier } from "./auth/verifier";
 import { loadConfig } from "./config";
@@ -13,6 +14,7 @@ import type { AppDeps } from "./http/context";
 import { WorkersRateLimiter } from "./http/rate-limit";
 import { createLogger } from "./lib/logger";
 import { ApnsTokenSender, DisabledAppPushSender, MockAppPushSender, type AppPushSender } from "./push/app-push";
+import { runDailySummary } from "./push/daily-summary";
 import type { Bindings, ExecutionContextLike } from "./platform";
 import { DisabledPushNotifier, MockPushNotifier, MtlsApnsNotifier, type WalletPushNotifier } from "./wallet/apns";
 import { WalletService, WebCryptoPassGenerator } from "./wallet/service";
@@ -86,5 +88,17 @@ export default {
     }
     const app = createApp(buildDeps(env));
     return app.fetch(request, env, ctx as never);
+  },
+
+  /** Hourly cron (wrangler.jsonc "triggers"): the end-of-day summary for admins. */
+  scheduled(_event: unknown, env: Bindings, ctx: ExecutionContextLike): void {
+    const deps = buildDeps(env);
+    const { repo, appPush } = deps;
+    if (!repo) return;
+    ctx.waitUntil(
+      runDailySummary({ repo, appPush, logger }, new Date(), BUSINESS_TIME_ZONE).catch((err: unknown) => {
+        logger.error("daily_summary.failed", { error: err instanceof Error ? err.message : "unknown" });
+      }),
+    );
   },
 };

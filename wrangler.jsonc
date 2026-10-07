@@ -39,6 +39,10 @@
     "DUPLICATE_WINDOW_SECONDS": "60"
   },
 
+  // Hourly: sends the end-of-day summary to admins once the shop has closed
+  // (src/server/push/daily-summary.ts decides whether a shift just ended).
+  "triggers": { "crons": ["5 * * * *"] },
+
   // Workers Rate Limiting bindings (optional; the code falls back to a
   // per-isolate limiter if they are absent). namespace_id is any unique
   // integer string per limiter in your account.

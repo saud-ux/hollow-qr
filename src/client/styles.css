@@ -3180,3 +3180,162 @@ html.sheet-open {
 html.native[data-theme="dark"] :is(.product-sheet__desc, .origin__text small) {
   color: #b3a190;
 }
+
+/* ---------- Calories (SFDA labelling) ---------- */
+.kcal {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--label);
+  letter-spacing: 0;
+}
+
+/* ---------- Order rating ---------- */
+.rate {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.rate__title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.rate__stars {
+  display: flex;
+  gap: 6px;
+}
+.rate__star {
+  background: none;
+  border: 0;
+  padding: 4px;
+  color: var(--sand);
+  cursor: pointer;
+  line-height: 0;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.rate__star.is-on {
+  color: var(--gold);
+}
+button.rate__star:active {
+  transform: scale(0.88);
+}
+.rate__stars--static .rate__star {
+  padding: 2px;
+  cursor: default;
+}
+.rate__label {
+  margin: 0;
+  font-weight: 700;
+  color: var(--label);
+}
+.rate__comment {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border: 2px solid var(--sand);
+  border-radius: 12px;
+  background: var(--paper);
+  color: inherit;
+  resize: vertical;
+}
+.rate--done p {
+  margin: 0;
+}
+
+/* ---------- Notification switches (app settings) ---------- */
+.settings__title {
+  margin: 18px 4px 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--label);
+}
+.settings__row--switch {
+  cursor: pointer;
+}
+.settings__row--switch small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--label);
+}
+.switch {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 50px;
+  height: 30px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--sand);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  inset-inline-start: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  transition: inset-inline-start 0.2s ease;
+}
+.switch:checked {
+  background: #34c759;
+}
+.switch:checked::after {
+  inset-inline-start: 23px;
+}
+.switch:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ---------- Admin: offers and ratings ---------- */
+.broadcasts,
+.ratings {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.broadcasts li,
+.ratings li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid #e2d5bf;
+  border-radius: 12px;
+}
+.ratings li p {
+  margin: 4px 0 0;
+}
+.ratings__summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+}
+.ratings__avg {
+  font-size: 2rem;
+  font-weight: 800;
+}
+.ratings__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.ratings__stars {
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+.ratings__dim {
+  color: var(--sand);
+}

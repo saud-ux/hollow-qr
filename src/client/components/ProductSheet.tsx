@@ -77,7 +77,10 @@ export function ProductSheet({ item, canOrder, onClose }: { item: MenuItem; canO
                 </span>
               )}
             </div>
-            <span className="product-sheet__price">{riyals(item.priceHalalas)}</span>
+            <span className="product-sheet__price">
+              {riyals(item.priceHalalas)}
+              {item.calories !== null && <small className="kcal">{item.calories} سعرة حرارية</small>}
+            </span>
           </div>
           {item.descriptionAr && <p className="product-sheet__desc">{item.descriptionAr}</p>}
 

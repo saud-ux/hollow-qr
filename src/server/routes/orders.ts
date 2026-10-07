@@ -4,6 +4,7 @@ import { BUSINESS_TIME_ZONE } from "../../shared/constants";
 import {
   MAX_LINE_QUANTITY,
   MAX_ORDER_LINES,
+  MAX_RATING_COMMENT,
   MENU_IMAGE_BUCKET,
   normalizeSaudiPhone,
   type MenuItem,
@@ -16,7 +17,17 @@ import { ApiError, type ErrorStatus } from "../http/errors";
 import { repoOf, runInBackground, type AppContext, type HonoEnv } from "../http/context";
 import { rateLimit, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
-import { notifyOrderStatus } from "../push/order-notifications";
+import { notifyOrderStatus, notifyStaffNewOrder } from "../push/order-notifications";
+
+const rateSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z
+    .string()
+    .trim()
+    .max(MAX_RATING_COMMENT)
+    .optional()
+    .transform((v) => v || undefined),
+});
 
 export function menuImageUrl(config: Pick<AppConfig, "supabaseUrl">, path: string | null): string | null {
   if (!path || !config.supabaseUrl) return null;
@@ -37,6 +48,7 @@ export function toMenuItem(config: Pick<AppConfig, "supabaseUrl">, row: MenuItem
     sortOrder: row.sortOrder,
     optionLabel: row.optionLabel,
     options: row.options,
+    calories: row.calories,
   };
 }
 
@@ -162,8 +174,9 @@ export const orderRoutes = new Hono<HonoEnv>()
     const order = await ownOrder(c, result.order_id);
     if (!result.replayed) {
       logger.info("order.placed", { orderId: result.order_id, fulfillment: body.fulfillment });
-      // The customer's phone confirms the order was received.
-      runInBackground(c, notifyOrderStatus({ repo, appPush: c.get("deps").appPush, logger }, order));
+      // The customer's phone confirms the order was received; staff phones ring.
+      const push = { repo, appPush: c.get("deps").appPush, logger };
+      runInBackground(c, notifyOrderStatus(push, order).then(() => notifyStaffNewOrder(push, order)));
     }
     return c.json({ order }, result.replayed ? 200 : 201);
   })
@@ -184,5 +197,16 @@ export const orderRoutes = new Hono<HonoEnv>()
     const result = await repoOf(c).customerOrderAction(c.get("user").id, id, action);
     if (!result.ok) throwOrderError(result);
     c.get("deps").logger.info(`order.customer_${action}`, { orderId: id });
+    return c.json({ order: await ownOrder(c, id) });
+  })
+
+  // The customer rates a completed order once (1–5 stars, optional comment).
+  .post("/orders/:id/rate", requireUser, rateLimit("api", "user"), async (c) => {
+    const id = parseWith(uuid, c.req.param("id"));
+    const body = await parseJsonBody(c, rateSchema);
+    const result = await repoOf(c).rateOrder(c.get("user").id, id, body.rating, body.comment ?? null);
+    if (result === "NOT_FOUND") throw new ApiError(404, "ORDER_NOT_FOUND");
+    if (result !== "ok") throw new ApiError(409, result);
+    c.get("deps").logger.info("order.rated", { orderId: id, rating: body.rating });
     return c.json({ order: await ownOrder(c, id) });
   });

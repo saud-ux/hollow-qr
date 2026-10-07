@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { BUSINESS_TIME_ZONE, DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../../shared/constants";
 import { formatRiyadh, normalizeEmail } from "../../shared/format";
+import { BROADCAST_BODY_MAX, BROADCAST_TITLE_MAX } from "../../shared/ordering";
 import type { Paginated, TransactionItem } from "../../shared/types";
 import { ApiError } from "../http/errors";
 import { repoOf, type HonoEnv } from "../http/context";
@@ -9,8 +10,16 @@ import { rateLimit, requireRole, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
 import { toCsv } from "../lib/csv";
 import { toDashboardStats, toStaffMember, toTransactionItem } from "../loyalty/presenters";
+import { sendToTokens } from "../push/order-notifications";
 
 const EXPORT_PAGE = 1000;
+const BROADCAST_BATCH = 35;
+const BROADCAST_COOLDOWN_MS = 10 * 60 * 1000;
+
+const broadcastSchema = z.object({
+  title: z.string().trim().min(1).max(BROADCAST_TITLE_MAX),
+  body: z.string().trim().min(1).max(BROADCAST_BODY_MAX),
+});
 const EXPORT_MAX_PAGES = 40; // 40k rows; stays well under Workers subrequest limits
 
 export const passwordSchema = z
@@ -180,4 +189,53 @@ export const adminRoutes = new Hono<HonoEnv>()
       rows,
     );
     return csvResponse(`hollow-transactions-${stamp(c.get("deps").now())}.csv`, csv);
+  })
+
+  .get("/ratings", async (c) => {
+    return c.json(await repoOf(c).ratingOverview(30));
+  })
+
+  // Offers: the admin writes a message, then the page sends it in batches
+  // (one request per batch keeps each Worker call under the subrequest limit).
+  .get("/broadcasts", async (c) => {
+    const repo = repoOf(c);
+    const [items, recipients] = await Promise.all([repo.listBroadcasts(5), repo.offerPushCount()]);
+    return c.json({ items, recipients });
+  })
+
+  .post("/broadcasts", async (c) => {
+    const { title, body } = await parseJsonBody(c, broadcastSchema);
+    const repo = repoOf(c);
+    const { now } = c.get("deps");
+    const [last] = await repo.listBroadcasts(1);
+    if (last && now().getTime() - new Date(last.createdAt).getTime() < BROADCAST_COOLDOWN_MS) {
+      throw new ApiError(429, "BROADCAST_TOO_SOON");
+    }
+    const recipients = await repo.offerPushCount();
+    if (recipients === 0) throw new ApiError(409, "NO_RECIPIENTS");
+    const broadcast = await repo.createBroadcast({ title, body, sentBy: c.get("user").id, recipients });
+    c.get("deps").logger.info("broadcast.created", { id: broadcast.id, recipients });
+    return c.json({ broadcast }, 201);
+  })
+
+  .post("/broadcasts/:id/send", async (c) => {
+    const id = parseWith(z.uuid(), c.req.param("id"));
+    const { after } = await parseJsonBody(c, z.object({ after: z.string().regex(/^[0-9a-f]{64,200}$/).nullable() }));
+    const deps = c.get("deps");
+    const repo = repoOf(c);
+    const broadcast = await repo.getBroadcast(id);
+    if (!broadcast) throw new ApiError(404, "NOT_FOUND");
+    if (deps.appPush.kind === "disabled") throw new ApiError(503, "CONFIG_ERROR");
+    const tokens = await repo.offerPushTokens(after, BROADCAST_BATCH);
+    const delivered = await sendToTokens({ repo, appPush: deps.appPush, logger: deps.logger }, tokens, {
+      title: broadcast.title,
+      body: broadcast.body,
+      collapseId: `offer-${broadcast.id}`,
+      data: { link: "menu" },
+    });
+    const sent = broadcast.sent + delivered;
+    await repo.setBroadcastSent(id, sent);
+    const next = tokens.length === BROADCAST_BATCH ? tokens[tokens.length - 1]! : null;
+    if (!next) deps.logger.info("broadcast.sent", { id, sent, recipients: broadcast.recipients });
+    return c.json({ sent, next });
   });

@@ -1,6 +1,16 @@
 /** Row mappers shared by every Repository implementation (snake_case -> camelCase). */
-import type { DayHours, LoyaltyResult, MenuOption, Order, OrderLine, ShopSettings } from "../../shared/ordering";
-import type { AccountRow, MenuItemRow, ProfileRow, SearchRow, TransactionRow } from "./repository";
+import type {
+  Broadcast,
+  DayHours,
+  LoyaltyResult,
+  MenuOption,
+  NotificationPrefs,
+  Order,
+  OrderLine,
+  RatingOverview,
+  ShopSettings,
+} from "../../shared/ordering";
+import type { AccountRow, MenuItemRow, OrderSummary, ProfileRow, RateOrderResult, SearchRow, TransactionRow } from "./repository";
 
 type Raw = Record<string, unknown>;
 
@@ -124,6 +134,7 @@ export function mapMenuItem(r: Raw): MenuItemRow {
     sortOrder: num(r.sort_order),
     optionLabel: strOrNull(r.option_label),
     options: mapOptions(r.options),
+    calories: numOrNull(r.calories),
   };
 }
 
@@ -141,6 +152,7 @@ export function menuItemColumns(patch: Partial<MenuItemRow>): Raw {
   if (patch.sortOrder !== undefined) out.sort_order = patch.sortOrder;
   if (patch.optionLabel !== undefined) out.option_label = patch.optionLabel;
   if (patch.options !== undefined) out.options = optionsColumn(patch.options);
+  if (patch.calories !== undefined) out.calories = patch.calories;
   return out;
 }
 
@@ -229,5 +241,66 @@ export function mapOrder(r: Raw): Order {
     loyaltyResult: mapLoyaltyResult(r.loyalty_result),
     createdAt: iso(r.created_at),
     items: (Array.isArray(r.items) ? (r.items as Raw[]) : []).map(mapOrderLine),
+    rating: numOrNull(r.rating),
+    ratingComment: strOrNull(r.rating_comment),
+    ratedAt: isoOrNull(r.rated_at),
   };
+}
+
+export function mapBroadcast(r: Raw): Broadcast {
+  return {
+    id: str(r.id),
+    title: str(r.title),
+    body: str(r.body),
+    recipients: num(r.recipients),
+    sent: num(r.sent),
+    createdAt: iso(r.created_at),
+  };
+}
+
+export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = { offers: false, newOrders: true, dailySummary: true };
+
+export function mapNotificationPrefs(r: Raw | null | undefined): NotificationPrefs {
+  if (!r) return { ...DEFAULT_NOTIFICATION_PREFS };
+  return { offers: Boolean(r.offers), newOrders: Boolean(r.new_orders), dailySummary: Boolean(r.daily_summary) };
+}
+
+export function notificationPrefsColumns(patch: Partial<NotificationPrefs>): Raw {
+  const out: Raw = {};
+  if (patch.offers !== undefined) out.offers = patch.offers;
+  if (patch.newOrders !== undefined) out.new_orders = patch.newOrders;
+  if (patch.dailySummary !== undefined) out.daily_summary = patch.dailySummary;
+  return out;
+}
+
+export function mapRatingOverview(r: Raw): RatingOverview {
+  return {
+    count: num(r.count),
+    average: numOrNull(r.average),
+    items: (Array.isArray(r.items) ? (r.items as Raw[]) : []).map((i) => ({
+      orderNumber: num(i.order_number),
+      customerName: str(i.customer_name),
+      rating: num(i.rating),
+      comment: strOrNull(i.rating_comment),
+      ratedAt: iso(i.rated_at),
+    })),
+  };
+}
+
+export function mapOrderSummary(r: Raw): OrderSummary {
+  const top = r.top_item as Raw | null | undefined;
+  return {
+    completed: num(r.completed),
+    cancelled: num(r.cancelled),
+    open: num(r.open),
+    revenueHalalas: num(r.revenue_halalas),
+    topItem: top ? { nameAr: str(top.name_ar), quantity: num(top.quantity) } : null,
+  };
+}
+
+export const RATE_ORDER_CODES = ["NOT_FOUND", "NOT_COMPLETED", "ALREADY_RATED"] as const;
+
+export function rateOrderResult(r: { ok: boolean; code?: string }): RateOrderResult {
+  if (r.ok) return "ok";
+  return (RATE_ORDER_CODES as readonly string[]).includes(r.code ?? "") ? (r.code as RateOrderResult) : "NOT_FOUND";
 }

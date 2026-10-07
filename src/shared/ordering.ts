@@ -33,6 +33,8 @@ export interface MenuItem {
   optionLabel: string | null;
   /** Empty when the item has no choice. */
   options: MenuOption[];
+  /** Kcal per serving, shown on the menu. */
+  calories: number | null;
 }
 
 export const MAX_MENU_OPTIONS = 12;
@@ -114,7 +116,38 @@ export interface Order {
   loyaltyResult: LoyaltyResult | null;
   createdAt: string;
   items: OrderLine[];
+  /** 1–5 stars, set by the customer once the order is completed. */
+  rating: number | null;
+  ratingComment: string | null;
+  ratedAt: string | null;
 }
+
+export const MAX_RATING_COMMENT = 300;
+
+export interface RatingOverview {
+  count: number;
+  average: number | null;
+  items: { orderNumber: number; customerName: string; rating: number; comment: string | null; ratedAt: string }[];
+}
+
+/** Per-user push switches. Offers are opt-in; the staff ones only apply to staff/admin. */
+export interface NotificationPrefs {
+  offers: boolean;
+  newOrders: boolean;
+  dailySummary: boolean;
+}
+
+export interface Broadcast {
+  id: string;
+  title: string;
+  body: string;
+  recipients: number;
+  sent: number;
+  createdAt: string;
+}
+
+export const BROADCAST_TITLE_MAX = 40;
+export const BROADCAST_BODY_MAX = 180;
 
 export interface PlaceOrderRequest {
   items: { menuItemId: string; quantity: number; note?: string; optionId?: string }[];
