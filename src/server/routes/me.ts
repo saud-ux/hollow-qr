@@ -20,6 +20,8 @@ const pushTokenSchema = z.object({
     .regex(/^[0-9a-f]{64,200}$/),
 });
 
+const registerDeviceSchema = pushTokenSchema.extend({ lang: z.enum(["ar", "en"]).optional().default("ar") });
+
 const prefsSchema = z
   .object({ offers: z.boolean(), newOrders: z.boolean(), dailySummary: z.boolean() })
   .partial()
@@ -127,8 +129,8 @@ export const meRoutes = new Hono<HonoEnv>()
 
   // iOS app: register this device for order-status notifications.
   .post("/me/push-devices", requireUser, rateLimit("api", "user"), async (c) => {
-    const { token } = await parseJsonBody(c, pushTokenSchema);
-    await repoOf(c).registerPushDevice(c.get("user").id, token);
+    const { token, lang } = await parseJsonBody(c, registerDeviceSchema);
+    await repoOf(c).registerPushDevice(c.get("user").id, token, lang);
     return c.json({ ok: true });
   })
 

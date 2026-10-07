@@ -34,6 +34,7 @@ import type {
   OrderSummary,
   PlaceOrderParams,
   ProfileRow,
+  PushLang,
   PushTarget,
   RateOrderResult,
   RemoveStaffResult,
@@ -48,7 +49,7 @@ type DbError = { message: string; code?: string } | null;
 type DbResult = { data: unknown; error: DbError; count?: number | null };
 
 const MENU_SELECT =
-  "id, name_ar, name_en, description_ar, category, price_halalas, image_path, is_available, is_archived, sort_order, option_label, options, calories";
+  "id, name_ar, name_en, description_ar, category, price_halalas, image_path, is_available, is_archived, sort_order, option_label, options, calories, description_en, option_label_en";
 const SETTINGS_SELECT =
   "ordering_paused, pickup_enabled, curbside_enabled, delivery_enabled, delivery_fee_halalas, delivery_min_order_halalas, weekly_hours";
 
@@ -331,10 +332,10 @@ export class SupabaseRepository implements Repository {
     return ((data ?? []) as Raw[]).map(mapOrder);
   }
 
-  async registerPushDevice(userId: string, token: string): Promise<void> {
+  async registerPushDevice(userId: string, token: string, lang: PushLang): Promise<void> {
     const { error } = (await this.db
       .from("push_devices")
-      .upsert({ token, user_id: userId, platform: "ios" }, { onConflict: "token" })) as DbResult;
+      .upsert({ token, user_id: userId, platform: "ios", lang }, { onConflict: "token" })) as DbResult;
     if (error) throw new RepositoryError("registerPushDevice", error);
   }
 
@@ -343,14 +344,14 @@ export class SupabaseRepository implements Repository {
     if (error) throw new RepositoryError("unregisterPushDevice", error);
   }
 
-  async pushTokensForOrder(orderId: string): Promise<string[]> {
+  async pushTokensForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]> {
     const { data, error } = (await this.db.from("orders").select("customer_id").eq("id", orderId).maybeSingle()) as DbResult;
     if (error) throw new RepositoryError("pushTokensForOrder:order", error);
     const customerId = (data as Raw | null)?.customer_id;
     if (typeof customerId !== "string") return [];
-    const res = (await this.db.from("push_devices").select("token").eq("user_id", customerId).limit(20)) as DbResult;
+    const res = (await this.db.from("push_devices").select("token, lang").eq("user_id", customerId).limit(20)) as DbResult;
     if (res.error) throw new RepositoryError("pushTokensForOrder", res.error);
-    return ((res.data ?? []) as Raw[]).map((r) => String(r.token));
+    return ((res.data ?? []) as Raw[]).map((r) => ({ token: String(r.token), lang: r.lang === "en" ? "en" : "ar" }));
   }
 
   async deletePushToken(token: string): Promise<void> {

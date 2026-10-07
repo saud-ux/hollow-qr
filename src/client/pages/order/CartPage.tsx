@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import {
-  FULFILLMENT_LABELS_AR,
   isOrderable,
   normalizeSaudiPhone,
   type FulfillmentType,
@@ -18,7 +17,9 @@ import { useCart } from "../../lib/cart";
 import { newIdempotencyKey } from "../../lib/hooks";
 import { riyals, useMenu } from "../../lib/menu";
 import { withNext } from "../../lib/next";
+import { fulfillmentLabel, itemName, optionLabel, optionName } from "../../lib/menuText";
 import { closedNote } from "./hours";
+import { tr } from "../../lib/i18n";
 
 const PHONE_KEY = "hollow.phone";
 const CAR_KEY = "hollow.car";
@@ -112,7 +113,7 @@ export function CartPage() {
 
   function locate() {
     if (!("geolocation" in navigator)) {
-      setLocError("المتصفح لا يدعم تحديد الموقع");
+      setLocError(tr("المتصفح لا يدعم تحديد الموقع", "This browser can't share your location"));
       return;
     }
     setLocating(true);
@@ -123,7 +124,7 @@ export function CartPage() {
         setLocating(false);
       },
       () => {
-        setLocError("تعذّر تحديد موقعك. اكتب العنوان بالتفصيل");
+        setLocError(tr("تعذّر تحديد موقعك. اكتب العنوان بالتفصيل", "Couldn't find your location. Please write the full address"));
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 15_000 },
@@ -134,9 +135,9 @@ export function CartPage() {
     e.preventDefault();
     const normalizedPhone = normalizeSaudiPhone(phone);
     const next: Record<string, string | null> = {
-      phone: normalizedPhone ? null : "اكتب رقم جوال صحيح (مثال: 0512345678)",
-      car: fulfillment === "curbside" && !car.trim() ? "اكتب نوع السيارة ولونها" : null,
-      address: fulfillment === "delivery" && !address.trim() ? "اكتب عنوان التوصيل" : null,
+      phone: normalizedPhone ? null : tr("اكتب رقم جوال صحيح (مثال: 0512345678)", "Enter a valid mobile number (e.g. 0512345678)"),
+      car: fulfillment === "curbside" && !car.trim() ? tr("اكتب نوع السيارة ولونها", "Write your car's make and color") : null,
+      address: fulfillment === "delivery" && !address.trim() ? tr("اكتب عنوان التوصيل", "Write the delivery address") : null,
     };
     setErrors(next);
     setFormError(null);
@@ -184,7 +185,7 @@ export function CartPage() {
   if (!menu) {
     return (
       <ShopLayout>
-        <h1 className="page-title">السلة</h1>
+        <h1 className="page-title">{tr("السلة", "Cart")}</h1>
         {menuError ? <Alert tone="error">{menuError}</Alert> : <Spinner />}
       </ShopLayout>
     );
@@ -193,13 +194,13 @@ export function CartPage() {
   if (lines.length === 0) {
     return (
       <ShopLayout>
-        <h1 className="page-title">السلة</h1>
+        <h1 className="page-title">{tr("السلة", "Cart")}</h1>
         <div className="empty">
           <img src="/brand/tent-espresso.png" alt="" className="empty__art" />
-          <h2 className="empty__title">سلتك فارغة</h2>
-          <p className="empty__sub">اختر مشروبك من المنيو ونجهّزه لك.</p>
+          <h2 className="empty__title">{tr("سلتك فارغة", "Your cart is empty")}</h2>
+          <p className="empty__sub">{tr("اختر مشروبك من المنيو ونجهّزه لك.", "Pick your drink from the menu and we'll make it for you.")}</p>
           <Link to="/menu" className="btn btn--primary">
-            تصفّح المنيو
+            {tr("تصفّح المنيو", "Browse the menu")}
           </Link>
         </div>
       </ShopLayout>
@@ -208,10 +209,10 @@ export function CartPage() {
 
   return (
     <ShopLayout>
-      <h1 className="page-title">السلة</h1>
+      <h1 className="page-title">{tr("السلة", "Cart")}</h1>
       {!menu.shop.isOpen && (
         <div className="shop-closed" role="status">
-          <strong>لا نستقبل طلبات الآن</strong>
+          <strong>{tr("لا نستقبل طلبات الآن", "We're not taking orders right now")}</strong>
           <span>{closedNote(menu.shop.settings)}</span>
         </div>
       )}
@@ -219,7 +220,7 @@ export function CartPage() {
       <form className="checkout" onSubmit={submit} noValidate>
         <section className="sheet" aria-labelledby="cart-items">
           <h2 id="cart-items" className="pass-label">
-            طلبك
+            {tr("طلبك", "Your order")}
           </h2>
           <ul className="cart-lines">
             {lines.map((entry) => {
@@ -231,11 +232,11 @@ export function CartPage() {
                   <ItemImage item={item} className="cart-line__img" />
                   <div className="cart-line__body">
                     <div className="cart-line__top">
-                      <span className="cart-line__name">{item.nameAr}</span>
+                      <span className="cart-line__name">{itemName(item)}</span>
                       <span className="cart-line__price">{riyals(item.priceHalalas * line.quantity)}</span>
                     </div>
                     {item.options.length > 0 && (
-                      <div className="cart-origins" role="radiogroup" aria-label={item.optionLabel ?? "النوع"}>
+                      <div className="cart-origins" role="radiogroup" aria-label={optionLabel(item)}>
                         {item.options.map((o) => (
                           <button
                             key={o.id}
@@ -246,23 +247,23 @@ export function CartPage() {
                             disabled={!o.isAvailable}
                             onClick={() => cart.setOption(item.id, line.optionId, o.id)}
                           >
-                            {o.nameAr}
+                            {optionName(o)}
                           </button>
                         ))}
                       </div>
                     )}
-                    {problem === "soldout" && <span className="badge badge--danger">نفد، احذفه من السلة</span>}
-                    {problem === "choose" && <span className="badge badge--warning">اختر {item.optionLabel ?? "النوع"}</span>}
-                    {problem === "option-out" && <span className="badge badge--danger">هذا المحصول نفد، اختر غيره</span>}
+                    {problem === "soldout" && <span className="badge badge--danger">{tr("نفد، احذفه من السلة", "Sold out, remove it from your cart")}</span>}
+                    {problem === "choose" && <span className="badge badge--warning">{tr(`اختر ${optionLabel(item)}`, `Choose the ${optionLabel(item)}`)}</span>}
+                    {problem === "option-out" && <span className="badge badge--danger">{tr("هذا المحصول نفد، اختر غيره", "This origin ran out, choose another")}</span>}
                     <div className="cart-line__actions">
                       <QtyStepper
                         quantity={line.quantity}
                         onChange={(q) => cart.setQuantity(item.id, q, line.optionId)}
-                        label={item.nameAr}
+                        label={itemName(item)}
                       />
                       {!openNotes.has(key) && !line.note ? (
                         <button type="button" className="link-btn" onClick={() => setOpenNotes(new Set(openNotes).add(key))}>
-                          إضافة ملاحظة
+                          {tr("إضافة ملاحظة", "Add a note")}
                         </button>
                       ) : null}
                     </div>
@@ -271,9 +272,9 @@ export function CartPage() {
                         className="note-input"
                         value={line.note}
                         onChange={(e) => cart.setNote(item.id, e.target.value, line.optionId)}
-                        placeholder="مثال: بدون سكر، ثلج قليل"
+                        placeholder={tr("مثال: بدون سكر، ثلج قليل", "e.g. no sugar, light ice")}
                         maxLength={120}
-                        aria-label={`ملاحظة على ${item.nameAr}`}
+                        aria-label={tr(`ملاحظة على ${item.nameAr}`, `Note for ${itemName(item)}`)}
                       />
                     )}
                   </div>
@@ -282,7 +283,7 @@ export function CartPage() {
             })}
           </ul>
           <Link to="/menu" className="link-btn">
-            + إضافة أصناف
+            {tr("+ إضافة أصناف", "+ Add more")}
           </Link>
         </section>
 
@@ -291,13 +292,13 @@ export function CartPage() {
             <label className="reward-toggle">
               <input type="checkbox" checked={useReward} onChange={(e) => setUseReward(e.target.checked)} />
               <span>
-                <strong>استخدم مشروبك المجاني</strong>
+                <strong>{tr("استخدم مشروبك المجاني", "Use your free drink")}</strong>
                 <small>
                   {drinks.length === 0
-                    ? "أضف مشروبًا لاستخدام المكافأة"
+                    ? tr("أضف مشروبًا لاستخدام المكافأة", "Add a drink to use your reward")
                     : useReward
-                      ? `نخصم ${riyals(discount)} (أغلى مشروب في طلبك)`
-                      : "بطاقتك ممتلئة: استخدم المكافأة لتبدأ جمع أكواب جديدة"}
+                      ? tr(`نخصم ${riyals(discount)} (أغلى مشروب في طلبك)`, `${riyals(discount)} off (the priciest drink in your order)`)
+                      : tr("بطاقتك ممتلئة: استخدم المكافأة لتبدأ جمع أكواب جديدة", "Your card is full: use the reward to start collecting again")}
                 </small>
               </span>
             </label>
@@ -306,7 +307,7 @@ export function CartPage() {
 
         <section className="sheet" aria-labelledby="fulfillment">
           <h2 id="fulfillment" className="pass-label">
-            طريقة الاستلام
+            {tr("طريقة الاستلام", "How you'll get it")}
           </h2>
           <div className="choice-grid" role="radiogroup" aria-labelledby="fulfillment">
             {allOptions.map((f) => {
@@ -324,20 +325,20 @@ export function CartPage() {
                     onChange={() => setFulfillment(f)}
                   />
                   <Icon />
-                  <span>{FULFILLMENT_LABELS_AR[f]}</span>
-                  {off ? <small>غير متاحة الآن</small> : f === "delivery" && settings && <small>{riyals(settings.deliveryFeeHalalas)}</small>}
+                  <span>{fulfillmentLabel(f)}</span>
+                  {off ? <small>{tr("غير متاحة الآن", "Unavailable now")}</small> : f === "delivery" && settings && <small>{riyals(settings.deliveryFeeHalalas)}</small>}
                 </label>
               );
             })}
           </div>
-          {options.length === 0 && <p className="muted small">الاستلام متوقف مؤقتًا، جرّب بعد شوي</p>}
+          {options.length === 0 && <p className="muted small">{tr("الاستلام متوقف مؤقتًا، جرّب بعد شوي", "Ordering is paused for now, try again shortly")}</p>}
           {options.length > 0 && fulfillment === "curbside" && (
             <Field
-              label="السيارة"
+              label={tr("السيارة", "Your car")}
               value={car}
               onChange={(e) => setCar(e.target.value)}
-              placeholder="مثال: كامري بيضاء"
-              hint="نطلع لك الطلب عند السيارة. اضغط «وصلت» من صفحة الطلب عند وصولك"
+              placeholder={tr("مثال: كامري بيضاء", "e.g. white Camry")}
+              hint={tr("نطلع لك الطلب عند السيارة. اضغط «وصلت» من صفحة الطلب عند وصولك", "We'll bring it to your car. Tap \"I'm here\" on the order page when you arrive")}
               maxLength={80}
               error={errors.car}
             />
@@ -345,13 +346,13 @@ export function CartPage() {
           {options.length > 0 && fulfillment === "delivery" && (
             <div className="delivery-fields">
               <div className={`field ${errors.address ? "field--error" : ""}`}>
-                <label htmlFor="address">عنوان التوصيل</label>
+                <label htmlFor="address">{tr("عنوان التوصيل", "Delivery address")}</label>
                 <textarea
                   id="address"
                   rows={3}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="الحي، الشارع، رقم البيت، وأي وصف يساعد المندوب"
+                  placeholder={tr("الحي، الشارع، رقم البيت، وأي وصف يساعد المندوب", "District, street, house number, and anything that helps the driver")}
                   maxLength={300}
                   aria-invalid={Boolean(errors.address)}
                 />
@@ -362,11 +363,15 @@ export function CartPage() {
                 )}
               </div>
               <button type="button" className={`btn btn--small ${coords ? "btn--secondary" : "btn--ghost"}`} onClick={locate} disabled={locating}>
-                {locating ? "جارٍ تحديد الموقع…" : coords ? "تم تحديد موقعك ✓" : "حدّد موقعي على الخريطة"}
+                {locating
+                  ? tr("جارٍ تحديد الموقع…", "Finding you…")
+                  : coords
+                    ? tr("تم تحديد موقعك ✓", "Location set ✓")
+                    : tr("حدّد موقعي على الخريطة", "Use my location")}
               </button>
               {locError && <small className="field__error">{locError}</small>}
               {belowMinimum && settings && (
-                <Alert tone="warning">الحد الأدنى لطلبات التوصيل {riyals(settings.deliveryMinOrderHalalas)}</Alert>
+                <Alert tone="warning">{tr(`الحد الأدنى لطلبات التوصيل ${riyals(settings.deliveryMinOrderHalalas)}`, `Delivery minimum is ${riyals(settings.deliveryMinOrderHalalas)}`)}</Alert>
               )}
             </div>
           )}
@@ -374,10 +379,10 @@ export function CartPage() {
 
         <section className="sheet" aria-labelledby="contact">
           <h2 id="contact" className="pass-label">
-            التواصل
+            {tr("التواصل", "Contact")}
           </h2>
           <Field
-            label="رقم الجوال"
+            label={tr("رقم الجوال", "Mobile number")}
             type="tel"
             inputMode="tel"
             autoComplete="tel"
@@ -388,33 +393,33 @@ export function CartPage() {
             error={errors.phone}
           />
           <div className="field">
-            <label htmlFor="order-note">ملاحظة على الطلب (اختياري)</label>
+            <label htmlFor="order-note">{tr("ملاحظة على الطلب (اختياري)", "Order note (optional)")}</label>
             <textarea id="order-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />
           </div>
         </section>
 
-        <section className="sheet summary" aria-label="ملخص الطلب">
+        <section className="sheet summary" aria-label={tr("ملخص الطلب", "Order summary")}>
           <div className="summary__row">
-            <span>المجموع</span>
+            <span>{tr("المجموع", "Subtotal")}</span>
             <span>{riyals(subtotal)}</span>
           </div>
           {fee > 0 && (
             <div className="summary__row">
-              <span>التوصيل</span>
+              <span>{tr("التوصيل", "Delivery")}</span>
               <span>{riyals(fee)}</span>
             </div>
           )}
           {discount > 0 && (
             <div className="summary__row summary__row--reward">
-              <span>المشروب المجاني</span>
+              <span>{tr("المشروب المجاني", "Free drink")}</span>
               <span>− {riyals(discount)}</span>
             </div>
           )}
           <div className="summary__row summary__row--total">
-            <span>الإجمالي</span>
+            <span>{tr("الإجمالي", "Total")}</span>
             <span>{riyals(total)}</span>
           </div>
-          <p className="summary__pay">الدفع عند الاستلام</p>
+          <p className="summary__pay">{tr("الدفع عند الاستلام", "Pay on pickup")}</p>
         </section>
 
         {formError && <Alert tone="error">{formError}</Alert>}
@@ -425,17 +430,17 @@ export function CartPage() {
               className="btn btn--primary btn--block btn--lg"
               disabled={busy || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
             >
-              {busy ? "جارٍ إرسال الطلب…" : `تأكيد الطلب · ${riyals(total)}`}
+              {busy ? tr("جارٍ إرسال الطلب…", "Sending your order…") : tr(`تأكيد الطلب · ${riyals(total)}`, `Place order · ${riyals(total)}`)}
             </button>
           </div>
         ) : (
           <div className="signin-cta">
-            <p>سجّل الدخول لإكمال الطلب وجمع أكوابك</p>
+            <p>{tr("سجّل الدخول لإكمال الطلب وجمع أكوابك", "Sign in to place your order and collect cups")}</p>
             <Link to={withNext("/login", "/cart")} className="btn btn--primary btn--block btn--lg">
-              تسجيل الدخول
+              {tr("تسجيل الدخول", "Sign in")}
             </Link>
             <Link to={withNext("/register", "/cart")} className="btn btn--secondary btn--block">
-              إنشاء حساب جديد
+              {tr("إنشاء حساب جديد", "Create an account")}
             </Link>
           </div>
         )}

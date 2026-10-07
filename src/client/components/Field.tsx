@@ -1,4 +1,5 @@
 import { useId, type InputHTMLAttributes } from "react";
+import { tr } from "../lib/i18n";
 
 export function Field({
   label,
@@ -40,7 +41,7 @@ export function Alert({ tone = "info", children }: { tone?: "info" | "error" | "
   );
 }
 
-export function Spinner({ label = "جارٍ التحميل…" }: { label?: string }) {
+export function Spinner({ label = tr("جارٍ التحميل…", "Loading…") }: { label?: string }) {
   return (
     <div className="spinner" role="status" aria-live="polite">
       <span className="spinner__dot" aria-hidden="true" />

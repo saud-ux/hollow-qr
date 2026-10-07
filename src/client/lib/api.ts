@@ -1,4 +1,5 @@
-import { errorMessageAr } from "../../shared/messages";
+import { errorMessageAr, errorMessageEn } from "../../shared/messages";
+import { currentLang, tr } from "./i18n";
 import type { ApiErrorBody } from "../../shared/types";
 import { apiUrl } from "./native";
 
@@ -30,7 +31,7 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
   try {
     res = await fetch(apiUrl(path), { ...init, headers, credentials: "same-origin" });
   } catch {
-    throw new ApiClientError(0, "NETWORK", "تعذّر الاتصال بالخادم، تحقق من الإنترنت");
+    throw new ApiClientError(0, "NETWORK", tr("تعذّر الاتصال بالخادم، تحقق من الإنترنت", errorMessageEn("NETWORK")));
   }
   if (!res.ok) {
     let body: ApiErrorBody | null = null;
@@ -40,7 +41,9 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
       // non-JSON error
     }
     const code = body?.error.code ?? "INTERNAL";
-    throw new ApiClientError(res.status, code, body?.error.message ?? errorMessageAr(code), body?.error.details ?? {});
+    // The server words errors in Arabic; English screens use their own text for the code.
+    const message = currentLang() === "en" ? errorMessageEn(code) : (body?.error.message ?? errorMessageAr(code));
+    throw new ApiClientError(res.status, code, message, body?.error.details ?? {});
   }
   return res;
 }
@@ -82,5 +85,5 @@ export async function apiDownload(path: string, filename: string): Promise<void>
 
 export function errorText(err: unknown): string {
   if (err instanceof ApiClientError) return err.message;
-  return errorMessageAr("INTERNAL");
+  return currentLang() === "en" ? errorMessageEn("INTERNAL") : errorMessageAr("INTERNAL");
 }

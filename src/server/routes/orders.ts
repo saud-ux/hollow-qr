@@ -40,6 +40,7 @@ export function toMenuItem(config: Pick<AppConfig, "supabaseUrl">, row: MenuItem
     nameAr: row.nameAr,
     nameEn: row.nameEn,
     descriptionAr: row.descriptionAr,
+    descriptionEn: row.descriptionEn,
     category: row.category,
     priceHalalas: row.priceHalalas,
     imageUrl: menuImageUrl(config, row.imagePath),
@@ -47,6 +48,7 @@ export function toMenuItem(config: Pick<AppConfig, "supabaseUrl">, row: MenuItem
     isArchived: row.isArchived,
     sortOrder: row.sortOrder,
     optionLabel: row.optionLabel,
+    optionLabelEn: row.optionLabelEn,
     options: row.options,
     calories: row.calories,
   };

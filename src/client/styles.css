@@ -3339,3 +3339,36 @@ button.rate__star:active {
 .ratings__dim {
   color: var(--sand);
 }
+
+/* ---------- Back button (support / privacy) ---------- */
+.back-btn {
+  justify-self: start;
+  width: max-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 8px 12px 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--espresso);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 0 #e2d5bf;
+}
+.back-btn:active {
+  transform: scale(0.97);
+}
+
+/* ---------- English (left-to-right) ---------- */
+/* Arrows are drawn for Arabic; point them the other way in English. */
+[dir="ltr"] .settings__row svg,
+[dir="ltr"] .back-btn svg {
+  transform: scaleX(-1);
+}
+/* English reads "− 1 +": the minus (or remove) on the left. */
+[dir="ltr"] .stepper {
+  flex-direction: row-reverse;
+}

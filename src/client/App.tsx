@@ -4,6 +4,7 @@ import { Spinner } from "./components/Field";
 import { NativeBridge } from "./components/NativeBridge";
 import { RouteTransitions } from "./components/RouteTransitions";
 import { StaffGuard } from "./components/StaffGuard";
+import { LangProvider } from "./lib/i18n";
 import { isNative } from "./lib/native";
 import { ForgotPasswordPage } from "./pages/customer/ForgotPasswordPage";
 import { LoginPage } from "./pages/customer/LoginPage";
@@ -28,10 +29,12 @@ const StaffLoginPage = lazy(() => import("./pages/staff/StaffLoginPage").then((m
 export function App() {
   return (
     <BrowserRouter>
-      <NativeBridge />
-      <Suspense fallback={<Spinner />}>
-        {isNative ? <NativeRoutes /> : <WebRoutes />}
-      </Suspense>
+      <LangProvider>
+        <NativeBridge />
+        <Suspense fallback={<Spinner />}>
+          {isNative ? <NativeRoutes /> : <WebRoutes />}
+        </Suspense>
+      </LangProvider>
     </BrowserRouter>
   );
 }

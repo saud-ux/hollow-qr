@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { MenuResponse } from "../../shared/ordering";
 import { apiGet, errorText } from "./api";
+import { currentLang } from "./i18n";
 
 /** Loads the public menu and refreshes it while the page is visible. */
 export function useMenu(refreshMs = 60_000) {
@@ -34,5 +35,6 @@ export function useMenu(refreshMs = 60_000) {
 
 export function riyals(halalas: number): string {
   const r = halalas / 100;
-  return `${Number.isInteger(r) ? r : r.toFixed(2)} ريال`;
+  const amount = Number.isInteger(r) ? String(r) : r.toFixed(2);
+  return currentLang() === "en" ? `SAR ${amount}` : `${amount} ريال`;
 }

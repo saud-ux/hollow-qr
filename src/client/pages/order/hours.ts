@@ -1,10 +1,11 @@
 import { BUSINESS_TIME_ZONE } from "../../../shared/constants";
-import { WEEKDAY_LABELS_AR, type ShopSettings } from "../../../shared/ordering";
+import { WEEKDAY_LABELS_AR, WEEKDAY_LABELS_EN, type ShopSettings } from "../../../shared/ordering";
+import { tr } from "../../lib/i18n";
 
 /** "07:00" -> "7:00 ص", "23:30" -> "11:30 م". */
 export function formatHhMm(hhmm: string): string {
   const [h = 0, m = 0] = hhmm.split(":").map(Number);
-  const suffix = h < 12 ? "ص" : "م";
+  const suffix = h < 12 ? tr("ص", "AM") : tr("م", "PM");
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
 }
@@ -23,7 +24,7 @@ function riyadhNow(date = new Date()): { weekday: number; hhmm: string } {
 
 /** Why ordering is closed, in one line. */
 export function closedNote(settings: ShopSettings): string {
-  if (settings.orderingPaused) return "الطلبات متوقفة مؤقتًا، جرّب بعد قليل";
+  if (settings.orderingPaused) return tr("الطلبات متوقفة مؤقتًا، جرّب بعد قليل", "Ordering is paused for now, try again shortly");
   const now = riyadhNow();
   for (let offset = 0; offset < 7; offset++) {
     const day = (now.weekday + offset) % 7;
@@ -31,9 +32,13 @@ export function closedNote(settings: ShopSettings): string {
     // Today's shift that already ended does not count.
     const endedToday = offset === 0 && hours !== undefined && hours.close > hours.open && now.hhmm >= hours.close;
     if (hours && !hours.closed && !endedToday) {
-      const when = offset === 0 ? "اليوم" : offset === 1 ? "غدًا" : `يوم ${WEEKDAY_LABELS_AR[day]}`;
-      return `نستقبل الطلبات ${when} من ${formatHhMm(hours.open)} إلى ${formatHhMm(hours.close)}`;
+      const when =
+        offset === 0 ? tr("اليوم", "today") : offset === 1 ? tr("غدًا", "tomorrow") : tr(`يوم ${WEEKDAY_LABELS_AR[day]}`, `on ${WEEKDAY_LABELS_EN[day]}`);
+      return tr(
+        `نستقبل الطلبات ${when} من ${formatHhMm(hours.open)} إلى ${formatHhMm(hours.close)}`,
+        `We take orders ${when} from ${formatHhMm(hours.open)} to ${formatHhMm(hours.close)}`,
+      );
     }
   }
-  return "الطلبات مغلقة حاليًا";
+  return tr("الطلبات مغلقة حاليًا", "Ordering is closed right now");
 }

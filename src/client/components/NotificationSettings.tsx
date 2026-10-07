@@ -3,6 +3,7 @@ import type { NotificationPrefs } from "../../shared/ordering";
 import type { AppRole } from "../../shared/types";
 import { apiGet, apiSend, errorText } from "../lib/api";
 import { enablePush } from "../lib/native";
+import { tr } from "../lib/i18n";
 
 type Key = keyof NotificationPrefs;
 
@@ -39,16 +40,18 @@ export function NotificationSettings({ role }: { role: AppRole }) {
   }
 
   const rows: { key: Key; label: string; hint: string }[] = [
-    { key: "offers", label: "العروض والجديد", hint: "نرسل لك إذا نزل عرض أو صنف جديد" },
+    { key: "offers", label: tr("العروض والجديد", "Offers & news"), hint: tr("نرسل لك إذا نزل عرض أو صنف جديد", "We'll tell you about offers and new items") },
   ];
   if (role === "staff" || role === "admin") {
-    rows.push({ key: "newOrders", label: "تنبيه بكل طلب جديد", hint: "يرن جوالك مع كل طلب يوصل للكوفي" });
+    rows.push({ key: "newOrders", label: tr("تنبيه بكل طلب جديد", "New order alerts"), hint: tr("يرن جوالك مع كل طلب يوصل للكوفي", "Your phone rings for every new order") });
   }
-  if (role === "admin") rows.push({ key: "dailySummary", label: "ملخص اليوم", hint: "بعد الإغلاق: عدد الطلبات والمبيعات" });
+  if (role === "admin") {
+    rows.push({ key: "dailySummary", label: tr("ملخص اليوم", "Daily summary"), hint: tr("بعد الإغلاق: عدد الطلبات والمبيعات", "After closing: orders and sales") });
+  }
 
   return (
     <>
-      <div className="settings" role="group" aria-label="الإشعارات">
+      <div className="settings" role="group" aria-label={tr("الإشعارات", "Notifications")}>
         {rows.map((r) => (
           <label key={r.key} className="settings__row settings__row--switch">
             <span>
@@ -59,7 +62,9 @@ export function NotificationSettings({ role }: { role: AppRole }) {
           </label>
         ))}
       </div>
-      {blocked && <p className="muted small">الإشعارات مقفلة لتطبيق HOLLOW. فعّلها من الإعدادات ← HOLLOW ← الإشعارات.</p>}
+      {blocked && <p className="muted small">
+          {tr("الإشعارات مقفلة لتطبيق HOLLOW. فعّلها من الإعدادات ← HOLLOW ← الإشعارات.", "Notifications are off for HOLLOW. Turn them on in Settings → HOLLOW → Notifications.")}
+        </p>}
       {error && <p className="muted small">{error}</p>}
     </>
   );

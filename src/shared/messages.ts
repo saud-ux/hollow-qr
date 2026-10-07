@@ -53,6 +53,48 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   INTERNAL: "حدث خطأ غير متوقع، حاول مرة أخرى",
 };
 
+/** English messages for the customer screens (staff screens stay Arabic). */
+export const ERROR_MESSAGES_EN: Record<string, string> = {
+  UNAUTHENTICATED: "Please sign in",
+  FORBIDDEN: "You don't have permission to do that",
+  EMAIL_NOT_CONFIRMED: "Please confirm your email first",
+  NOT_FOUND: "Not found",
+  INVALID_REQUEST: "Some of the details aren't valid",
+  MEMBERSHIP_CANCELLED: "This membership is cancelled",
+  NO_REWARD: "No free drink available",
+  IDEMPOTENCY_CONFLICT: "Something clashed with another request, please try again",
+  RATE_LIMITED: "Too many attempts, wait a moment and try again",
+  PAYLOAD_TOO_LARGE: "The request is too large",
+  WALLET_MOCK_MODE: "Adding the card to Apple Wallet isn't available right now",
+  WALLET_NOT_CONFIGURED: "Apple Wallet isn't set up right now",
+  WALLET_SIGNING_FAILED: "We couldn't create your Apple Wallet card right now",
+  LINK_EXPIRED: "The link has expired, please try again",
+  EMAIL_EXISTS: "This email is already registered",
+  CONFIG_ERROR: "The service isn't fully set up",
+  SHOP_CLOSED: "We're not taking orders right now",
+  FULFILLMENT_UNAVAILABLE: "This pickup option isn't available right now",
+  EMPTY_ORDER: "Your cart is empty",
+  ITEM_UNAVAILABLE: "Something in your cart isn't available right now",
+  OPTION_REQUIRED: "Choose an origin for your pour-over",
+  OPTION_UNAVAILABLE: "That origin just ran out, please choose another",
+  TOO_MANY_ITEMS: "That's more items than one order allows",
+  BELOW_MINIMUM: "The order is below the delivery minimum",
+  REWARD_NEEDS_DRINK: "Add a drink to use your free drink",
+  REWARD_IN_USE: "Your free drink is already on another open order",
+  INVALID_TRANSITION: "That can't be done for this order now",
+  INVALID_PHONE: "Invalid mobile number (e.g. 0512345678)",
+  ORDER_NOT_FOUND: "Order not found",
+  ACTIVE_ORDER: "You have an order being prepared or delivered. Delete your account after you receive it",
+  NOT_COMPLETED: "You can rate the order once you've received it",
+  ALREADY_RATED: "You already rated this order, thank you",
+  NETWORK: "Couldn't reach the server, check your connection",
+  INTERNAL: "Something went wrong, please try again",
+};
+
+export function errorMessageEn(code: string): string {
+  return ERROR_MESSAGES_EN[code] ?? ERROR_MESSAGES_EN.INTERNAL!;
+}
+
 export function errorMessageAr(code: string, fallback?: string): string {
   return ERROR_MESSAGES_AR[code] ?? fallback ?? ERROR_MESSAGES_AR.INTERNAL!;
 }

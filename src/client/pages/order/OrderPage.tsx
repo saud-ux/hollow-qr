@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
-import { FULFILLMENT_LABELS_AR, isActiveStatus, MAX_RATING_COMMENT, STATUS_LABELS_AR, type Order, type OrderStatus } from "../../../shared/ordering";
+import { isActiveStatus, MAX_RATING_COMMENT, type Order, type OrderStatus } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
 import { Alert, Spinner } from "../../components/Field";
 import { ShopLayout } from "../../components/Shop";
@@ -8,19 +8,29 @@ import { apiGet, apiPost, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { formatDateTime } from "../../lib/dates";
-import { riyals } from "../../lib/menu";
+import { riyals, useMenu } from "../../lib/menu";
+import { fulfillmentLabel, lineName, lineOptionName, statusLabel } from "../../lib/menuText";
 import { animateTracker } from "../../lib/motion";
+import { tr } from "../../lib/i18n";
 
 const POLL_MS = 8_000;
 
 function steps(order: Order): { status: OrderStatus; label: string }[] {
   const base: { status: OrderStatus; label: string }[] = [
-    { status: "new", label: "استلمنا طلبك" },
-    { status: "preparing", label: "قيد التحضير" },
-    { status: "ready", label: order.fulfillment === "delivery" ? "جاهز" : order.fulfillment === "curbside" ? "جاهز، نطلعه لك" : "جاهز للاستلام" },
+    { status: "new", label: tr("استلمنا طلبك", "Order received") },
+    { status: "preparing", label: tr("قيد التحضير", "Preparing") },
+    {
+      status: "ready",
+      label:
+        order.fulfillment === "delivery"
+          ? tr("جاهز", "Ready")
+          : order.fulfillment === "curbside"
+            ? tr("جاهز، نطلعه لك", "Ready, we'll bring it out")
+            : tr("جاهز للاستلام", "Ready for pickup"),
+    },
   ];
-  if (order.fulfillment === "delivery") base.push({ status: "out_for_delivery", label: "في الطريق إليك" });
-  base.push({ status: "completed", label: "تم التسليم" });
+  if (order.fulfillment === "delivery") base.push({ status: "out_for_delivery", label: tr("في الطريق إليك", "On its way") });
+  base.push({ status: "completed", label: tr("تم التسليم", "Delivered") });
   return base;
 }
 
@@ -28,21 +38,21 @@ function steps(order: Order): { status: OrderStatus; label: string }[] {
 function headline(order: Order): string {
   switch (order.status) {
     case "new":
-      return "وصل طلبك للكوفي، بننتظر تأكيده";
+      return tr("وصل طلبك للكوفي، بننتظر تأكيده", "Your order reached the café, waiting for them to confirm");
     case "preparing":
-      return "نحضّر طلبك الآن";
+      return tr("نحضّر طلبك الآن", "We're preparing your order");
     case "ready":
       return order.fulfillment === "pickup"
-        ? "طلبك جاهز، استلمه من الكاشير"
+        ? tr("طلبك جاهز، استلمه من الكاشير", "Your order is ready, pick it up at the counter")
         : order.fulfillment === "curbside"
-          ? "طلبك جاهز، اضغط «وصلت» إذا كنت عند الكوفي"
-          : "طلبك جاهز وبيطلع مع المندوب";
+          ? tr("طلبك جاهز، اضغط «وصلت» إذا كنت عند الكوفي", "Your order is ready. Tap \"I'm here\" when you're outside")
+          : tr("طلبك جاهز وبيطلع مع المندوب", "Your order is ready and leaving with the driver");
     case "out_for_delivery":
-      return "المندوب في الطريق إليك";
+      return tr("المندوب في الطريق إليك", "The driver is on the way");
     case "completed":
-      return "بالعافية! تم تسليم طلبك";
+      return tr("بالعافية! تم تسليم طلبك", "Enjoy! Your order is complete");
     case "cancelled":
-      return order.cancelledBy === "customer" ? "ألغيت هذا الطلب" : "تم إلغاء الطلب من الكوفي";
+      return order.cancelledBy === "customer" ? tr("ألغيت هذا الطلب", "You cancelled this order") : tr("تم إلغاء الطلب من الكوفي", "The café cancelled this order");
   }
 }
 
@@ -55,6 +65,7 @@ export function OrderPage() {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const ticketRef = useRef<HTMLElement>(null);
   const cart = useCart();
+  const { menu } = useMenu();
   const navigate = useNavigate();
   const shownStep = useRef<{ id: string; index: number } | null>(null);
 
@@ -139,11 +150,11 @@ export function OrderPage() {
       <section ref={ticketRef} className={`ticket ${cancelled ? "ticket--cancelled" : ""}`} aria-live="polite">
         <div className="ticket__band">
           <span className="ticket__sheen" aria-hidden="true" />
-          <span className="pass-label pass-label--light">طلب رقم</span>
+          <span className="pass-label pass-label--light">{tr("طلب رقم", "Order")}</span>
           <span className="ticket__number" dir="ltr">
             #{order.orderNumber}
           </span>
-          <span className="ticket__status">{STATUS_LABELS_AR[order.status]}</span>
+          <span className="ticket__status">{statusLabel(order.status)}</span>
         </div>
         <p className="ticket__headline">{headline(order)}</p>
         {!cancelled && (
@@ -161,7 +172,7 @@ export function OrderPage() {
             ))}
           </ol>
         )}
-        {order.cancelReason && <p className="ticket__note">السبب: {order.cancelReason}</p>}
+        {order.cancelReason && <p className="ticket__note">{tr(`السبب: ${order.cancelReason}`, `Reason: ${order.cancelReason}`)}</p>}
       </section>
 
       {error && <Alert tone="error">{error}</Alert>}
@@ -170,17 +181,17 @@ export function OrderPage() {
         <section className="sheet sheet--dark arrive">
           {order.customerArrivedAt ? (
             <p>
-              <strong>أبلغنا الموظف بوصولك</strong>
-              <small>بنطلع لك الطلب عند السيارة ({order.carDescription})</small>
+              <strong>{tr("أبلغنا الموظف بوصولك", "We told the staff you're here")}</strong>
+              <small>{tr(`بنطلع لك الطلب عند السيارة (${order.carDescription})`, `We'll bring it to your car (${order.carDescription})`)}</small>
             </p>
           ) : (
             <>
               <p>
-                <strong>وصلت عند الكوفي؟</strong>
-                <small>اضغط الزر ونطلع لك الطلب عند السيارة ({order.carDescription})</small>
+                <strong>{tr("وصلت عند الكوفي؟", "Outside the café?")}</strong>
+                <small>{tr(`اضغط الزر ونطلع لك الطلب عند السيارة (${order.carDescription})`, `Tap the button and we'll bring it to your car (${order.carDescription})`)}</small>
               </p>
               <button type="button" className="btn btn--reward btn--block btn--lg" onClick={() => void action("arrived")} disabled={busy}>
-                وصلت
+                {tr("وصلت", "I'm here")}
               </button>
             </>
           )}
@@ -191,9 +202,11 @@ export function OrderPage() {
         <Link to="/wallet" className="sheet loyalty-note">
           <img src="/wallet-preview/cup-filled.png" alt="" />
           <span>
-            {order.loyaltyResult.redeem === "REDEEMED" && "استخدمت مشروبك المجاني. "}
+            {order.loyaltyResult.redeem === "REDEEMED" && tr("استخدمت مشروبك المجاني. ", "You used your free drink. ")}
             {order.loyaltyResult.cupsAdded > 0 &&
-              (order.loyaltyResult.cupsAdded === 1 ? "أضفنا كوبًا لبطاقتك" : `أضفنا ${order.loyaltyResult.cupsAdded} أكواب لبطاقتك`)}
+              (order.loyaltyResult.cupsAdded === 1
+                ? tr("أضفنا كوبًا لبطاقتك", "We added a cup to your card")
+                : tr(`أضفنا ${order.loyaltyResult.cupsAdded} أكواب لبطاقتك`, `We added ${order.loyaltyResult.cupsAdded} cups to your card`))}
           </span>
         </Link>
       )}
@@ -201,45 +214,45 @@ export function OrderPage() {
       {order.status === "completed" && <RateOrder order={order} onRated={setOrder} />}
 
       <section className="sheet">
-        <h2 className="pass-label">{FULFILLMENT_LABELS_AR[order.fulfillment]}</h2>
+        <h2 className="pass-label">{fulfillmentLabel(order.fulfillment)}</h2>
         {order.fulfillment === "delivery" && <p className="muted">{order.deliveryAddress}</p>}
         <ul className="receipt">
           {order.items.map((line, i) => (
             <li key={i}>
               <span>
-                {line.quantity} × {line.nameAr}
-                {line.optionNameAr && <small className="receipt__option">{line.optionNameAr}</small>}
+                {line.quantity} × {lineName(line, menu?.items)}
+                {line.optionNameAr && <small className="receipt__option">{lineOptionName(line, menu?.items)}</small>}
                 {line.note && <small className="receipt__note">{line.note}</small>}
               </span>
               <span>{riyals(line.unitPriceHalalas * line.quantity)}</span>
             </li>
           ))}
         </ul>
-        {order.note && <p className="receipt__note">ملاحظة: {order.note}</p>}
+        {order.note && <p className="receipt__note">{tr(`ملاحظة: ${order.note}`, `Note: ${order.note}`)}</p>}
         <div className="summary">
           {order.deliveryFeeHalalas > 0 && (
             <div className="summary__row">
-              <span>التوصيل</span>
+              <span>{tr("التوصيل", "Delivery")}</span>
               <span>{riyals(order.deliveryFeeHalalas)}</span>
             </div>
           )}
           {order.discountHalalas > 0 && (
             <div className="summary__row summary__row--reward">
-              <span>المشروب المجاني</span>
+              <span>{tr("المشروب المجاني", "Free drink")}</span>
               <span>− {riyals(order.discountHalalas)}</span>
             </div>
           )}
           <div className="summary__row summary__row--total">
-            <span>الإجمالي</span>
+            <span>{tr("الإجمالي", "Total")}</span>
             <span>{riyals(order.totalHalalas)}</span>
           </div>
-          <p className="summary__pay">الدفع عند الاستلام · {formatDateTime(order.createdAt)}</p>
+          <p className="summary__pay">{tr("الدفع عند الاستلام", "Pay on pickup")} · {formatDateTime(order.createdAt)}</p>
         </div>
       </section>
 
       {order.status === "new" && (
         <button type="button" className="btn btn--ghost btn--block" onClick={() => setConfirmCancel(true)} disabled={busy}>
-          إلغاء الطلب
+          {tr("إلغاء الطلب", "Cancel order")}
         </button>
       )}
       {!active && order.items.length > 0 && (
@@ -256,19 +269,19 @@ export function OrderPage() {
           }}
         >
           <RepeatIcon />
-          اطلب نفس الطلب مرة ثانية
+          {tr("اطلب نفس الطلب مرة ثانية", "Order this again")}
         </button>
       )}
       <Link to="/menu" className="btn btn--secondary btn--block">
-        طلب جديد
+        {tr("طلب جديد", "New order")}
       </Link>
 
       <ConfirmDialog
         open={confirmCancel}
         tone="danger"
-        title="إلغاء الطلب؟"
-        message={<p>تقدر تلغي الطلب قبل ما نبدأ تحضيره فقط.</p>}
-        confirmLabel="نعم، ألغِ الطلب"
+        title={tr("إلغاء الطلب؟", "Cancel this order?")}
+        message={<p>{tr("تقدر تلغي الطلب قبل ما نبدأ تحضيره فقط.", "You can cancel only before we start preparing it.")}</p>}
+        confirmLabel={tr("نعم، ألغِ الطلب", "Yes, cancel it")}
         busy={busy}
         onConfirm={() => void action("cancel")}
         onCancel={() => setConfirmCancel(false)}
@@ -277,7 +290,9 @@ export function OrderPage() {
   );
 }
 
-const STAR_LABELS = ["سيئ", "مقبول", "جيد", "ممتاز", "رائع"];
+const STAR_LABELS_AR = ["سيئ", "مقبول", "جيد", "ممتاز", "رائع"];
+const STAR_LABELS_EN = ["Bad", "Okay", "Good", "Great", "Amazing"];
+const starLabel = (v: number) => tr(STAR_LABELS_AR[v - 1] ?? "", STAR_LABELS_EN[v - 1] ?? "");
 
 /** Stars and an optional comment, once the order is completed; read-only after. */
 function RateOrder({ order, onRated }: { order: Order; onRated: (o: Order) => void }) {
@@ -288,9 +303,9 @@ function RateOrder({ order, onRated }: { order: Order; onRated: (o: Order) => vo
 
   if (order.rating !== null) {
     return (
-      <section className="sheet rate rate--done" aria-label="تقييمك">
+      <section className="sheet rate rate--done" aria-label={tr("تقييمك", "Your rating")}>
         <Stars value={order.rating} />
-        <p>شكرًا على تقييمك!</p>
+        <p>{tr("شكرًا على تقييمك!", "Thanks for your rating!")}</p>
         {order.ratingComment && <p className="muted small">«{order.ratingComment}»</p>}
       </section>
     );
@@ -312,16 +327,16 @@ function RateOrder({ order, onRated }: { order: Order; onRated: (o: Order) => vo
   return (
     <section className="sheet rate" aria-labelledby="rate-title">
       <h2 id="rate-title" className="rate__title">
-        كيف كان طلبك؟
+        {tr("كيف كان طلبك؟", "How was your order?")}
       </h2>
-      <div className="rate__stars" role="radiogroup" aria-label="التقييم">
+      <div className="rate__stars" role="radiogroup" aria-label={tr("التقييم", "Rating")}>
         {[1, 2, 3, 4, 5].map((v) => (
           <button
             key={v}
             type="button"
             role="radio"
             aria-checked={stars === v}
-            aria-label={`${v} من 5، ${STAR_LABELS[v - 1]}`}
+            aria-label={tr(`${v} من 5، ${starLabel(v)}`, `${v} of 5, ${starLabel(v)}`)}
             className={`rate__star ${v <= stars ? "is-on" : ""}`}
             onClick={() => setStars(v)}
           >
@@ -331,18 +346,18 @@ function RateOrder({ order, onRated }: { order: Order; onRated: (o: Order) => vo
       </div>
       {stars > 0 && (
         <>
-          <p className="rate__label">{STAR_LABELS[stars - 1]}</p>
+          <p className="rate__label">{starLabel(stars)}</p>
           <textarea
             className="rate__comment"
             rows={2}
             maxLength={MAX_RATING_COMMENT}
-            placeholder="تبي تضيف ملاحظة؟ (اختياري)"
+            placeholder={tr("تبي تضيف ملاحظة؟ (اختياري)", "Anything to add? (optional)")}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
           />
           {error && <Alert tone="error">{error}</Alert>}
           <button type="button" className="btn btn--primary btn--block" onClick={() => void submit()} disabled={busy}>
-            {busy ? "جارٍ الإرسال…" : "أرسل التقييم"}
+            {busy ? tr("جارٍ الإرسال…", "Sending…") : tr("أرسل التقييم", "Send rating")}
           </button>
         </>
       )}
@@ -352,7 +367,7 @@ function RateOrder({ order, onRated }: { order: Order; onRated: (o: Order) => vo
 
 function Stars({ value }: { value: number }) {
   return (
-    <div className="rate__stars rate__stars--static" aria-label={`${value} من 5`}>
+    <div className="rate__stars rate__stars--static" aria-label={tr(`${value} من 5`, `${value} of 5`)}>
       {[1, 2, 3, 4, 5].map((v) => (
         <span key={v} className={`rate__star ${v <= value ? "is-on" : ""}`} aria-hidden="true">
           <StarIcon />

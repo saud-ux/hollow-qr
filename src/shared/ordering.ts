@@ -13,8 +13,11 @@ export const MAX_LINE_QUANTITY = 20;
 export interface MenuOption {
   id: string;
   nameAr: string;
+  /** English name; the Arabic one is shown when empty. */
+  nameEn: string | null;
   /** Short tasting note shown under the name. */
   noteAr: string | null;
+  noteEn: string | null;
   isAvailable: boolean;
 }
 
@@ -23,14 +26,16 @@ export interface MenuItem {
   nameAr: string;
   nameEn: string | null;
   descriptionAr: string | null;
+  descriptionEn: string | null;
   category: MenuCategory;
   priceHalalas: number;
   imageUrl: string | null;
   isAvailable: boolean;
   isArchived: boolean;
   sortOrder: number;
-  /** Heading for the choice, e.g. "المحصول". */
+  /** Heading for the choice, e.g. "المحصول" / "origin". */
   optionLabel: string | null;
+  optionLabelEn: string | null;
   /** Empty when the item has no choice. */
   options: MenuOption[];
   /** Kcal per serving, shown on the menu. */
@@ -203,6 +208,28 @@ export const CATEGORY_LABELS_AR: Record<MenuCategory, string> = {
   drink: "المشروبات",
   dessert: "الحلويات",
 };
+
+export const STATUS_LABELS_EN: Record<OrderStatus, string> = {
+  new: "New order",
+  preparing: "Preparing",
+  ready: "Ready",
+  out_for_delivery: "On its way",
+  completed: "Delivered",
+  cancelled: "Cancelled",
+};
+
+export const FULFILLMENT_LABELS_EN: Record<FulfillmentType, string> = {
+  pickup: "Pick up at the counter",
+  curbside: "Curbside pickup",
+  delivery: "Delivery",
+};
+
+export const CATEGORY_LABELS_EN: Record<MenuCategory, string> = {
+  drink: "Drinks",
+  dessert: "Desserts",
+};
+
+export const WEEKDAY_LABELS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export const WEEKDAY_LABELS_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 

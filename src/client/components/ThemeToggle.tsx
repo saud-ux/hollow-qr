@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { isNative } from "../lib/native";
 import { currentTheme, onThemeChange, toggleTheme } from "../lib/theme";
+import { tr } from "../lib/i18n";
 
 /** Sun / moon button in the page header (iOS app only). */
 export function ThemeToggle({ className = "" }: { className?: string }) {
@@ -13,8 +14,8 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       type="button"
       className={`theme-toggle ${className}`}
       onClick={toggleTheme}
-      aria-label={dark ? "الوضع الفاتح" : "الوضع الداكن"}
-      title={dark ? "الوضع الفاتح" : "الوضع الداكن"}
+      aria-label={dark ? tr("الوضع الفاتح", "Light mode") : tr("الوضع الداكن", "Dark mode")}
+      title={dark ? tr("الوضع الفاتح", "Light mode") : tr("الوضع الداكن", "Dark mode")}
     >
       {dark ? (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">

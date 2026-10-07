@@ -5,10 +5,12 @@ import { AuthProvider } from "./lib/auth";
 import { CartProvider } from "./lib/cart";
 import { ConfigContext, fetchPublicConfig } from "./lib/config";
 import { getSupabase } from "./lib/supabase";
+import { initLang, tr } from "./lib/i18n";
 import { initTheme } from "./lib/theme";
 import "./styles.css";
 
 initTheme();
+initLang();
 const root = createRoot(document.getElementById("root")!);
 
 function renderMessage(text: string) {
@@ -23,7 +25,7 @@ function renderMessage(text: string) {
 fetchPublicConfig()
   .then((config) => {
     if (!config.supabaseUrl || !config.supabaseAnonKey) {
-      renderMessage("الخدمة غير مهيأة بعد (SUPABASE_URL / SUPABASE_ANON_KEY).");
+      renderMessage(tr("الخدمة غير مهيأة بعد.", "The service isn't set up yet."));
       return;
     }
     const supabase = getSupabase(config);
@@ -39,4 +41,4 @@ fetchPublicConfig()
       </StrictMode>,
     );
   })
-  .catch(() => renderMessage("تعذّر تحميل الخدمة. حاول مرة أخرى بعد قليل."));
+  .catch(() => renderMessage(tr("تعذّر تحميل الخدمة. حاول مرة أخرى بعد قليل.", "Couldn't load the app. Please try again shortly.")));

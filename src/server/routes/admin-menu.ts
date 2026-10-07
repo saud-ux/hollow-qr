@@ -11,6 +11,14 @@ import { toMenuItem } from "./orders";
 const uuid = z.uuid();
 const halalas = z.number().int().min(0).max(100_000);
 
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullable()
+    .transform((v) => (v ? v : null));
+
 const itemFields = {
   nameAr: z.string().trim().min(1).max(60),
   nameEn: z
@@ -25,6 +33,7 @@ const itemFields = {
     .max(200)
     .nullable()
     .transform((v) => (v ? v : null)),
+  descriptionEn: optionalText(300),
   category: z.enum(["drink", "dessert"]),
   priceHalalas: halalas,
   isAvailable: z.boolean(),
@@ -36,6 +45,7 @@ const itemFields = {
     .max(40)
     .nullable()
     .transform((v) => (v ? v : null)),
+  optionLabelEn: optionalText(40),
   options: z
     .array(
       z.object({
@@ -44,6 +54,8 @@ const itemFields = {
           .trim()
           .regex(/^[a-z0-9-]{1,40}$/),
         nameAr: z.string().trim().min(1).max(40),
+        nameEn: optionalText(40).optional().default(null),
+        noteEn: optionalText(80).optional().default(null),
         noteAr: z
           .string()
           .trim()
@@ -62,6 +74,8 @@ const createItemSchema = z.object({
   ...itemFields,
   nameEn: itemFields.nameEn.optional().default(null),
   descriptionAr: itemFields.descriptionAr.optional().default(null),
+  descriptionEn: itemFields.descriptionEn.optional().default(null),
+  optionLabelEn: itemFields.optionLabelEn.optional().default(null),
   isAvailable: itemFields.isAvailable.optional().default(true),
   isArchived: itemFields.isArchived.optional().default(false),
   sortOrder: itemFields.sortOrder.optional().default(500),
