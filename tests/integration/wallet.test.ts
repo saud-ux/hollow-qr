@@ -84,11 +84,11 @@ describe("signed .pkpass generation", () => {
       voided: false,
     });
     expect(pass.authenticationToken).toBe(await passAuthToken(env.PASS_AUTH_SECRET!, account.pass_serial));
-    expect(pass.barcodes[0]).toMatchObject({ format: "PKBarcodeFormatQR", altText: "SCAN AT CHECKOUT" });
+    // The name and member number sit under the QR, in Wallet's small caption type.
+    expect(pass.barcodes[0]).toMatchObject({ format: "PKBarcodeFormatQR", altText: `عبدالعزيز · ${account.member_id}` });
     expect(pass.barcodes[0].message).toMatch(new RegExp(`^${APP_URL}/c/[A-Za-z0-9_-]{22}\\.[A-Za-z0-9_-]{22}$`));
-    expect((pass.storeCard.secondaryFields as { key: string }[]).map((f) => f.key)).toEqual(["name", "member"]);
-    expect(pass.storeCard.secondaryFields[0].value).toBe("عبدالعزيز");
-    expect(pass.storeCard.auxiliaryFields).toBeUndefined();
+    // Nothing on the front besides the logo, the strip and the QR.
+    for (const row of ["headerFields", "primaryFields", "secondaryFields", "auxiliaryFields"]) expect(pass.storeCard[row]).toBeUndefined();
     // Progress and reward are drawn into the strip image; their fields move to the back.
     expect(pass.storeCard.backFields[1]).toMatchObject({ key: "progress", value: "0 / 5 Cups" });
 
