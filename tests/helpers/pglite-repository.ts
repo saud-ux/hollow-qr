@@ -11,6 +11,7 @@ import {
   mapOrder,
   mapOrderSummary,
   mapRatingOverview,
+  mapOrderHistory,
   mapSalesReport,
   notificationPrefsColumns,
   rateOrderResult,
@@ -32,6 +33,7 @@ import type {
   DashboardStatsRow,
   DeleteAccountResult,
   ListOrdersParams,
+  OrderHistoryParams,
   MenuItemInput,
   OrderRpcResult,
   PlaceInput,
@@ -230,6 +232,18 @@ export class PgliteRepository implements Repository {
       p.limit ?? 50,
     ]);
     return (r!.r as Raw[]).map(mapOrder);
+  }
+
+  async orderHistory(p: OrderHistoryParams) {
+    const r = await this.one("select public.order_history($1, $2, $3, $4, $5, $6) as r", [
+      p.from?.toISOString() ?? null,
+      p.to?.toISOString() ?? null,
+      p.status,
+      p.search,
+      p.limit,
+      p.offset,
+    ]);
+    return mapOrderHistory(r!.r as Raw);
   }
 
   async walletRegisterDevice(device: string, pushToken: string, passType: string, serial: string) {

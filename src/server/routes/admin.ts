@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { BUSINESS_TIME_ZONE, DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../../shared/constants";
 import { formatRiyadh, normalizeEmail } from "../../shared/format";
-import { BROADCAST_BODY_MAX, BROADCAST_TITLE_MAX } from "../../shared/ordering";
+import { BROADCAST_BODY_MAX, BROADCAST_TITLE_MAX, type AdminOrder, type OrderHistoryPage } from "../../shared/ordering";
 import type { Paginated, TransactionItem } from "../../shared/types";
 import { ApiError } from "../http/errors";
 import { repoOf, type HonoEnv } from "../http/context";
@@ -10,7 +10,8 @@ import { rateLimit, requireRole, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
 import { toCsv } from "../lib/csv";
 import { toDashboardStats, toStaffMember, toTransactionItem } from "../loyalty/presenters";
-import { startOfLocalDay } from "../push/daily-summary";
+import type { OrderHistoryParams } from "../data/repository";
+import { startOfDate, startOfLocalDay } from "../push/daily-summary";
 import { sendToTokens } from "../push/order-notifications";
 
 const EXPORT_PAGE = 1000;
@@ -39,6 +40,112 @@ const pageQuery = z.object({
   page: z.coerce.number().int().min(1).max(10_000).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(25),
 });
+
+const localDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/** Order history filters: state, a period of local days (both ends included) and a search. */
+const historyQuery = z.object({
+  status: z.enum(["all", "active", "ended", "completed", "cancelled"]).optional().default("all"),
+  from: localDate.optional(),
+  to: localDate.optional(),
+  q: z.string().trim().max(80).optional(),
+});
+
+function historyFilter(query: z.infer<typeof historyQuery>): Omit<OrderHistoryParams, "limit" | "offset"> {
+  return {
+    from: query.from ? startOfDate(query.from, BUSINESS_TIME_ZONE) : null,
+    to: query.to ? startOfDate(query.to, BUSINESS_TIME_ZONE, 1) : null,
+    status: query.status,
+    search: query.q || null,
+  };
+}
+
+const HISTORY_EXPORT_PAGE = 200;
+const HISTORY_EXPORT_MAX_PAGES = 50; // 10k orders
+
+const riyals = (halalas: number) => (halalas / 100).toFixed(2);
+const riyadh = (iso: string | null) => (iso ? formatRiyadh(iso) : "");
+
+function orderCsvRow(o: AdminOrder): unknown[] {
+  const lr = o.loyaltyResult;
+  return [
+    o.orderNumber,
+    o.id,
+    o.createdAt,
+    riyadh(o.createdAt),
+    o.status,
+    o.fulfillment,
+    o.customerName,
+    o.customerPhone,
+    o.memberId ?? "",
+    o.items
+      .map((l) => `${l.quantity}× ${l.nameAr}${l.optionNameAr ? ` (${l.optionNameAr})` : ""}${l.note ? ` [${l.note}]` : ""}`)
+      .join(" | "),
+    o.items.reduce((n, l) => n + l.quantity, 0),
+    o.note ?? "",
+    o.carDescription ?? "",
+    o.deliveryAddress ?? "",
+    o.deliveryLat ?? "",
+    o.deliveryLng ?? "",
+    riyals(o.subtotalHalalas),
+    riyals(o.deliveryFeeHalalas),
+    riyals(o.discountHalalas),
+    riyals(o.totalHalalas),
+    o.paymentMethod,
+    o.useReward ? "yes" : "no",
+    lr && !lr.skipped ? lr.cupsAdded : "",
+    lr?.redeem ?? "",
+    riyadh(o.acceptedAt),
+    riyadh(o.readyAt),
+    riyadh(o.outForDeliveryAt),
+    riyadh(o.customerArrivedAt),
+    riyadh(o.completedAt),
+    o.completedByName ?? "",
+    riyadh(o.cancelledAt),
+    o.cancelledBy ?? "",
+    o.cancelReason ?? "",
+    o.rating ?? "",
+    o.ratingComment ?? "",
+  ];
+}
+
+const ORDER_CSV_HEADER = [
+  "order_number",
+  "order_id",
+  "created_at_utc",
+  "created_at_riyadh",
+  "status",
+  "fulfillment",
+  "customer_name",
+  "customer_phone",
+  "member_id",
+  "items",
+  "item_count",
+  "order_note",
+  "car",
+  "delivery_address",
+  "delivery_lat",
+  "delivery_lng",
+  "subtotal_sar",
+  "delivery_fee_sar",
+  "discount_sar",
+  "total_sar",
+  "payment_method",
+  "used_free_drink",
+  "cups_added",
+  "free_drink_result",
+  "accepted_at_riyadh",
+  "ready_at_riyadh",
+  "out_for_delivery_at_riyadh",
+  "customer_arrived_at_riyadh",
+  "completed_at_riyadh",
+  "completed_by",
+  "cancelled_at_riyadh",
+  "cancelled_by",
+  "cancel_reason",
+  "rating",
+  "rating_comment",
+];
 
 function csvResponse(filename: string, body: string): Response {
   return new Response(body, {
@@ -190,6 +297,28 @@ export const adminRoutes = new Hono<HonoEnv>()
       rows,
     );
     return csvResponse(`hollow-transactions-${stamp(c.get("deps").now())}.csv`, csv);
+  })
+
+  // Order history: every order, open or finished, with all its details.
+  .get("/orders", async (c) => {
+    const query = parseWith(historyQuery, c.req.query());
+    const { page, pageSize } = parseWith(pageQuery, c.req.query());
+    const result = await repoOf(c).orderHistory({ ...historyFilter(query), limit: pageSize, offset: (page - 1) * pageSize });
+    const body: OrderHistoryPage = { ...result, page, pageSize };
+    c.header("Cache-Control", "no-store");
+    return c.json(body);
+  })
+
+  .get("/export/orders.csv", async (c) => {
+    const filter = historyFilter(parseWith(historyQuery, c.req.query()));
+    const repo = repoOf(c);
+    const rows: unknown[][] = [];
+    for (let p = 0; p < HISTORY_EXPORT_MAX_PAGES; p++) {
+      const { items } = await repo.orderHistory({ ...filter, limit: HISTORY_EXPORT_PAGE, offset: p * HISTORY_EXPORT_PAGE });
+      rows.push(...items.map(orderCsvRow));
+      if (items.length < HISTORY_EXPORT_PAGE) break;
+    }
+    return csvResponse(`hollow-orders-${stamp(c.get("deps").now())}.csv`, toCsv(ORDER_CSV_HEADER, rows));
   })
 
   // Sales dashboard. "today" compares with yesterday up to the same time;

@@ -42,6 +42,13 @@ export function startOfLocalDay(now: Date, timeZone: string, daysBack = 0): Date
   return zonedInstant(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), "00:00", timeZone);
 }
 
+/** Midnight starting a YYYY-MM-DD day (or `daysAfter` days later) on the wall clock of `timeZone`. */
+export function startOfDate(date: string, timeZone: string, daysAfter = 0): Date {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  const day = new Date(Date.UTC(y, m - 1, d + daysAfter));
+  return zonedInstant(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), "00:00", timeZone);
+}
+
 export interface BusinessWindow {
   /** Local date the shift opened on (YYYY-MM-DD). */
   businessDate: string;
