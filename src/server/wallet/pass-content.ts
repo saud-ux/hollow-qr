@@ -2,21 +2,22 @@
  * Builds pass.json for a HOLLOW Rewards store card.
  *
  * Layout (Apple Wallet store card):
- *   header      CUPS            "3 / 5"            (visible when cards are stacked)
+ *   header      (none, so the whole "HOLLOW Rewards" logo text fits)
  *   strip       five HOLLOW cups, and under them "3 / 5 Cups" and the reward
  *               line, drawn into the image (pre-rendered per state, see assets.ts)
  *   secondary   الاسم  <customer name>         |   رقم العضوية  HLW-XXXXXX
  *   barcode     QR (opaque signed URL) with altText "SCAN AT CHECKOUT"
- *   back        reward, program terms, shop, links
+ *   back        reward, progress, terms, shop, links
  *
- * Wallet puts every field under the strip in one row and picks the fonts, so
- * the progress line lives in the strip image where we control its layout,
- * like the in-app card. The reward also stays a (back) field: its
- * changeMessage is what shows on the lock screen when it changes, and the
- * image cannot do that. We deliberately do not use primaryFields because on
- * store cards they are drawn on top of the strip and would cover the cups.
+ * Wallet puts every front field in one row right under the strip, picks the
+ * fonts and fixes the strip's height, so the progress line lives in the strip
+ * image, where we control its layout (like the in-app card). The reward also
+ * stays a (back) field: its changeMessage is what shows on the lock screen
+ * when it changes, and the image cannot do that. We deliberately do not use
+ * primaryFields because on store cards they are drawn on top of the strip and
+ * would cover the cups.
  */
-import { MAX_STAMPS, PROGRAM_NAME, QR_CAPTION, SHOP_LABEL } from "../../shared/constants";
+import { PROGRAM_NAME, QR_CAPTION, SHOP_LABEL } from "../../shared/constants";
 import { cupsLabel, remainingCups } from "../../shared/format";
 import type { AccountRow } from "../data/repository";
 
@@ -71,14 +72,6 @@ export function buildPassJson(account: AccountRow, identity: PassIdentity): Reco
       },
     ],
     storeCard: {
-      headerFields: [
-        {
-          key: "cups",
-          label: "CUPS",
-          value: `${account.stampCount} / ${MAX_STAMPS}`,
-          textAlignment: "PKTextAlignmentRight",
-        },
-      ],
       secondaryFields: [
         {
           key: "name",

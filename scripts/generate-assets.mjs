@@ -204,20 +204,20 @@ function captionSvg({ caption, text, W, x0, muted }) {
   const at = (t, x, y, fill) => `<g transform="translate(${x.toFixed(2)} ${y})" fill="${fill}">${t.paths}</g>`;
   const right = W - x0;
   let out = "";
-  const rewardLabel = text("المكافأة", { size: 11, weight: "semibold" });
-  out += at(rewardLabel, right - rewardLabel.width, 105, label);
+  const rewardLabel = text("المكافأة", { size: 12.5, weight: "semibold" });
+  out += at(rewardLabel, right - rewardLabel.width, 104, label);
   let progressWidth = 0;
   if (caption.progress) {
-    out += at(text("HOLLOW REWARDS", { size: 10, weight: "semibold", tracking: 0.06 }), x0, 105, label);
-    const progress = text(caption.progress, { size: 16 });
+    out += at(text("HOLLOW REWARDS", { size: 11.5, weight: "semibold", tracking: 0.06 }), x0, 104, label);
+    const progress = text(caption.progress, { size: 20 });
     progressWidth = progress.width;
-    out += at(progress, x0, 129, value);
+    out += at(progress, x0, 131, value);
   }
   // Shrink the reward line if it would run into the progress value.
   const room = right - x0 - progressWidth - (progressWidth ? 18 : 0);
   let reward = text(caption.reward, { size: 16 });
   if (reward.width > room) reward = text(caption.reward, { size: (16 * room) / reward.width });
-  out += at(reward, right - reward.width, 129, caption.gold ? rgb([217, 181, 74]) : value);
+  out += at(reward, right - reward.width, 130, caption.gold ? rgb([217, 181, 74]) : value);
   return out;
 }
 
@@ -230,12 +230,13 @@ function captionSvg({ caption, text, W, x0, muted }) {
 function stripSvg({ filled, variant, wordmark, tent, tentBg, scale, text }) {
   const W = 375;
   const H = 144;
-  const cupW = 54;
-  const cupH = 72;
-  const gap = 13;
+  // The Wallet strip uses bigger cups, closer together, to fill its fixed height.
+  const cupW = text ? 57 : 54;
+  const cupH = text ? 76 : 72;
+  const gap = text ? 10 : 13;
   const total = 5 * cupW + 4 * gap;
   const x0 = (W - total) / 2;
-  const y0 = text ? 12 : (H - cupH) / 2 + 4;
+  const y0 = text ? 6 : (H - cupH) / 2 + 4;
   const reward = variant === "reward";
   const cancelled = variant === "cancelled";
   let cups = "";
