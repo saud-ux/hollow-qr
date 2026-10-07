@@ -150,7 +150,7 @@ struct OrderStrip: View {
 
     var body: some View {
         let flow = HollowText.flow(order.fulfillment)
-        let step = flow.firstIndex(of: order.status) ?? 0
+        let step = HollowText.step(order.status, fulfillment: order.fulfillment)
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
                 Text(arabic ? "طلبك" : "Order").font(.caption2.weight(.semibold)).foregroundColor(Palette.soft)
@@ -285,7 +285,7 @@ struct CardWidgetView: View {
             if let card = entry.state?.card {
                 if let order = entry.state?.order {
                     let flow = HollowText.flow(order.fulfillment)
-                    Gauge(value: Double((flow.firstIndex(of: order.status) ?? 0) + 1), in: 0...Double(flow.count)) {
+                    Gauge(value: Double(HollowText.step(order.status, fulfillment: order.fulfillment) + 1), in: 0...Double(flow.count)) {
                         Image(systemName: "cup.and.saucer.fill")
                     } currentValueLabel: {
                         Text("#\(order.number)").font(.caption2.weight(.bold))

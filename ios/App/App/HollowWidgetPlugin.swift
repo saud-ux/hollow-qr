@@ -68,7 +68,7 @@ public class HollowWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         let state = HollowOrderAttributes.ContentState(
             status: status,
             label: HollowText.status(status, fulfillment: fulfillment, arabic: lang != "en"),
-            step: max(flow.firstIndex(of: status) ?? 0, 0),
+            step: HollowText.step(status, fulfillment: fulfillment),
             steps: flow.count
         )
 

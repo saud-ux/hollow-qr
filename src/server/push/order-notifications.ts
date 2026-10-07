@@ -1,4 +1,4 @@
-import { FULFILLMENT_LABELS_AR, formatSar, orderFlow, type Order } from "../../shared/ordering";
+import { flowStep, FULFILLMENT_LABELS_AR, formatSar, orderFlow, type Order } from "../../shared/ordering";
 import type { PushLang, Repository } from "../data/repository";
 import type { Logger } from "../lib/logger";
 import type { AppPushMessage, AppPushSender, LiveActivityUpdate } from "./app-push";
@@ -96,8 +96,7 @@ const DONE_LINGER_MS = 15 * 60 * 1000;
  * screen. A finished order ends it (the notification already alerted).
  */
 export function liveActivityUpdate(order: Order, lang: PushLang, now: Date): LiveActivityUpdate {
-  const flow = orderFlow(order.fulfillment);
-  const state = { status: order.status, label: trackerLabel(order, lang), step: Math.max(flow.indexOf(order.status), 0), steps: flow.length };
+  const state = { status: order.status, label: trackerLabel(order, lang), step: Math.max(flowStep(order), 0), steps: orderFlow(order.fulfillment).length };
   if (order.status === "completed" || order.status === "cancelled") {
     return { event: "end", state, dismissAt: new Date(now.getTime() + (order.status === "completed" ? DONE_LINGER_MS : 60_000)) };
   }
@@ -115,11 +114,12 @@ function trackerLabel(order: Order, lang: PushLang): string {
     case "ready":
       if (order.fulfillment === "pickup") return en ? "Ready, pick it up at the counter" : "جاهز، استلمه من الكاشير";
       if (order.fulfillment === "curbside") return en ? "Ready, we'll bring it out" : "جاهز، نطلّعه لك";
-      return en ? "Ready" : "جاهز";
+      // Delivery has no ready step for the customer: still being prepared.
+      return en ? "Preparing your order" : "نحضّر طلبك";
     case "out_for_delivery":
-      return en ? "On its way" : "في الطريق إليك";
+      return en ? "Out for delivery" : "خرج للتوصيل";
     case "completed":
-      return en ? "Enjoy!" : "بالعافية!";
+      return order.fulfillment === "delivery" ? (en ? "Delivered, enjoy!" : "تم التوصيل، بالعافية!") : en ? "Picked up, enjoy!" : "تم الاستلام، بالعافية!";
     case "cancelled":
       return en ? "Order cancelled" : "تم إلغاء الطلب";
     default:

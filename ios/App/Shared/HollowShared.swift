@@ -90,19 +90,28 @@ enum HollowText {
         case "ready":
             if fulfillment == "pickup" { return arabic ? "جاهز، استلمه من الكاشير" : "Ready, pick it up at the counter" }
             if fulfillment == "curbside" { return arabic ? "جاهز، نطلّعه لك" : "Ready, we'll bring it out" }
-            return arabic ? "جاهز" : "Ready"
-        case "out_for_delivery": return arabic ? "في الطريق إليك" : "On its way"
-        case "completed": return arabic ? "بالعافية!" : "Enjoy!"
+            // Delivery has no ready step for the customer: still being prepared.
+            return arabic ? "نحضّر طلبك" : "Preparing your order"
+        case "out_for_delivery": return arabic ? "خرج للتوصيل" : "Out for delivery"
+        case "completed":
+            if fulfillment == "delivery" { return arabic ? "تم التوصيل، بالعافية!" : "Delivered, enjoy!" }
+            return arabic ? "تم الاستلام، بالعافية!" : "Picked up, enjoy!"
         case "cancelled": return arabic ? "تم إلغاء الطلب" : "Order cancelled"
         default: return ""
         }
     }
 
-    /// The steps of an order, as on the order screen.
+    /// The steps of an order, as on the order screen (orderFlow in src/shared/ordering.ts).
     static func flow(_ fulfillment: String) -> [String] {
         fulfillment == "delivery"
-            ? ["new", "preparing", "ready", "out_for_delivery", "completed"]
+            ? ["new", "preparing", "out_for_delivery", "completed"]
             : ["new", "preparing", "ready", "completed"]
+    }
+
+    /// Where the order is in its flow; a delivery waiting for the driver still shows as preparing.
+    static func step(_ status: String, fulfillment: String) -> Int {
+        let shown = fulfillment == "delivery" && status == "ready" ? "preparing" : status
+        return flow(fulfillment).firstIndex(of: shown) ?? 0
     }
 }
 

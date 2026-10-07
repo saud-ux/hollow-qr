@@ -7,14 +7,13 @@ import {
   CATEGORY_LABELS_EN,
   FULFILLMENT_LABELS_AR,
   FULFILLMENT_LABELS_EN,
-  STATUS_LABELS_AR,
-  STATUS_LABELS_EN,
+  customerStatusLabel,
   type FulfillmentType,
   type MenuCategory,
   type MenuItem,
   type MenuOption,
+  type Order,
   type OrderLine,
-  type OrderStatus,
 } from "../../shared/ordering";
 import { currentLang } from "./i18n";
 
@@ -74,8 +73,9 @@ export function lineOptionName(
   return option?.nameEn || line.optionNameAr;
 }
 
-export function statusLabel(status: OrderStatus): string {
-  return (en() ? STATUS_LABELS_EN : STATUS_LABELS_AR)[status];
+/** The order's status in the customer's words: pickup ends "Picked up", delivery "Delivered". */
+export function statusLabel(order: Pick<Order, "status" | "fulfillment">): string {
+  return customerStatusLabel(order, en() ? "en" : "ar");
 }
 
 export function fulfillmentLabel(fulfillment: FulfillmentType): string {
