@@ -147,6 +147,7 @@ export interface MenuItemRow {
   nameAr: string;
   nameEn: string | null;
   descriptionAr: string | null;
+  descriptionEn: string | null;
   category: MenuCategory;
   priceHalalas: number;
   imagePath: string | null;
@@ -154,6 +155,7 @@ export interface MenuItemRow {
   isArchived: boolean;
   sortOrder: number;
   optionLabel: string | null;
+  optionLabelEn: string | null;
   options: MenuOption[];
   calories: number | null;
 }
@@ -188,6 +190,8 @@ export interface OrderRpcResult {
   loyalty_changed?: boolean;
   pass_serial?: string | null;
 }
+
+export type PushLang = "ar" | "en";
 
 export type StaffAlertKind = "new_orders" | "daily_summary";
 
@@ -246,9 +250,10 @@ export interface Repository {
   listOrders(params: ListOrdersParams): Promise<Order[]>;
 
   /** iOS app push tokens. A token moves to whoever signed in last on that device. */
-  registerPushDevice(userId: string, token: string): Promise<void>;
+  registerPushDevice(userId: string, token: string, lang: PushLang): Promise<void>;
   unregisterPushDevice(userId: string, token: string): Promise<void>;
-  pushTokensForOrder(orderId: string): Promise<string[]>;
+  /** The order customer's devices, each with the language its app is in. */
+  pushTokensForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]>;
   deletePushToken(token: string): Promise<void>;
   /** Devices of staff/admins who want new-order alerts, or of admins who want the daily summary. */
   staffPushTokens(kind: StaffAlertKind): Promise<string[]>;

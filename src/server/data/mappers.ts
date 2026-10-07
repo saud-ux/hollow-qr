@@ -111,13 +111,22 @@ function mapOptions(v: unknown): MenuOption[] {
   return list.map((o) => ({
     id: str(o.id),
     nameAr: str(o.name_ar),
+    nameEn: strOrNull(o.name_en),
     noteAr: strOrNull(o.note_ar),
+    noteEn: strOrNull(o.note_en),
     isAvailable: o.is_available === undefined ? true : Boolean(o.is_available),
   }));
 }
 
 export function optionsColumn(options: MenuOption[]): Raw[] {
-  return options.map((o) => ({ id: o.id, name_ar: o.nameAr, note_ar: o.noteAr, is_available: o.isAvailable }));
+  return options.map((o) => ({
+    id: o.id,
+    name_ar: o.nameAr,
+    name_en: o.nameEn,
+    note_ar: o.noteAr,
+    note_en: o.noteEn,
+    is_available: o.isAvailable,
+  }));
 }
 
 export function mapMenuItem(r: Raw): MenuItemRow {
@@ -126,6 +135,7 @@ export function mapMenuItem(r: Raw): MenuItemRow {
     nameAr: str(r.name_ar),
     nameEn: strOrNull(r.name_en),
     descriptionAr: strOrNull(r.description_ar),
+    descriptionEn: strOrNull(r.description_en),
     category: str(r.category) as MenuItemRow["category"],
     priceHalalas: num(r.price_halalas),
     imagePath: strOrNull(r.image_path),
@@ -133,6 +143,7 @@ export function mapMenuItem(r: Raw): MenuItemRow {
     isArchived: Boolean(r.is_archived),
     sortOrder: num(r.sort_order),
     optionLabel: strOrNull(r.option_label),
+    optionLabelEn: strOrNull(r.option_label_en),
     options: mapOptions(r.options),
     calories: numOrNull(r.calories),
   };
@@ -144,6 +155,7 @@ export function menuItemColumns(patch: Partial<MenuItemRow>): Raw {
   if (patch.nameAr !== undefined) out.name_ar = patch.nameAr;
   if (patch.nameEn !== undefined) out.name_en = patch.nameEn;
   if (patch.descriptionAr !== undefined) out.description_ar = patch.descriptionAr;
+  if (patch.descriptionEn !== undefined) out.description_en = patch.descriptionEn;
   if (patch.category !== undefined) out.category = patch.category;
   if (patch.priceHalalas !== undefined) out.price_halalas = patch.priceHalalas;
   if (patch.imagePath !== undefined) out.image_path = patch.imagePath;
@@ -151,6 +163,7 @@ export function menuItemColumns(patch: Partial<MenuItemRow>): Raw {
   if (patch.isArchived !== undefined) out.is_archived = patch.isArchived;
   if (patch.sortOrder !== undefined) out.sort_order = patch.sortOrder;
   if (patch.optionLabel !== undefined) out.option_label = patch.optionLabel;
+  if (patch.optionLabelEn !== undefined) out.option_label_en = patch.optionLabelEn;
   if (patch.options !== undefined) out.options = optionsColumn(patch.options);
   if (patch.calories !== undefined) out.calories = patch.calories;
   return out;

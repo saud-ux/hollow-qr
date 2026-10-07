@@ -34,6 +34,7 @@ import type {
   OrderRpcResult,
   PlaceOrderParams,
   RemoveStaffResult,
+  PushLang,
   Repository,
   StaffAlertKind,
 } from "../../src/server/data/repository";
@@ -243,22 +244,22 @@ export class PgliteRepository implements Repository {
     ]);
     return res.rows.map((r) => ({ serial: String(r.pass_serial), tag: BigInt(String(r.update_tag)) }));
   }
-  async registerPushDevice(userId: string, token: string) {
+  async registerPushDevice(userId: string, token: string, lang: PushLang) {
     await this.db.query(
-      `insert into public.push_devices (token, user_id) values ($1, $2)
-       on conflict (token) do update set user_id = excluded.user_id`,
-      [token, userId],
+      `insert into public.push_devices (token, user_id, lang) values ($1, $2, $3)
+       on conflict (token) do update set user_id = excluded.user_id, lang = excluded.lang`,
+      [token, userId, lang],
     );
   }
   async unregisterPushDevice(userId: string, token: string) {
     await this.db.query("delete from public.push_devices where token = $1 and user_id = $2", [token, userId]);
   }
-  async pushTokensForOrder(orderId: string) {
+  async pushTokensForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]> {
     const res = await this.db.query<Raw>(
-      `select d.token from public.push_devices d join public.orders o on o.customer_id = d.user_id where o.id = $1 limit 20`,
+      `select d.token, d.lang from public.push_devices d join public.orders o on o.customer_id = d.user_id where o.id = $1 limit 20`,
       [orderId],
     );
-    return res.rows.map((r) => String(r.token));
+    return res.rows.map((r) => ({ token: String(r.token), lang: r.lang === "en" ? "en" : "ar" }));
   }
   async deletePushToken(token: string) {
     await this.db.query("delete from public.push_devices where token = $1", [token]);
