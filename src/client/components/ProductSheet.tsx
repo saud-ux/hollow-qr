@@ -3,7 +3,7 @@ import { isOrderable, MAX_LINE_QUANTITY, priceOf, type MenuItem } from "../../sh
 import { SalePrice } from "./SalePrice";
 import { useCart } from "../lib/cart";
 import { riyals } from "../lib/menu";
-import { flyToCart, motionOn, openFromCard } from "../lib/motion";
+import { flyToCart, morphCardSheet, motionOn } from "../lib/motion";
 import { isNative } from "../lib/native";
 import { itemDescription, itemName, itemSubName, optionLabel, optionName, optionNote, subNameDir } from "../lib/menuText";
 import { stockLeftText, stockRoom } from "../lib/stock";
@@ -15,7 +15,7 @@ import { tr } from "../lib/i18n";
  * A product up close: a large photo (tap it to see it full screen), the
  * description, and, for items like V60, the origin to choose.
  */
-export function ProductSheet({ item, canOrder, origin = null, onClose }: { item: MenuItem; canOrder: boolean; origin?: DOMRect | null; onClose: () => void }) {
+export function ProductSheet({ item, canOrder, origin = null, onClose }: { item: MenuItem; canOrder: boolean; origin?: HTMLElement | null; onClose: () => void }) {
   const cart = useCart();
   const hasOptions = item.options.length > 0;
   const firstAvailable = item.options.find((o) => o.isAvailable)?.id ?? null;
@@ -26,22 +26,31 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
   const photoRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   useSheetDrag(sheetRef, photoRef, onClose);
-  // Opened from a menu card: the photo grows out of the card instead of the sheet sliding up.
+  // Opened from a menu card: the card itself grows into the sheet, and closing folds it back.
   const [zoomIn] = useState(() => origin !== null && motionOn());
+  const opened = useRef(false);
   useLayoutEffect(() => {
-    if (!zoomIn) return;
-    const body = sheetRef.current?.querySelector(".product-sheet__body");
-    openFromCard(origin, photoRef.current, body ? [...body.children] : []);
+    // Once per sheet (React's dev double-run would measure the half-grown sheet).
+    if (opened.current) return;
+    opened.current = true;
+    if (zoomIn) void morphCardSheet(origin, sheetRef.current, true);
     // Only on opening.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const closing = useRef(false);
+  const close = () => {
+    if (closing.current) return;
+    closing.current = true;
+    if (zoomIn) void morphCardSheet(origin, sheetRef.current, false).then(onClose);
+    else onClose();
+  };
 
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (zoomed) setZoomed(false);
-      else onClose();
+      else close();
     };
     document.addEventListener("keydown", onKey);
     document.documentElement.classList.add("sheet-open");
@@ -49,6 +58,8 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
       document.removeEventListener("keydown", onKey);
       document.documentElement.classList.remove("sheet-open");
     };
+    // close() only reads refs and the open-time origin.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose, zoomed]);
 
   const orderable = canOrder && isOrderable(item) && (!hasOptions || optionId !== null);
@@ -65,7 +76,7 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
   }
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
+    <div className="sheet-backdrop" onClick={close}>
       <div
         ref={sheetRef}
         className={`product-sheet ${zoomIn ? "product-sheet--zoom" : ""}`}
@@ -74,7 +85,7 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
         aria-labelledby="product-sheet-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <button ref={closeRef} type="button" className="product-sheet__close" onClick={onClose} aria-label={tr("إغلاق", "Close")}>
+        <button ref={closeRef} type="button" className="product-sheet__close" onClick={close} aria-label={tr("إغلاق", "Close")}>
           ×
         </button>
         <div ref={photoRef} className="product-sheet__photo">
