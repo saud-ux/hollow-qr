@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type RefObject } from "react";
-import { motionOn } from "../lib/motion";
+import { isEdgeSwiping, motionOn } from "../lib/motion";
 import { isNative, tapFeedback } from "../lib/native";
 
 /** How far the page moves before letting go refreshes it. */
@@ -59,7 +59,7 @@ export function PullToRefresh({ onRefresh, target }: { onRefresh: () => Promise<
     const onMove = (e: TouchEvent) => {
       if (startY === null) return;
       const dy = e.touches[0]!.clientY - startY;
-      if (dy <= 0 || window.scrollY > 0) {
+      if (dy <= 0 || window.scrollY > 0 || isEdgeSwiping()) {
         if (pull > 0) paint(0, false);
         pull = 0;
         return;
