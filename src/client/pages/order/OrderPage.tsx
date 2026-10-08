@@ -31,7 +31,7 @@ const isCollectReady = (order: Order) => order.status === "ready" && order.fulfi
 function headline(order: Order): string {
   switch (order.status) {
     case "new":
-      return tr("وصل طلبك للكوفي، بننتظر تأكيده", "Your order reached the café, waiting for them to confirm");
+      return tr("بنأكد طلبك خلال لحظات", "We'll confirm your order in a moment");
     case "preparing":
       return tr("نحضّر طلبك الآن", "We're preparing your order");
     case "ready":

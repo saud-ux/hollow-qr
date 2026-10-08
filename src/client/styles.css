@@ -1130,6 +1130,11 @@ select {
   font-size: 1.2rem;
   font-weight: 600;
 }
+/* Arabic letters join, so no letter spacing on «أكوابك». */
+html[lang="ar"] .shop__cups-label {
+  letter-spacing: 0;
+  font-size: 0.78rem;
+}
 .shop__main {
   flex: 1;
   display: grid;
@@ -1764,10 +1769,6 @@ select {
 .order-row--active {
   border-color: var(--espresso);
 }
-.order-row__num {
-  font-weight: 800;
-  font-size: 1.05rem;
-}
 .order-row__main {
   flex: 1;
   display: grid;
@@ -1782,6 +1783,11 @@ select {
 .order-row__main small,
 .order-row__side small {
   color: #6f5f52;
+}
+.order-row__main small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .order-row__side {
   display: grid;
@@ -3554,38 +3560,78 @@ button.rate__star:active {
   z-index: 1;
 }
 .ptr__cup {
-  --fill: 100%;
+  --level: 57px;
   position: absolute;
   top: 8px;
   left: 50%;
-  width: 27px;
-  height: 36px;
+  width: 40px;
+  height: 50px;
   opacity: 0;
   transform: translateX(-50%) scale(0.6);
   pointer-events: none;
 }
-.ptr__cup img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.ptr__cup svg {
+  display: block;
+  overflow: visible;
 }
-.ptr__fill {
-  clip-path: inset(var(--fill) 0 0 0);
+.ptr__body {
+  fill: var(--paper);
 }
-.motion .ptr__cup--busy {
-  animation: hollow-sip 900ms ease-in-out infinite;
+.ptr__outline {
+  fill: none;
+  stroke: var(--espresso);
+  stroke-width: 2;
+  stroke-linejoin: round;
 }
-@keyframes hollow-sip {
-  0%,
+.ptr__lid {
+  fill: var(--espresso);
+}
+.ptr__coffee {
+  transform: translateY(var(--level));
+}
+.ptr__wave {
+  fill: #7a4a2a;
+}
+/* The coffee's surface moves gently while it rises. */
+.motion .ptr__wave {
+  animation: ptr-wave 1.6s linear infinite;
+}
+@keyframes ptr-wave {
+  to {
+    transform: translateX(24px);
+  }
+}
+.ptr__steam path {
+  fill: none;
+  stroke: var(--label);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+/* While the page reloads, steam rises from the full cup. */
+.ptr__cup--busy .ptr__steam path {
+  opacity: 0.8;
+}
+.motion .ptr__cup--busy .ptr__steam path {
+  animation: ptr-steam 1.4s ease-in-out infinite;
+}
+.motion .ptr__cup--busy .ptr__steam path:nth-child(2) {
+  animation-delay: 0.25s;
+}
+.motion .ptr__cup--busy .ptr__steam path:nth-child(3) {
+  animation-delay: 0.5s;
+}
+@keyframes ptr-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  40% {
+    opacity: 0.8;
+  }
   100% {
-    rotate: 0deg;
-  }
-  25% {
-    rotate: -9deg;
-  }
-  75% {
-    rotate: 9deg;
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 
@@ -5602,4 +5648,68 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .field__eye:focus-visible {
   outline: 3px solid var(--gold);
   outline-offset: -3px;
+}
+
+/* ---------- My orders: small photos of what was ordered, and a coloured status ---------- */
+.order-thumbs {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+.order-thumbs__tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 2px solid var(--paper);
+  box-shadow: 0 2px 6px rgb(43 30 22 / 12%);
+}
+.order-thumbs__tile + .order-thumbs__tile {
+  margin-inline-start: -14px;
+}
+.order-thumbs__img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+.order-thumbs__img.item-img--placeholder .item-img__cup {
+  width: 46%;
+}
+.order-thumbs__img.item-img--placeholder .item-img__mark {
+  width: 80%;
+}
+.order-thumbs__more {
+  /* Centre "+N" in the part the tile before it leaves uncovered. */
+  padding-inline-start: 14px;
+  background: var(--beige);
+  color: var(--espresso);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.order-live__id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.order-live .order-thumbs__tile {
+  border-color: var(--espresso);
+}
+:is(html.native, html.staff-ui)[data-theme="dark"] .order-live .order-thumbs__tile {
+  border-color: #2b1e16;
+}
+.order-row .status-chip--completed {
+  background: var(--success-soft);
+  color: #174d2e;
+}
+:is(html.native, html.staff-ui)[data-theme="dark"] .order-row .status-chip--completed {
+  background: rgb(46 125 79 / 28%);
+  color: #9fdcb8;
+}
+:is(html.native, html.staff-ui)[data-theme="dark"] .order-row .status-chip--cancelled {
+  background: rgb(169 50 38 / 28%);
+  color: #f2a79c;
 }

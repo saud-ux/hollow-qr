@@ -106,7 +106,7 @@ export function RegisterPage() {
   return (
     <CustomerLayout hero>
       <section className="hero">
-        <h1 className="hero__title">{tr("اشترِ 5 أكواب واحصل على السادس مجانًا", "Buy 5 cups, get the 6th free")}</h1>
+        <h1 className="hero__title">{tr("سجّل واجمع 5 أكواب، والسادس مجاني", "Sign up, collect 5 cups, the 6th is free")}</h1>
         <p className="hero__sub">{tr("بطاقة ولاء HOLLOW في Apple Wallet بدون تطبيق.", "Your HOLLOW loyalty card, right in Apple Wallet.")}</p>
       </section>
       <form className="card form" onSubmit={onSubmit} noValidate>

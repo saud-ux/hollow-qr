@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router";
-import { flowStep, isActiveStatus, orderFlow, type Order } from "../../../shared/ordering";
+import { flowStep, isActiveStatus, orderFlow, type MenuItem, type Order } from "../../../shared/ordering";
 import { Alert } from "../../components/Field";
 import { OrdersSkeleton } from "../../components/Skeletons";
-import { ShopLayout } from "../../components/Shop";
+import { ItemImage, ShopLayout } from "../../components/Shop";
 import { apiGet, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
-import { formatDateTime } from "../../lib/dates";
+import { formatDateTimeShort } from "../../lib/dates";
 import { riyals, useMenu } from "../../lib/menu";
 import { lineName, lineOptionName, statusLabel } from "../../lib/menuText";
 import { tr } from "../../lib/i18n";
@@ -15,6 +15,34 @@ import { tr } from "../../lib/i18n";
 function progress(o: Order): number {
   const i = Math.max(flowStep(o), 0);
   return Math.round(((i + 0.5) / orderFlow(o.fulfillment).length) * 100);
+}
+
+/**
+ * Small overlapping photos of what was ordered, the first on top. At most
+ * `max` tiles: when there are more items, the last tile is "+N" instead.
+ */
+function OrderThumbs({ order, items, max }: { order: Order; items: MenuItem[] | undefined; max: number }) {
+  const seen = new Set<string>();
+  const lines = order.items.filter((l) => !seen.has(l.menuItemId) && seen.add(l.menuItemId));
+  const shown = lines.length > max ? lines.slice(0, max - 1) : lines;
+  const more = lines.length - shown.length;
+  return (
+    <span className="order-thumbs" aria-hidden="true">
+      {shown.map((l, i) => (
+        <span key={l.menuItemId} className="order-thumbs__tile" style={{ zIndex: max - i }}>
+          <ItemImage
+            item={items?.find((m) => m.id === l.menuItemId) ?? { imageUrl: null, nameAr: l.nameAr, category: l.category }}
+            className="order-thumbs__img"
+          />
+        </span>
+      ))}
+      {more > 0 && (
+        <span className="order-thumbs__tile order-thumbs__more">
+          <bdi dir="ltr">+{more}</bdi>
+        </span>
+      )}
+    </span>
+  );
 }
 
 export function OrdersPage() {
@@ -82,8 +110,11 @@ export function OrdersPage() {
                 <li key={o.id}>
                   <Link to={`/orders/${o.id}`} className="order-live">
                     <span className="order-live__top">
-                      <span className="order-live__num" dir="ltr">
-                        #{o.orderNumber}
+                      <span className="order-live__id">
+                        <OrderThumbs order={o} items={menu?.items} max={3} />
+                        <span className="order-live__num" dir="ltr">
+                          #{o.orderNumber}
+                        </span>
                       </span>
                       <span className="order-live__status">{statusLabel(o)}</span>
                     </span>
@@ -111,12 +142,12 @@ export function OrdersPage() {
               .map((o) => (
                 <li key={o.id}>
                   <Link to={`/orders/${o.id}`} className="order-row">
-                    <span className="order-row__num" dir="ltr">
-                      #{o.orderNumber}
-                    </span>
+                    <OrderThumbs order={o} items={menu?.items} max={2} />
                     <span className="order-row__main">
                       <span className="order-row__items">{summary(o)}</span>
-                      <small>{formatDateTime(o.createdAt)}</small>
+                      <small>
+                        <span dir="ltr">#{o.orderNumber}</span> · {formatDateTimeShort(o.createdAt)}
+                      </small>
                     </span>
                     <span className="order-row__side">
                       <span className={`status-chip status-chip--${o.status}`}>{statusLabel(o)}</span>

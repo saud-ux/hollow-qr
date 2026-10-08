@@ -1,22 +1,26 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useId, useRef, type RefObject } from "react";
 import { motionOn } from "../lib/motion";
 import { isNative, tapFeedback } from "../lib/native";
 
 /** How far the page moves before letting go refreshes it. */
-const THRESHOLD = 64;
+const THRESHOLD = 72;
 /** Where the page rests while it refreshes. */
-const HOLD = 52;
+const HOLD = 66;
+/** Coffee level in the cup drawing: empty at the bottom, full under the lid. */
+const EMPTY_Y = 57;
+const FULL_Y = 21;
 /** The spinner stays at least this long, so a fast refresh doesn't flash. */
 const MIN_SPIN_MS = 600;
 
 /**
- * iOS app only: pull the page down from the top to refresh it. A HOLLOW cup
- * fills as you pull; let go once it's full and it steams while the page
- * reloads. `target` is the element that moves (the page's <main>), and the
+ * iOS app only: pull the page down from the top to refresh it. Coffee rises
+ * in a HOLLOW cup as you pull; let go once it's full and it steams while the
+ * page reloads. `target` is the element that moves (the page's <main>), and the
  * cup sits in the space it uncovers under the header.
  */
 export function PullToRefresh({ onRefresh, target }: { onRefresh: () => Promise<unknown>; target: RefObject<HTMLElement | null> }) {
   const cupRef = useRef<HTMLDivElement>(null);
+  const clipId = `ptr-cup-${useId().replace(/:/g, "")}`;
   const refreshRef = useRef(onRefresh);
   useEffect(() => {
     refreshRef.current = onRefresh;
@@ -42,7 +46,7 @@ export function PullToRefresh({ onRefresh, target }: { onRefresh: () => Promise<
         cup.style.transition = smooth ? "opacity 300ms, transform 380ms cubic-bezier(.2,.8,.2,1)" : "none";
         cup.style.opacity = String(p);
         cup.style.transform = `translateX(-50%) scale(${0.6 + 0.4 * p})`;
-        cup.style.setProperty("--fill", `${Math.round((1 - p) * 100)}%`);
+        cup.style.setProperty("--level", `${(EMPTY_Y - (EMPTY_Y - FULL_Y) * p).toFixed(1)}px`);
       }
     };
 
@@ -100,11 +104,30 @@ export function PullToRefresh({ onRefresh, target }: { onRefresh: () => Promise<
   }, [target]);
 
   if (!isNative) return null;
+  const body = "M9 17 H39 L35.6 53.5 Q35.2 57 31.8 57 H16.2 Q12.8 57 12.4 53.5 Z";
   return (
     <div className="ptr" aria-hidden="true">
       <div ref={cupRef} className="ptr__cup">
-        <img src="/wallet-preview/cup-empty.png" alt="" />
-        <img src="/wallet-preview/cup-filled.png" alt="" className="ptr__fill" />
+        <svg viewBox="0 0 48 60" width="40" height="50">
+          <defs>
+            <clipPath id={clipId}>
+              <path d={body} />
+            </clipPath>
+          </defs>
+          <g className="ptr__steam">
+            <path d="M18 12 C15 8 21 6 18 2" />
+            <path d="M24 12 C21 8 27 6 24 2" />
+            <path d="M30 12 C27 8 33 6 30 2" />
+          </g>
+          <path d={body} className="ptr__body" />
+          <g clipPath={`url(#${clipId})`}>
+            <g className="ptr__coffee">
+              <path className="ptr__wave" d="M-24 0 q6 -2.6 12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 V60 H-24 Z" />
+            </g>
+          </g>
+          <path d={body} className="ptr__outline" />
+          <rect x="6.5" y="12" width="35" height="6" rx="2.5" className="ptr__lid" />
+        </svg>
       </div>
     </div>
   );
