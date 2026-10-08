@@ -28,8 +28,8 @@ export function OffersPanel() {
     setError(null);
     setDone(null);
     try {
-      const sent = await sendBroadcast(title.trim(), body.trim(), (s, of) => setProgress({ sent: s, of }));
-      setDone(`وصل الإشعار إلى ${sent} ${sent === 1 ? "جهاز" : "أجهزة"}`);
+      await sendBroadcast(title.trim(), body.trim(), (s, of) => setProgress({ sent: s, of }));
+      setDone("انرسل الإشعار");
       setBody("");
       load();
     } catch (e) {
@@ -43,10 +43,6 @@ export function OffersPanel() {
   return (
     <section className="panel">
       <h2>إشعار عرض للعملاء</h2>
-      <p className="muted small">
-        يوصل لكل اللي فعّلوا «العروض والجديد» في التطبيق
-        {data ? `: ${data.recipients} ${data.recipients === 1 ? "جهاز" : "أجهزة"} الآن` : ""}.
-      </p>
       <form
         className="form"
         onSubmit={(e) => {
@@ -72,7 +68,7 @@ export function OffersPanel() {
         {error && <Alert tone="error">{error}</Alert>}
         {done && <Alert tone="success">{done}</Alert>}
         <button type="submit" className="btn btn--primary" disabled={!ready || data?.recipients === 0}>
-          {progress ? `جارٍ الإرسال… ${progress.sent} / ${progress.of}` : "إرسال الإشعار"}
+          {progress ? "جارٍ الإرسال…" : "إرسال الإشعار"}
         </button>
       </form>
       {data && data.items.length > 0 && (
@@ -82,7 +78,7 @@ export function OffersPanel() {
               <strong>{b.title}</strong>
               <span>{b.body}</span>
               <small className="muted">
-                {formatDateTime(b.createdAt)} · وصل {b.sent} من {b.recipients}
+                {formatDateTime(b.createdAt)}
               </small>
             </li>
           ))}
@@ -93,7 +89,7 @@ export function OffersPanel() {
         title="إرسال الإشعار الحين؟"
         message={
           <p>
-            «{body.trim()}» بيوصل لـ {data?.recipients ?? 0} {data?.recipients === 1 ? "جهاز" : "أجهزة"}. ما تقدر تلغيه بعد الإرسال.
+            «{body.trim()}». ما تقدر تلغيه بعد الإرسال.
           </p>
         }
         confirmLabel="أرسل"

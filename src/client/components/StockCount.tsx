@@ -5,7 +5,7 @@ import { apiPost, errorText } from "../lib/api";
 /**
  * How many of an item are left (staff and admin). Orders take from it the
  * moment they are placed; at 0 the item is sold out until more is added.
- * "بدون عدّ" = not counted (unlimited).
+ * No count set = not counted (unlimited); only the "set amount" button shows.
  */
 export function StockCount({ item, onSaved }: { item: MenuItem; onSaved: (item: MenuItem) => void }) {
   const [value, setValue] = useState<number | null>(item.stockQuantity);
@@ -73,7 +73,6 @@ export function StockCount({ item, onSaved }: { item: MenuItem; onSaved: (item: 
   if (value === null) {
     return (
       <div className="stock-count">
-        <span className="stock-count__none">بدون عدّ</span>
         <button
           type="button"
           className="btn btn--small btn--ghost"
