@@ -25,7 +25,7 @@ function arabicText(order: Order): PushText | null {
       if (order.fulfillment === "curbside") return { title: "طلبك جاهز! 🚗", body: `طلبك رقم ${n} جاهز. اضغط «وصلت» وبنجيبه لسيارتك!` };
       return { title: TITLE, body: `طلبك #${n} جاهز وبيطلع لك مع المندوب قريبًا` };
     case "out_for_delivery":
-      return { title: "قهوتك في الطريق! 🛵", body: `طلبك رقم ${n} طلع مع المندوب وجاي لك!` };
+      return { title: "قهوتك بالطريق!💨🚗", body: `طلبك رقم ${n} طلع مع المندوب وجاي لك!` };
     case "completed": {
       const cups = order.loyaltyResult?.cupsAdded ?? 0;
       return { title: TITLE, body: cups > 0 ? `بالعافية! انضاف لبطاقتك ${cups} ${cups === 1 ? "كوب" : "أكواب"}` : "بالعافية! تم تسليم طلبك" };
@@ -50,7 +50,7 @@ function englishText(order: Order): PushText | null {
       if (order.fulfillment === "curbside") return { title: "Your order is ready! 🚗", body: `Order #${n} is ready. Tap "I'm here" on arrival!` };
       return { title: TITLE, body: `Your order #${n} is ready and leaving with the driver soon` };
     case "out_for_delivery":
-      return { title: "On its way! 🛵", body: `Order #${n} is with the driver, heading your way!` };
+      return { title: "On its way!💨🚗", body: `Order #${n} is with the driver, heading your way!` };
     case "completed": {
       const cups = order.loyaltyResult?.cupsAdded ?? 0;
       return { title: TITLE, body: cups > 0 ? `Enjoy! ${cups} ${cups === 1 ? "cup" : "cups"} added to your card` : "Enjoy! Your order is complete" };

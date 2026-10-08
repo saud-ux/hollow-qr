@@ -108,7 +108,7 @@ describe("orderStatusMessage", () => {
     });
     expect(orderStatusMessage({ ...base, status: "ready", fulfillment: "delivery" })!.body).toContain("المندوب");
     expect(orderStatusMessage({ ...base, status: "out_for_delivery", fulfillment: "delivery" })).toMatchObject({
-      title: "قهوتك في الطريق! 🛵",
+      title: "قهوتك بالطريق!💨🚗",
       body: "طلبك رقم 12 طلع مع المندوب وجاي لك!",
     });
     const oneCup = { redeem: null, cupsAdded: 1, cupsNotAdded: 0, skipped: false };
