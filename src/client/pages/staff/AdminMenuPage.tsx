@@ -60,7 +60,6 @@ function SettingsPanel() {
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [fee, setFee] = useState("");
-  const [minimum, setMinimum] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,7 +68,6 @@ function SettingsPanel() {
     setSettings(r.settings);
     setIsOpen(r.isOpen);
     setFee(sar(r.settings.deliveryFeeHalalas));
-    setMinimum(sar(r.settings.deliveryMinOrderHalalas));
   }, []);
 
   useEffect(() => {
@@ -87,9 +85,8 @@ function SettingsPanel() {
     e.preventDefault();
     if (!settings) return;
     const feeH = toHalalas(fee);
-    const minH = toHalalas(minimum);
-    if (feeH === null || minH === null) {
-      setError("اكتب رسوم التوصيل والحد الأدنى بالأرقام");
+    if (feeH === null) {
+      setError("اكتب رسوم التوصيل بالأرقام");
       return;
     }
     setBusy(true);
@@ -100,7 +97,8 @@ function SettingsPanel() {
         await apiSend<{ settings: ShopSettings; isOpen: boolean }>("PUT", "/api/admin/settings", {
           ...settings,
           deliveryFeeHalalas: feeH,
-          deliveryMinOrderHalalas: minH,
+          // No minimum order for delivery.
+          deliveryMinOrderHalalas: 0,
         }),
       );
       setOk("تم حفظ الإعدادات");
@@ -127,12 +125,10 @@ function SettingsPanel() {
         </div>
         <div className="form-row">
           <Field label="رسوم التوصيل (⃁)" inputMode="decimal" dir="ltr" value={fee} onChange={(e) => setFee(e.target.value)} />
-          <Field label="الحد الأدنى للتوصيل (⃁)" inputMode="decimal" dir="ltr" value={minimum} onChange={(e) => setMinimum(e.target.value)} hint="0 = بدون حد أدنى" />
         </div>
 
         <fieldset className="hours">
           <legend>أوقات استقبال الطلبات</legend>
-          <p className="muted small">إذا كان وقت الإغلاق قبل وقت الفتح، يمتد الدوام بعد منتصف الليل.</p>
           {settings.weeklyHours.map((d, i) => (
             <div key={i} className={`hours__row ${d.closed ? "is-closed" : ""}`}>
               <span className="hours__day">{WEEKDAY_LABELS_AR[i]}</span>
@@ -188,7 +184,11 @@ type Draft = {
 
 const newOptionId = () => `opt-${Math.random().toString(36).slice(2, 8)}`;
 
-const emptyDraft = (category: MenuCategory = "drink"): Draft => ({
+/** The next free position in a section: 1, 2, 3… */
+const nextPosition = (items: MenuItem[] | null, category: MenuCategory) =>
+  String((items ?? []).filter((i) => i.category === category && !i.isArchived).length + 1);
+
+const emptyDraft = (category: MenuCategory = "drink", position = "1"): Draft => ({
   id: null,
   nameAr: "",
   nameEn: "",
@@ -196,7 +196,7 @@ const emptyDraft = (category: MenuCategory = "drink"): Draft => ({
   descriptionEn: "",
   category,
   price: "",
-  sortOrder: "500",
+  sortOrder: position,
   isAvailable: true,
   isArchived: false,
   optionLabel: "",
@@ -286,7 +286,7 @@ function MenuPanel() {
     const sortOrder = Number.parseInt(toLatinDigits(draft.sortOrder), 10);
     if (!draft.nameAr.trim()) return setDraftError("اكتب اسم الصنف");
     if (price === null) return setDraftError("اكتب السعر بالأرقام (مثال: 15 أو 15.5)");
-    if (!Number.isFinite(sortOrder) || sortOrder < 0) return setDraftError("الترتيب رقم من 0 فأكثر");
+    if (!Number.isFinite(sortOrder) || sortOrder < 1) return setDraftError("الترتيب رقم من 1 فأكثر");
     const kcalText = toLatinDigits(draft.calories).trim();
     const calories = kcalText ? Number(kcalText) : null;
     if (calories !== null && (!Number.isInteger(calories) || calories < 0 || calories > 5000)) {
@@ -320,12 +320,10 @@ function MenuPanel() {
     setBusy(true);
     setDraftError(null);
     try {
-      if (draft.id) {
-        replace((await apiSend<{ item: MenuItem }>("PATCH", `/api/admin/menu/${draft.id}`, body)).item);
-      } else {
-        await apiPost<{ item: MenuItem }>("/api/admin/menu", body);
-        await load();
-      }
+      if (draft.id) await apiSend<{ item: MenuItem }>("PATCH", `/api/admin/menu/${draft.id}`, body);
+      else await apiPost<{ item: MenuItem }>("/api/admin/menu", body);
+      // Positions around the item may have moved, so reload the whole list.
+      await load();
       setDraft(null);
     } catch (err) {
       setDraftError(errorText(err));
@@ -357,7 +355,7 @@ function MenuPanel() {
     <section className="panel">
       <div className="panel__head">
         <h2>الأصناف</h2>
-        <button type="button" className="btn btn--primary btn--small" onClick={() => setDraft(emptyDraft())}>
+        <button type="button" className="btn btn--primary btn--small" onClick={() => setDraft(emptyDraft("drink", nextPosition(items, "drink")))}>
           + صنف جديد
         </button>
       </div>
@@ -434,7 +432,12 @@ function MenuPanel() {
             <div className="form-row">
               <div className="field">
                 <label htmlFor="cat">القسم</label>
-                <select id="cat" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value as MenuCategory })}>
+                <select id="cat" value={draft.category} onChange={(e) => {
+                    const category = e.target.value as MenuCategory;
+                    // A new item moves to the end of the section it is put in.
+                    setDraft({ ...draft, category, sortOrder: draft.id ? draft.sortOrder : nextPosition(items, category) });
+                  }}
+                >
                   <option value="drink">مشروب (يحسب كوب في الولاء)</option>
                   <option value="dessert">حلا</option>
                 </select>
@@ -449,7 +452,7 @@ function MenuPanel() {
               onChange={(e) => setDraft({ ...draft, calories: e.target.value })}
               hint="للحصة الواحدة، تظهر تحت السعر في المنيو"
             />
-            <Field label="الترتيب" inputMode="numeric" dir="ltr" value={draft.sortOrder} onChange={(e) => setDraft({ ...draft, sortOrder: e.target.value })} hint="الأصغر يظهر أولًا" />
+            <Field label="الترتيب" inputMode="numeric" dir="ltr" value={draft.sortOrder} onChange={(e) => setDraft({ ...draft, sortOrder: e.target.value })} hint="1 يظهر أول القسم، والباقي يتأخرون تلقائيًا" />
             <Toggle label="متوفر للطلب" checked={draft.isAvailable} onChange={(v) => setDraft({ ...draft, isAvailable: v })} />
             <Toggle label="الأفضل مبيعًا (يظهر أعلى المنيو)" checked={draft.isBestSeller} onChange={(v) => setDraft({ ...draft, isBestSeller: v })} />
             {draft.id && <Toggle label="إخفاء من المنيو" checked={draft.isArchived} onChange={(v) => setDraft({ ...draft, isArchived: v })} />}

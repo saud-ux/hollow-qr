@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { BUSINESS_TIME_ZONE } from "../../shared/constants";
-import { isValidHhMm, MAX_MENU_OPTIONS, MENU_IMAGE_MAX_BYTES } from "../../shared/ordering";
+import { isValidHhMm, MAX_MENU_OPTIONS, MENU_IMAGE_MAX_BYTES, type MenuCategory } from "../../shared/ordering";
+import type { MenuItemRow, Repository } from "../data/repository";
 import { ApiError } from "../http/errors";
 import { repoOf, type HonoEnv } from "../http/context";
 import { rateLimit, requireRole, requireUser } from "../http/middleware";
@@ -79,13 +80,39 @@ const createItemSchema = z.object({
   optionLabelEn: itemFields.optionLabelEn.optional().default(null),
   isAvailable: itemFields.isAvailable.optional().default(true),
   isArchived: itemFields.isArchived.optional().default(false),
-  sortOrder: itemFields.sortOrder.optional().default(500),
+  // Without a position the new item goes last in its section.
+  sortOrder: itemFields.sortOrder.optional().default(100_000),
   optionLabel: itemFields.optionLabel.optional().default(null),
   options: itemFields.options.optional().default([]),
   calories: itemFields.calories.optional().default(null),
   isBestSeller: itemFields.isBestSeller.optional().default(false),
 });
 const updateItemSchema = z.object(itemFields).partial();
+
+/**
+ * Menu positions run 1, 2, 3… within each section. The saved item takes the
+ * position it asked for and the others close up around it; hidden items keep
+ * their number but take no place.
+ */
+async function placeInSection(repo: Repository, saved: MenuItemRow, oldCategory: MenuCategory | null, moved: boolean): Promise<MenuItemRow> {
+  const all = await repo.listMenuItems(true);
+  let result = saved;
+  for (const category of new Set([saved.category, oldCategory ?? saved.category])) {
+    // An item given a position is put there; otherwise it keeps its place among the others.
+    const placed = moved && category === saved.category && !saved.isArchived;
+    const rows = all
+      .filter((r) => r.category === category && !r.isArchived && (!placed || r.id !== saved.id))
+      .map((r) => (r.id === saved.id ? saved : r))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    if (placed) rows.splice(Math.min(Math.max(saved.sortOrder - 1, 0), rows.length), 0, saved);
+    for (const [i, r] of rows.entries()) {
+      if (r.sortOrder === i + 1) continue;
+      const updated = await repo.updateMenuItem(r.id, { sortOrder: i + 1 });
+      if (updated && r.id === saved.id) result = updated;
+    }
+  }
+  return result;
+}
 
 const hhmm = z.string().refine(isValidHhMm, "HH:MM");
 const settingsSchema = z
@@ -126,7 +153,8 @@ export const adminMenuRoutes = new Hono<HonoEnv>()
 
   .post("/menu", async (c) => {
     const body = await parseJsonBody(c, createItemSchema);
-    const row = await repoOf(c).createMenuItem(body);
+    const repo = repoOf(c);
+    const row = await placeInSection(repo, await repo.createMenuItem(body), null, true);
     c.get("deps").logger.info("menu.created", { itemId: row.id, actor: c.get("user").id });
     return c.json({ item: toMenuItem(c.get("deps").config, row) }, 201);
   })
@@ -134,8 +162,11 @@ export const adminMenuRoutes = new Hono<HonoEnv>()
   .patch("/menu/:id", async (c) => {
     const id = parseWith(uuid, c.req.param("id"));
     const body = await parseJsonBody(c, updateItemSchema);
-    const row = await repoOf(c).updateMenuItem(id, body);
-    if (!row) throw new ApiError(404, "NOT_FOUND");
+    const repo = repoOf(c);
+    const before = await repo.getMenuItem(id);
+    const updated = await repo.updateMenuItem(id, body);
+    if (!updated) throw new ApiError(404, "NOT_FOUND");
+    const row = await placeInSection(repo, updated, before?.category ?? null, body.sortOrder !== undefined || (before !== null && before.category !== updated.category));
     c.get("deps").logger.info("menu.updated", { itemId: id, actor: c.get("user").id });
     return c.json({ item: toMenuItem(c.get("deps").config, row) });
   })

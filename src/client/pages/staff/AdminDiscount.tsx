@@ -130,8 +130,8 @@ export function AdminDiscountPage() {
       let message = saved?.live ? "تم حفظ التعديل" : `الخصم شغال الحين: ${pct}%`;
       if (notify) {
         try {
-          const sent = await sendBroadcast(pushTitle.trim(), pushBody.trim(), (s, of) => setProgress(`جارٍ إرسال الإشعار… ${s} / ${of}`));
-          message += ` · وصل الإشعار إلى ${sent} ${sent === 1 ? "جهاز" : "أجهزة"}`;
+          await sendBroadcast(pushTitle.trim(), pushBody.trim(), () => setProgress("جارٍ إرسال الإشعار…"));
+          message += " · وانرسل الإشعار";
           setNotify(false);
         } catch (e) {
           setError(`الخصم شغال، لكن الإشعار ما انرسل: ${errorText(e)}`);
@@ -161,7 +161,6 @@ export function AdminDiscountPage() {
   }
 
   const live = saved?.live && saved.discount ? saved.discount : null;
-  const sample = items?.find((i) => scope === "all" || chosen.has(i.id)) ?? null;
 
   return (
     <StaffLayout title="الخصم">
@@ -305,11 +304,6 @@ export function AdminDiscountPage() {
                 {chosen.size === 0 && <small className="field__error">اختر صنفًا واحدًا على الأقل</small>}
               </div>
             )}
-            {scope === "all" && sample && pctOk && (
-              <p className="muted small">
-                مثال: {sample.nameAr} يصير <strong>{riyals(discountedPrice(sample.priceHalalas, pct))}</strong> بدل {riyals(sample.priceHalalas)}
-              </p>
-            )}
           </fieldset>
 
           <fieldset className="disc-field">
@@ -342,13 +336,7 @@ export function AdminDiscountPage() {
               <input type="checkbox" role="switch" className="switch" checked={notify} onChange={(e) => setNotify(e.target.checked)} disabled={recipients === 0} />
               <span>
                 <strong>أرسل إشعار للعملاء</strong>
-                <small className="muted">
-                  {recipients === null
-                    ? "للمشتركين في «العروض والجديد»"
-                    : recipients === 0
-                      ? "ما فيه أحد مشترك في «العروض والجديد» حتى الآن"
-                      : `يوصل لـ ${recipients} ${recipients === 1 ? "جهاز" : "أجهزة"} مشتركة في «العروض والجديد»`}
-                </small>
+                {recipients === 0 && <small className="muted">ما فيه أحد مشترك في «العروض والجديد» حتى الآن</small>}
               </span>
             </label>
             {notify && (
