@@ -54,6 +54,8 @@ There is no public endpoint for this. The admin creates staff accounts from **/s
    ```bash
    pnpm run deploy          # = pnpm build && wrangler deploy
    ```
+   Or without a computer: run the **Deploy website** workflow from the Actions tab.
+   It needs a `CLOUDFLARE_API_TOKEN` repository secret (Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers" template).
 4. Attach your custom domain under **Workers & Pages → hollow-rewards → Settings → Domains & Routes**.
    It must match `APP_URL`.
 5. If Supabase runs on a custom domain (not `*.supabase.co`), add that origin to `connect-src` in `public/_headers`.

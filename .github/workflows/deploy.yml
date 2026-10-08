@@ -1,0 +1,44 @@
+# Builds the website and the Worker and deploys them to Cloudflare: the same as
+# running `pnpm run deploy` on a computer. Run it from the Actions tab
+# ("Run workflow"), e.g. from the GitHub app on a phone.
+# Secrets: CLOUDFLARE_API_TOKEN (Cloudflare → My Profile → API Tokens → Create
+# Token → "Edit Cloudflare Workers"). CLOUDFLARE_ACCOUNT_ID is only needed if
+# the token can reach more than one account.
+name: Deploy website
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-website
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then echo "::error::CLOUDFLARE_API_TOKEN secret missing (see the top of this file)"; exit 1; fi
+          if [ -n "${ACCOUNT_ID:-}" ]; then export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT_ID"; fi
+          pnpm run deploy
