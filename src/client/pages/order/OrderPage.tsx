@@ -255,8 +255,8 @@ export function OrderPage() {
                 {line.note && <small className="receipt__note">{line.note}</small>}
               </span>
               <span className="sale-price">
-                <span className={line.listPriceHalalas !== null ? "price-now price-now--sale" : "price-now"}>{riyals(line.unitPriceHalalas * line.quantity)}</span>
-                {line.listPriceHalalas !== null && <s className="price-was">{riyals(line.listPriceHalalas * line.quantity)}</s>}
+                <span className={line.listPriceHalalas != null ? "price-now price-now--sale" : "price-now"}>{riyals(line.unitPriceHalalas * line.quantity)}</span>
+                {line.listPriceHalalas != null && <s className="price-was">{riyals(line.listPriceHalalas * line.quantity)}</s>}
               </span>
             </li>
           ))}

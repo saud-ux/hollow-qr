@@ -2735,10 +2735,12 @@ select {
 .ticket__band::after {
   content: "";
   position: absolute;
-  inset-inline-end: -10px;
-  bottom: -8px;
-  width: 42%;
-  height: 80%;
+  /* The tent sits centred under the order number. */
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -6px;
+  width: 62%;
+  height: 92%;
   background: url("/brand/tent-espresso.png") no-repeat center bottom / contain;
   filter: invert(1);
   opacity: 0.14;
