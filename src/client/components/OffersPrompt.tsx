@@ -72,7 +72,7 @@ export function OffersPrompt() {
       <p className="offers-prompt__done muted small center" role="status">
         {done === "yes"
           ? tr("تم! بنرسل لك أول ما ينزل عرض.", "Done! We'll let you know when there's an offer.")
-          : tr("تمام. تقدر تفعّلها متى ما بغيت من «بطاقتي».", "No problem. You can turn them on anytime under My card.")}
+          : tr("تمام. تقدر تفعّلها متى ما بغيت من «حسابي».", "No problem. You can turn them on anytime under Account.")}
       </p>
     );
   }

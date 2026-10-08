@@ -84,7 +84,7 @@ export function PrivacyPage() {
             </Section>
             <Section title="Deleting your account">
               <p>
-                In the app or website: My card, then Delete account. We remove
+                In the app or website: Account, then Delete account. We remove
                 your name, email, phone numbers, addresses and device tokens and
                 cancel your card. Order and sales records are kept for
                 accounting with your personal data removed. Or email {mail}.
@@ -124,7 +124,7 @@ export function PrivacyPage() {
                 <li>بطاقة الولاء: عدد الأكواب والمكافآت وسجل العمليات.</li>
                 <li>
                   الإشعارات: رمز الجهاز الذي تعطيه Apple، لنرسل لك حالة طلبك،
-                  والعروض فقط إذا فعّلتها بنفسك من «بطاقتي».
+                  والعروض فقط إذا فعّلتها بنفسك من «حسابي».
                 </li>
                 <li>
                   التقييم: النجوم وملاحظتك (اختيارية) على الطلب بعد استلامه.
@@ -154,7 +154,7 @@ export function PrivacyPage() {
             </Section>
             <Section title="حذف حسابك">
               <p>
-                من التطبيق أو الموقع: «بطاقتي» ثم «حذف الحساب». نحذف اسمك وبريدك
+                من التطبيق أو الموقع: «حسابي» ثم «حذف الحساب». نحذف اسمك وبريدك
                 وأرقامك وعناوينك ورموز أجهزتك، ونلغي بطاقتك. نحتفظ بسجلات
                 الطلبات والمبيعات بعد إزالة بياناتك الشخصية منها لأغراض محاسبية.
                 أو راسلنا على {mail}.
@@ -202,7 +202,7 @@ export function SupportPage() {
                   Every drink adds a cup. After 5 cups, the sixth drink is free.
                 </dd>
                 <dt>How do I delete my account?</dt>
-                <dd>My card, then Delete account.</dd>
+                <dd>Account, then Delete account.</dd>
               </dl>
             </Section>
           </div>
@@ -229,7 +229,7 @@ export function SupportPage() {
                 <dt>بطاقة الولاء؟</dt>
                 <dd>كل مشروب يضيف كوبًا لبطاقتك، وبعد 5 أكواب السادس مجاني.</dd>
                 <dt>كيف أحذف حسابي؟</dt>
-                <dd>«بطاقتي» ثم «حذف الحساب».</dd>
+                <dd>«حسابي» ثم «حذف الحساب».</dd>
               </dl>
             </Section>
           </>

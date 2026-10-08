@@ -9,12 +9,13 @@ import { CALM, play } from "../lib/motion";
 import { Wordmark } from "./Brand";
 import { CupStrip } from "./CupStrip";
 import { PullToRefresh } from "./PullToRefresh";
+import { Rolling } from "./Rolling";
 import { ThemeToggle } from "./ThemeToggle";
 import { tr } from "../lib/i18n";
 
 /**
  * Ordering screens share the look of the Wallet card: a cream header with the
- * wordmark and the CUPS field, the espresso strip, and pass-style labels.
+ * wordmark and the cups count, the espresso strip, and pass-style labels.
  */
 export function ShopLayout({ children, bottom, onRefresh }: { children: ReactNode; bottom?: ReactNode; onRefresh?: () => Promise<unknown> }) {
   const { me } = useAuth();
@@ -29,9 +30,10 @@ export function ShopLayout({ children, bottom, onRefresh }: { children: ReactNod
         <div className="shop__header-end">
           {card && card.membershipStatus === "active" && (
             <Link to="/wallet" className="shop__cups" dir="ltr" aria-label={tr(`${card.stampCount} من ${MAX_STAMPS} أكواب`, `${card.stampCount} of ${MAX_STAMPS} cups`)}>
-              <span className="pass-label">CUPS</span>
+              <span className="pass-label shop__cups-label">{tr("أكوابك", "CUPS")}</span>
               <span className="shop__cups-value">
-                {card.stampCount} / {MAX_STAMPS}
+                {/* The count rolls to its new number when a cup is added. */}
+                <Rolling text={String(card.stampCount)} /> / {MAX_STAMPS}
               </span>
             </Link>
           )}
