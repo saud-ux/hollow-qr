@@ -2406,6 +2406,21 @@ html[lang="ar"] .shop__cups-label {
   z-index: 1;
   box-shadow: none;
 }
+/* Back swipe: the page follows the finger over the one it came from. */
+.rt--swipe .rt-layer--peek {
+  z-index: 1;
+}
+.rt--swipe .rt-layer--current {
+  z-index: 2;
+  box-shadow: -14px 0 36px rgb(43 30 22 / 20%);
+}
+.rt--nodock .rt-layer--peek .tabbar {
+  visibility: visible;
+}
+/* In Arabic pages come in from the left, so the shadow falls on the right. */
+[dir="rtl"] :is(.rt--push .rt-layer--current, .rt--pop .rt-layer--leaving, .rt--swipe .rt-layer--current) {
+  box-shadow: 14px 0 36px rgb(43 30 22 / 20%);
+}
 /* One tab bar for the whole app, so it stays still while pages move. */
 .rt-layer .tabbar {
   visibility: hidden;

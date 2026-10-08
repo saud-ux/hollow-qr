@@ -43,8 +43,28 @@ export function play(el: Element | null | undefined, keyframes: Keyframe[], opti
 // ---------------------------------------------------------------------------
 // Page transitions. Opening something: the thing you tapped grows into the
 // new page, and going back shrinks the page into it again. With nothing to
-// grow from, the page slides in from the right. Tabs cross-fade.
+// grow from, the page slides in from the trailing side (the right in English,
+// the left in Arabic), like iOS. Tabs cross-fade.
 // ---------------------------------------------------------------------------
+
+/** 1 when pages push in from the right (English), -1 when they push in from the left (Arabic). */
+export function pushSide(): 1 | -1 {
+  return document.documentElement.dir === "rtl" ? -1 : 1;
+}
+
+/** How far the page underneath sits to the side while another covers it. */
+export const PARALLAX = 0.28;
+
+let edgeSwiping = false;
+
+/** Set while the back swipe follows a finger, so other touch gestures stand down. */
+export function setEdgeSwiping(on: boolean): void {
+  edgeSwiping = on;
+}
+
+export function isEdgeSwiping(): boolean {
+  return edgeSwiping;
+}
 
 export type TransitionKind = "push" | "pop" | "tab";
 
@@ -117,16 +137,19 @@ export function runPageTransition(outgoing: HTMLElement, incoming: HTMLElement, 
       play(incoming, [{ filter: "brightness(.88)" }, { filter: "brightness(1)" }], { ...GROW, duration: 480 }),
     ]).then(done);
   }
+  const side = pushSide();
+  const away = `translateX(${side * 100}%)`;
+  const under = `translateX(${-side * PARALLAX * 100}%)`;
   if (kind === "push") {
     riseIn(incoming, SLIDE.duration * 0.25);
     return Promise.all([
-      play(incoming, [{ transform: "translateX(100%)" }, { transform: "none" }], SLIDE),
-      play(outgoing, [{ transform: "none", filter: "brightness(1)" }, { transform: "translateX(-28%)", filter: "brightness(.82)" }], { ...SLIDE, fill: "forwards" }),
+      play(incoming, [{ transform: away }, { transform: "none" }], SLIDE),
+      play(outgoing, [{ transform: "none", filter: "brightness(1)" }, { transform: under, filter: "brightness(.82)" }], { ...SLIDE, fill: "forwards" }),
     ]).then(done);
   }
   return Promise.all([
-    play(outgoing, [{ transform: "none" }, { transform: "translateX(100%)" }], { ...SLIDE, fill: "forwards" }),
-    play(incoming, [{ transform: "translateX(-28%)", filter: "brightness(.82)" }, { transform: "none", filter: "brightness(1)" }], SLIDE),
+    play(outgoing, [{ transform: "none" }, { transform: away }], { ...SLIDE, fill: "forwards" }),
+    play(incoming, [{ transform: under, filter: "brightness(.82)" }, { transform: "none", filter: "brightness(1)" }], SLIDE),
   ]).then(done);
 }
 
