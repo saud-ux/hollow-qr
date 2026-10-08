@@ -61,7 +61,7 @@ describe("notifications in the app's language", () => {
       body: 'Order #12 is ready. Tap "I\'m here" on arrival!',
     });
     expect(orderStatusMessage({ ...base, status: "out_for_delivery", fulfillment: "delivery" }, "en")).toMatchObject({
-      title: "On its way! 🛵",
+      title: "On its way!💨🚗",
       body: "Order #12 is with the driver, heading your way!",
     });
     expect(orderStatusMessage({ ...base, status: "cancelled", cancelledBy: "staff", cancelReason: "Out of milk" }, "en")!.body).toContain("cancelled: Out of milk");
