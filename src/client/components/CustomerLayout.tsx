@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { isNative } from "../lib/native";
 import { TentArt, Wordmark } from "./Brand";
 import { PullToRefresh } from "./PullToRefresh";
+import { LangToggle } from "./LangToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { tr } from "../lib/i18n";
 
@@ -25,6 +26,8 @@ export function CustomerLayout({
           <Wordmark />
         </Link>
         <ThemeToggle className="customer__theme" />
+        {/* No tab bar here (sign in, sign up…), so no way to Settings yet: the language sits in the header. */}
+        {!dock && <LangToggle className="customer__lang" />}
         {hero && <TentArt className="customer__tent" />}
       </header>
       {onRefresh && <PullToRefresh onRefresh={onRefresh} target={mainRef} />}

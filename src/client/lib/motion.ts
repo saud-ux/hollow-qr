@@ -380,7 +380,7 @@ export function morphCardSheet(card: Element | null, sheet: HTMLElement | null, 
   // Everything else on the sheet rises in once the card has opened up.
   const rest = [...sheet.querySelectorAll(".product-sheet__body > *:not(.product-sheet__head), .product-sheet__close, .product-sheet__head .pass-label, .product-sheet__price .price-was, .product-sheet__price .kcal")];
   rest.forEach((el, i) => add(el, [{ opacity: 0, transform: "translateY(12px)" }, { opacity: 0, transform: "translateY(12px)", offset: Math.min(0.35 + i * 0.05, 0.6) }, { opacity: 1, transform: "none" }]));
-  // The card's own content steps aside (the sheet itself renders inside the card).
+  // The card's own content steps aside while its sheet opens out of it.
   const cardParts = [...card.children].filter((el) => !el.contains(sheet));
   for (const part of cardParts) add(part, [{ opacity: 1 }, { opacity: 0, offset: 0.02 }, { opacity: 0 }]);
   if (!forward) add(sheet.parentElement, [{ backgroundColor: "rgb(20 12 8 / 45%)" }, { backgroundColor: "rgb(20 12 8 / 0%)" }], { duration: 440, easing: "ease-in", fill: "forwards" });
