@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { isOrderable, MAX_LINE_QUANTITY, priceOf, type MenuItem } from "../../shared/ordering";
 import { SalePrice } from "./SalePrice";
 import { useCart } from "../lib/cart";
@@ -74,7 +75,9 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
     onClose();
   }
 
-  return (
+  // Rendered at the end of <body>: inside the card it would take on the card's
+  // look (a sold-out card is faded, which made the whole sheet see-through).
+  return createPortal(
     <div className="sheet-backdrop" onClick={close}>
       <div
         ref={sheetRef}
@@ -184,7 +187,8 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
           <span className="photo-viewer__hint">{tr("اضغط للإغلاق", "Tap to close")}</span>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -2818,7 +2818,7 @@ html[lang="ar"] .shop__cups-label {
 :is(html.themed, html.staff-ui)[data-theme="dark"] .steps__item:not(.is-done, .is-current) {
   color: #8f7e70;
 }
-:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.shop__header, .tabbar, .menu-card, .sheet, .ticket, .order-row, .menu-chip, .settings, .theme-toggle) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.shop__header, .tabbar, .menu-card, .sheet, .ticket, .order-row, .menu-chip, .settings, .theme-toggle, .lang-toggle) {
   border-color: #33271e;
 }
 :is(html.themed, html.staff-ui)[data-theme="dark"] .menu-section__title::after {
@@ -5789,4 +5789,29 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
     transform: translateY(40px);
     opacity: 0;
   }
+}
+
+/* عربي / English on the pages without the tab bar, opposite the theme button. */
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #e2d5bf;
+  background: var(--paper);
+  color: var(--espresso);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lang-toggle:lang(en) {
+  letter-spacing: 0.04em;
+}
+.customer__lang {
+  position: absolute;
+  top: 8px;
+  inset-inline-start: 0;
 }
