@@ -316,7 +316,8 @@ export function CartPage() {
                         className="note-input"
                         value={line.note}
                         onChange={(e) => cart.setNote(item.id, e.target.value, line.optionId)}
-                        placeholder={tr("مثال: بدون سكر، ثلج قليل", "e.g. no sugar, light ice")}
+                        // Opened from «إضافة ملاحظة»: ready to type.
+                        autoFocus={!line.note}
                         maxLength={120}
                         aria-label={tr(`ملاحظة على ${item.nameAr}`, `Note for ${itemName(item)}`)}
                       />
