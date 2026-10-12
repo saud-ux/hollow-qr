@@ -1,6 +1,5 @@
 import { useRef, type ReactNode } from "react";
 import { Link } from "react-router";
-import { isNative } from "../lib/native";
 import { TentArt, Wordmark } from "./Brand";
 import { PullToRefresh } from "./PullToRefresh";
 import { LangToggle } from "./LangToggle";
@@ -36,13 +35,11 @@ export function CustomerLayout({
       </main>
       <footer className="customer__footer">
         <span dir="ltr">HOLLOW · Al Zulfi</span>
-        {/* The app has these in the card page's settings. */}
-        {!isNative && (
-          <nav className="customer__links">
-            <Link to="/privacy">{tr("الخصوصية", "Privacy")}</Link>
-            <Link to="/support">{tr("الدعم", "Support")}</Link>
-          </nav>
-        )}
+        {/* The only way to privacy and support, in the app too (App Store 5.1.1). */}
+        <nav className="customer__links">
+          <Link to="/privacy">{tr("الخصوصية", "Privacy")}</Link>
+          <Link to="/support">{tr("الدعم", "Support")}</Link>
+        </nav>
       </footer>
       {dock && <div className="shop__dock">{dock}</div>}
     </div>

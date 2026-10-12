@@ -77,7 +77,7 @@ function Section({ title, children }: { title?: string; children: ReactNode }) {
   );
 }
 
-/** The "حسابي / Account" tab: who you are, your card, places, settings and help. */
+/** The "حسابي / Account" tab: who you are, your card, places and settings (help and privacy are in the footer). */
 export function AccountPage() {
   const { session, loading, me, refreshMe, signOut } = useAuth();
   const navigate = useNavigate();
@@ -285,15 +285,6 @@ export function AccountPage() {
       </Section>
 
       {!isNative && <InstallRow />}
-
-      <Section title={tr("المساعدة", "Help")}>
-        <Row icon="help" to="/support">
-          {tr("الدعم والمساعدة", "Help & support")}
-        </Row>
-        <Row icon="shield" to="/privacy">
-          {tr("سياسة الخصوصية", "Privacy policy")}
-        </Row>
-      </Section>
 
       {signedIn && (
         <Section>
