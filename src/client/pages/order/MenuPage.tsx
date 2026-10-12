@@ -14,7 +14,6 @@ import { apiGet } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { flyToCart, growStepper, motionOn } from "../../lib/motion";
-import { isNative } from "../../lib/native";
 import { riyals, useMenu } from "../../lib/menu";
 import { lowStockBadge, stockLeftText, stockRoom } from "../../lib/stock";
 import { closedNote } from "./hours";
@@ -39,7 +38,7 @@ export function MenuPage() {
   const { me, session, refreshMe } = useAuth();
   const { menu, error, reload } = useMenu();
   const sections = menu ? menuSections(menu.items) : [];
-  // iOS app: null while the search is closed; the menu filters as you type.
+  // null while the search is closed; the menu filters as you type.
   const [search, setSearch] = useState<string | null>(null);
   const query = search?.trim() ?? "";
   const results = menu && query ? searchMenu(menu.items, query) : null;
@@ -58,7 +57,7 @@ export function MenuPage() {
     <ShopLayout
       bottom={
         <>
-          {isNative && menu && search === null && <SearchPill onOpen={() => setSearch("")} />}
+          {menu && search === null && <SearchPill onOpen={() => setSearch("")} />}
           <CartBar menu={menu} />
         </>
       }

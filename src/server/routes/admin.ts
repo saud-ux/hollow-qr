@@ -20,7 +20,7 @@ import { toCsv } from "../lib/csv";
 import { toDashboardStats, toStaffMember, toTransactionItem } from "../loyalty/presenters";
 import type { OrderHistoryParams } from "../data/repository";
 import { startOfDate, startOfLocalDay } from "../push/daily-summary";
-import { sendToTokens } from "../push/order-notifications";
+import { pushOff, sendToDevices } from "../push/order-notifications";
 
 const EXPORT_PAGE = 1000;
 const BROADCAST_BATCH = 35;
@@ -424,9 +424,10 @@ export const adminRoutes = new Hono<HonoEnv>()
     const repo = repoOf(c);
     const broadcast = await repo.getBroadcast(id);
     if (!broadcast) throw new ApiError(404, "NOT_FOUND");
-    if (deps.appPush.kind === "disabled") throw new ApiError(503, "CONFIG_ERROR");
-    const tokens = await repo.offerPushTokens(after, BROADCAST_BATCH);
-    const delivered = await sendToTokens({ repo, appPush: deps.appPush, logger: deps.logger }, tokens, {
+    const push = { repo, appPush: deps.appPush, webPush: deps.webPush, logger: deps.logger };
+    if (pushOff(push)) throw new ApiError(503, "CONFIG_ERROR");
+    const devices = await repo.offerPushDevices(after, BROADCAST_BATCH);
+    const delivered = await sendToDevices(push, devices, {
       title: broadcast.title,
       body: broadcast.body,
       collapseId: `offer-${broadcast.id}`,
@@ -434,7 +435,7 @@ export const adminRoutes = new Hono<HonoEnv>()
     });
     const sent = broadcast.sent + delivered;
     await repo.setBroadcastSent(id, sent);
-    const next = tokens.length === BROADCAST_BATCH ? tokens[tokens.length - 1]! : null;
+    const next = devices.length === BROADCAST_BATCH ? devices[devices.length - 1]!.token : null;
     if (!next) deps.logger.info("broadcast.sent", { id, sent, recipients: broadcast.recipients });
     return c.json({ sent, next });
   });

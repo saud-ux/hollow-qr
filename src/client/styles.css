@@ -2797,7 +2797,7 @@ html[lang="ar"] .shop__cups-label {
 /* ---------- Dark theme, iOS app only (see lib/theme.ts): follows the iPhone
    unless the customer picks light or dark on My card. The loyalty card stays
    cream, like the real card in Apple Wallet. ---------- */
-:is(html.native, html.staff-ui)[data-theme="dark"] {
+:is(html.themed, html.staff-ui)[data-theme="dark"] {
   --cream: #17110d;
   --paper: #221914;
   --beige: #3a2c22;
@@ -2809,64 +2809,64 @@ html[lang="ar"] .shop__cups-label {
   --shadow: 0 10px 30px rgb(0 0 0 / 40%);
   color-scheme: dark;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.muted, .field__hint, .hero__sub, .menu-card__desc, .empty, .ticket__note, .receipt__note, .order-row__side small, .spinner) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.muted, .field__hint, .hero__sub, .menu-card__desc, .empty, .ticket__note, .receipt__note, .order-row__side small, .spinner) {
   color: #b3a190;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.customer__footer, .tabbar__item) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.customer__footer, .tabbar__item) {
   color: #9d8b7c;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .steps__item:not(.is-done, .is-current) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .steps__item:not(.is-done, .is-current) {
   color: #8f7e70;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.shop__header, .tabbar, .menu-card, .sheet, .ticket, .order-row, .menu-chip, .settings, .theme-toggle) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.shop__header, .tabbar, .menu-card, .sheet, .ticket, .order-row, .menu-chip, .settings, .theme-toggle) {
   border-color: #33271e;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .menu-section__title::after {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .menu-section__title::after {
   background: #33271e;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .settings__row {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .settings__row {
   border-top-color: #2e231b;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.shop__header, .menu-chips) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.shop__header, .menu-chips) {
   background: rgb(23 17 13 / 92%);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .checkout__submit {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .checkout__submit {
   background: linear-gradient(to bottom, rgb(23 17 13 / 0%), var(--cream) 40%);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .item-img--placeholder {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .item-img--placeholder {
   background: radial-gradient(circle at 50% 62%, #31261e 0, #261d17 55%, #1d1611 100%);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .skeleton {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .skeleton {
   background: linear-gradient(90deg, #2a2019 25%, #3a2c23 50%, #2a2019 75%);
   background-size: 200% 100%;
 }
 /* Espresso panels stay dark brown with light text. */
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.band, .ticket__band, .choice--on, .status-chip--preparing, .cart-bar, .live-order, .order-live) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.band, .ticket__band, .choice--on, .status-chip--preparing, .cart-bar, .live-order, .order-live) {
   background: #2b1e16;
   color: #f1e8da;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.cart-bar, .live-order, .order-live, .band) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.cart-bar, .live-order, .order-live, .band) {
   box-shadow: 0 0 0 1px #3d2e24, 0 12px 28px rgb(0 0 0 / 45%);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .cart-bar__count {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .cart-bar__count {
   color: #2b1e16;
 }
 /* The gold "cups added" note stays gold, so its text stays dark. */
-:is(html.native, html.staff-ui)[data-theme="dark"] .loyalty-note {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .loyalty-note {
   color: #2b1e16;
   border-color: #c9a227;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .order-live__meta {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .order-live__meta {
   color: #c9b79f;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .tabbar__pill::after {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .tabbar__pill::after {
   background: rgb(201 162 39 / 24%);
 }
 /* Line drawings and the wordmark turn cream on the dark background. */
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.wordmark, .tent-art, .empty__art, .item-img__mark) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.wordmark, .tent-art, .empty__art, .item-img__mark) {
   filter: brightness(0) invert(0.92) sepia(0.25);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .pass {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .pass {
   --cream: #f4ede0;
   --paper: #fbf8f2;
   --beige: #e6d9c3;
@@ -3251,7 +3251,7 @@ html.sheet-open {
 .link-btn--danger {
   color: var(--danger);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.product-sheet__desc, .origin__text small) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.product-sheet__desc, .origin__text small) {
   color: #b3a190;
 }
 
@@ -3365,10 +3365,10 @@ button.rate__star:active {
   inset-inline-start: 23px;
 }
 /* Dark: off is a dim track with a grey knob, on stays green with a white one. */
-:is(html.native, html.staff-ui)[data-theme="dark"] .switch:not(:checked) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .switch:not(:checked) {
   background: #3d3029;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .switch:not(:checked)::after {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .switch:not(:checked)::after {
   background: #9d8b7c;
 }
 .switch:focus-visible {
@@ -3731,7 +3731,7 @@ button.rate__star:active {
     stroke-dashoffset: 0;
   }
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .ready-cup {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .ready-cup {
   --steam: #8f7a66;
 }
 
@@ -3990,7 +3990,7 @@ button.rate__star:active {
   font-weight: 800;
   box-shadow: 0 2px 6px rgb(43 30 22 / 25%);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .menu-section__title--best {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .menu-section__title--best {
   color: #f0d77a;
 }
 
@@ -4117,12 +4117,12 @@ button.rate__star:active {
 .search-results__empty {
   margin: 0;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .search-pill {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .search-pill {
   background: rgb(34 25 20 / 88%);
   color: #f1e8da;
   box-shadow: 0 8px 20px rgb(0 0 0 / 45%);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .search-bar {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .search-bar {
   background: rgb(23 17 13 / 95%);
   border-top-color: #3a2c22;
 }
@@ -4156,7 +4156,7 @@ html.sheet-open .search-pill-row {
     color: var(--label);
   }
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .social__link {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .social__link {
   border-color: #2e231b;
 }
 
@@ -4308,16 +4308,16 @@ html.sheet-open .search-pill-row {
 .acct-row--control .acct-row__text {
   flex: 1 0 auto;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.acct-hero, .acct-sec) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.acct-hero, .acct-sec) {
   border-color: #33271e;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .acct-row {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .acct-row {
   border-top-color: #2e231b;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.acct-hero__meta, .acct-sec__title, .acct-row__text small) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.acct-hero__meta, .acct-sec__title, .acct-row__text small) {
   color: #b3a190;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .acct-row__chev {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .acct-row__chev {
   background: rgb(241 232 218 / 7%);
   color: #9d8b7c;
 }
@@ -4410,10 +4410,10 @@ html.sheet-open .search-pill-row {
   font-size: 10px;
   background: rgb(255 255 255 / 70%);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .map-picker {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .map-picker {
   border-color: #33271e;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .map-picker .leaflet-tile-pane {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .map-picker .leaflet-tile-pane {
   filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
 }
 .place-locate {
@@ -4470,10 +4470,10 @@ html.sheet-open .search-pill-row {
   color: var(--label);
   border-style: dashed;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.place-kind, .place-chip) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.place-kind, .place-chip) {
   border-color: #33271e;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .place-chip--add {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .place-chip--add {
   border-color: #4a3a2d;
 }
 
@@ -4519,7 +4519,7 @@ html.sheet-open .search-pill-row {
   box-shadow: 0 10px 30px rgb(0 0 0 / 30%);
   animation: toast-in 0.25s ease-out both;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .toast {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .toast {
   background: #f1e8da;
   color: #2b1e16;
 }
@@ -5234,7 +5234,7 @@ html.staff-ui[data-theme="dark"] .ticket-card {
     justify-self: start;
   }
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.ohist__time, .ohist__items) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.ohist__time, .ohist__items) {
   color: #b3a190;
 }
 
@@ -5421,7 +5421,7 @@ html.staff-ui[data-theme="dark"] .ticket-card {
 .odet__stars span {
   color: var(--beige);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] :is(.odet__row dt, .odet__step-time) {
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.odet__row dt, .odet__step-time) {
   color: #b3a190;
 }
 
@@ -5464,10 +5464,10 @@ html.staff-ui[data-theme="dark"] .ticket-card {
   font-weight: 800;
   font-size: 0.9rem;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .price-now--sale {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .price-now--sale {
   color: #f08a7c;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .summary__saved {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .summary__saved {
   color: #6fcf97;
 }
 
@@ -5713,18 +5713,80 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .order-live .order-thumbs__tile {
   border-color: var(--espresso);
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .order-live .order-thumbs__tile {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .order-live .order-thumbs__tile {
   border-color: #2b1e16;
 }
 .order-row .status-chip--completed {
   background: var(--success-soft);
   color: #174d2e;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .order-row .status-chip--completed {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .order-row .status-chip--completed {
   background: rgb(46 125 79 / 28%);
   color: #9fdcb8;
 }
-:is(html.native, html.staff-ui)[data-theme="dark"] .order-row .status-chip--cancelled {
+:is(html.themed, html.staff-ui)[data-theme="dark"] .order-row .status-chip--cancelled {
   background: rgb(169 50 38 / 28%);
   color: #f2a79c;
+}
+
+/* ---------- iPhone: add the website to the home screen (for notifications) ---------- */
+.home-hint {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+  border: 0;
+  background: transparent;
+  color: var(--espresso);
+}
+.home-hint::backdrop {
+  background: rgb(23 17 13 / 45%);
+}
+.home-hint__card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px 14px;
+  padding: 18px;
+  border-radius: 22px;
+  background: var(--paper);
+  box-shadow: 0 18px 40px rgb(0 0 0 / 28%);
+}
+.home-hint__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+}
+.home-hint__text h2 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+.home-hint__text p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.home-hint__text ol {
+  margin: 6px 0 0;
+  padding-inline-start: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.home-hint__share {
+  vertical-align: -2px;
+  color: #0a84ff;
+}
+.home-hint__card .btn {
+  grid-column: 1 / -1;
+}
+.motion .home-hint[open] .home-hint__card {
+  animation: home-hint-up 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes home-hint-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
 }

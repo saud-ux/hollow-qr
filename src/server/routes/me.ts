@@ -11,6 +11,7 @@ import { parseJsonBody } from "../http/validation";
 import { signPassDownload, verifyPassDownload } from "../security/tokens";
 import { PKPASS_MIME } from "../wallet/pkpass";
 import { WalletUnavailableError } from "../wallet/service";
+import { isPushEndpoint, webPushToken } from "../push/web-push";
 
 const DOWNLOAD_TTL_SECONDS = 300;
 const pushTokenSchema = z.object({
@@ -22,6 +23,17 @@ const pushTokenSchema = z.object({
 });
 
 const registerDeviceSchema = pushTokenSchema.extend({ lang: z.enum(["ar", "en"]).optional().default("ar") });
+
+// A browser's push subscription (PushSubscription.toJSON()), from a real push service only.
+const webEndpointSchema = z.string().trim().max(1024).refine(isPushEndpoint, "not a push service endpoint");
+const webPushSchema = z.object({
+  endpoint: webEndpointSchema,
+  keys: z.object({
+    p256dh: z.string().regex(/^[A-Za-z0-9_-]{80,100}$/),
+    auth: z.string().regex(/^[A-Za-z0-9_-]{16,32}$/),
+  }),
+  lang: z.enum(["ar", "en"]).optional().default("ar"),
+});
 
 const prefsSchema = z
   .object({ offers: z.boolean(), newOrders: z.boolean(), dailySummary: z.boolean() })
@@ -163,6 +175,20 @@ export const meRoutes = new Hono<HonoEnv>()
   .post("/me/push-devices", requireUser, rateLimit("api", "user"), async (c) => {
     const { token, lang } = await parseJsonBody(c, registerDeviceSchema);
     await repoOf(c).registerPushDevice(c.get("user").id, token, lang);
+    return c.json({ ok: true });
+  })
+
+  // Website: this browser's push subscription (order updates and, if chosen, offers).
+  .post("/me/web-push", requireUser, rateLimit("api", "user"), async (c) => {
+    const { endpoint, keys, lang } = await parseJsonBody(c, webPushSchema);
+    await repoOf(c).registerWebPushDevice(c.get("user").id, await webPushToken(endpoint), { endpoint, ...keys }, lang);
+    return c.json({ ok: true });
+  })
+
+  // Called on sign-out, or when the customer turns this browser's notifications off.
+  .post("/me/web-push/remove", requireUser, rateLimit("api", "user"), async (c) => {
+    const { endpoint } = await parseJsonBody(c, z.object({ endpoint: z.string().trim().min(1).max(1024) }));
+    await repoOf(c).unregisterPushDevice(c.get("user").id, await webPushToken(endpoint));
     return c.json({ ok: true });
   })
 

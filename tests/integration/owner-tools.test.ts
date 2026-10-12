@@ -254,7 +254,7 @@ describe("daily summary", () => {
     const close = new Date(Date.UTC(riyadh.getUTCFullYear(), riyadh.getUTCMonth(), riyadh.getUTCDate(), 23, 59) - 3 * 3600_000);
     const at = new Date(close.getTime() + 5 * 60_000);
 
-    const deps = { repo: local.repo, appPush: localPush, logger: silentLogger };
+    const deps = { repo: local.repo, appPush: localPush, webPush: local.webPush, logger: silentLogger };
     expect(await runDailySummary(deps, new Date(close.getTime() - 60_000), TZ)).toBe("not-yet");
     expect(await runDailySummary(deps, at, TZ)).toBe("sent");
     expect(await runDailySummary(deps, at, TZ)).toBe("already-sent");

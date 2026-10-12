@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import { tr } from "../lib/i18n";
+import { markInAppBack } from "../lib/motion";
 
 /** Back to wherever the page was opened from, or `fallback` when it was opened directly. */
 export function BackButton({ fallback = "/account" }: { fallback?: string }) {
@@ -9,7 +10,10 @@ export function BackButton({ fallback = "/account" }: { fallback?: string }) {
       type="button"
       className="back-btn"
       onClick={() => {
-        if (window.history.state && (window.history.state as { idx?: number }).idx) void navigate(-1);
+        if (window.history.state && (window.history.state as { idx?: number }).idx) {
+          markInAppBack();
+          void navigate(-1);
+        }
         else void navigate(fallback);
       }}
     >

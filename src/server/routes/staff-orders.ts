@@ -55,8 +55,8 @@ export const staffOrderRoutes = new Hono<HonoEnv>()
     }
     const [order] = await repo.listOrders({ orderId: id, scope: "all", limit: 1 });
     if (!order) throw new ApiError(404, "ORDER_NOT_FOUND");
-    const { appPush, logger } = c.get("deps");
-    runInBackground(c, notifyOrderStatus({ repo, appPush, logger }, order));
+    const { appPush, webPush, logger } = c.get("deps");
+    runInBackground(c, notifyOrderStatus({ repo, appPush, webPush, logger }, order));
     return c.json({ order });
   })
 

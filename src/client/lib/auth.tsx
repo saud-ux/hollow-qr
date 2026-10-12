@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { MeResponse } from "../../shared/types";
 import { apiGet, apiPost, setTokenGetter } from "./api";
 import { currentPushToken } from "./native";
+import { forgetWebPushOnServer } from "./webpush";
 
 interface AuthState {
   supabase: SupabaseClient;
@@ -84,6 +85,8 @@ export function AuthProvider({ supabase, children }: { supabase: SupabaseClient;
     if (pushToken && sessionRef.current) {
       await apiPost("/api/me/push-devices/remove", { token: pushToken }).catch(() => undefined);
     }
+    // Website: the same for this browser.
+    if (sessionRef.current) await forgetWebPushOnServer();
     await supabase.auth.signOut();
     setMe(null);
   }, [supabase]);

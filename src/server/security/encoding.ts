@@ -27,6 +27,11 @@ export function bytesToBase64Url(bytes: Uint8Array): string {
   return bytesToBase64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+export function base64UrlToBytes(b64url: string): Uint8Array<ArrayBuffer> {
+  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+  return base64ToBytes(b64 + "=".repeat((4 - (b64.length % 4)) % 4));
+}
+
 export function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }

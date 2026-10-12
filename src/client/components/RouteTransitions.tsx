@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { useLocation, useNavigationType, type Location } from "react-router";
-import { isNative } from "../lib/native";
-import { motionOn, PARALLAX, pushSide, runPageTransition, setEdgeSwiping, takeTapOrigin, type ScreenRect, type TransitionKind } from "../lib/motion";
+import { NavigationType, useLocation, useNavigationType, type Location } from "react-router";
+import { motionOn, PARALLAX, pushSide, runPageTransition, setEdgeSwiping, takeTapOrigin, wasInAppBack, type ScreenRect, type TransitionKind } from "../lib/motion";
+import { ownsGestures } from "../lib/pwa";
 import { TabBar } from "./Shop";
 
 const TABS = ["/menu", "/cart", "/orders", "/account"];
@@ -78,7 +78,7 @@ function placeLayers(top: HTMLElement | null, under: HTMLElement | null, side: 1
 }
 
 /**
- * iOS app only: keeps the previous page on screen while the next one pushes
+ * Keeps the previous page on screen while the next one pushes
  * in, then drops it. Both pages render from the same route table, keyed by
  * location, so the leaving page keeps its state during the animation.
  * The tab bar lives outside the pages so it stays still.
@@ -101,7 +101,9 @@ export function RouteTransitions({ render }: { render: (location: Location) => R
   // Adjust state while rendering (not in an effect) so the old page never disappears for a frame.
   if (shown.key !== location.key) {
     const swiped = swipedBack !== null;
-    const kind = !swiped && motionOn() ? transitionKind(shown.pathname, location.pathname, navigationType) : null;
+    let kind = !swiped && motionOn() ? transitionKind(shown.pathname, location.pathname, navigationType) : null;
+    // In a browser, its own back gesture or button has already animated: just swap.
+    if (kind === "pop" && navigationType === NavigationType.Pop && !ownsGestures() && !wasInAppBack()) kind = null;
     scrolls.set(shown.key, window.scrollY);
     let origin: ScreenRect | null = null;
     if (kind === "push") {
@@ -183,7 +185,8 @@ export function RouteTransitions({ render }: { render: (location: Location) => R
   }, [location.key]);
 
   useEffect(() => {
-    if (!isNative) return;
+    // The app, or the website added to the home screen (no browser back gesture there).
+    if (!ownsGestures()) return;
     const s = swipe.current;
 
     const previous = (): Location | null => {

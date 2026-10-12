@@ -3,6 +3,7 @@ import type { NotificationPrefs } from "../../shared/ordering";
 import { apiGet, apiSend } from "../lib/api";
 import { tr } from "../lib/i18n";
 import { enablePush, isNative } from "../lib/native";
+import { webPushState } from "../lib/webpush";
 
 const ASKED_KEY = "hollow.offers.asked";
 
@@ -25,7 +26,8 @@ function markAsked() {
 /**
  * After an order, the app asks once whether the customer wants offers.
  * Offers stay opt-in (App Store guideline 4.5.4): nothing is sent unless they
- * tap yes, and My card keeps the switch to change it later.
+ * tap yes, and My card keeps the switch to change it later. The website asks
+ * too, once this browser already gets order notifications.
  */
 export function OffersPrompt() {
   const [show, setShow] = useState(false);
@@ -33,12 +35,13 @@ export function OffersPrompt() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!isNative || wasAsked()) return;
+    if (wasAsked()) return;
     let alive = true;
-    apiGet<{ prefs: NotificationPrefs }>("/api/me/notification-prefs")
-      .then(({ prefs }) => {
-        if (!alive) return;
-        if (prefs.offers) markAsked();
+    (isNative ? Promise.resolve(true) : webPushState().then((s) => s === "on"))
+      .then((reachable) => (reachable ? apiGet<{ prefs: NotificationPrefs }>("/api/me/notification-prefs") : null))
+      .then((res) => {
+        if (!alive || !res) return;
+        if (res.prefs.offers) markAsked();
         else setShow(true);
       })
       .catch(() => undefined);

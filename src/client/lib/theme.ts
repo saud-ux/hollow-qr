@@ -1,7 +1,7 @@
 /**
- * Light / dark appearance for the iOS app. "system" (the default) follows the
- * iPhone's setting; the customer can also pin light or dark on My card.
- * The website keeps its light look.
+ * Light / dark appearance for the customer screens (iOS app and website).
+ * "system" (the default) follows the device's setting; the customer can also
+ * pin light or dark in Account. Staff pages have their own (staffTheme.ts).
  */
 import { isNative, tapFeedback } from "./native";
 
@@ -25,7 +25,17 @@ function resolved(choice: ThemeChoice): Resolved {
   return media?.matches ? "dark" : "light";
 }
 
+// The browser's bars (Safari's tab bar, Android's status bar) take the page's background.
+const BAR_COLORS: Record<Resolved, string> = { light: "#f4ede0", dark: "#17110d" };
+
 function syncStatusBar(theme: Resolved) {
+  if (!isNative) {
+    document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+      m.content = BAR_COLORS[theme];
+      m.removeAttribute("media");
+    });
+    return;
+  }
   void import("@capacitor/status-bar")
     // Style.Dark = light text (for the dark theme), Style.Light = dark text.
     .then(({ StatusBar, Style }) => StatusBar.setStyle({ style: theme === "dark" ? Style.Dark : Style.Light }))
@@ -34,7 +44,13 @@ function syncStatusBar(theme: Resolved) {
 
 const listeners = new Set<(theme: Resolved) => void>();
 
+export function applyTheme(): void {
+  apply();
+}
+
 function apply() {
+  // Staff pages set their own theme while they show.
+  if (document.documentElement.classList.contains("staff-ui")) return;
   const theme = resolved(getThemeChoice());
   document.documentElement.dataset.theme = theme;
   syncStatusBar(theme);
@@ -68,7 +84,7 @@ function save(choice: ThemeChoice) {
   } catch {
     // storage blocked: the choice lasts until the app closes
   }
-  if (isNative) apply();
+  apply();
 }
 
 export function setThemeChoice(choice: ThemeChoice, origin?: RevealOrigin): void {
@@ -104,8 +120,8 @@ export function setThemeChoice(choice: ThemeChoice, origin?: RevealOrigin): void
 
 /** Runs before the first render so the app never flashes the wrong theme. */
 export function initTheme(): void {
-  if (!isNative) return;
-  document.documentElement.classList.add("native");
+  document.documentElement.classList.add("themed");
+  if (isNative) document.documentElement.classList.add("native");
   apply();
   media?.addEventListener("change", () => {
     if (getThemeChoice() === "system") apply();

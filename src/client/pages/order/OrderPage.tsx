@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { flowStep, isActiveStatus, MAX_RATING_COMMENT, orderFlow, type Order, type OrderStatus } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
+import { NotifyCard } from "../../components/NotifyCard";
 import { OffersPrompt } from "../../components/OffersPrompt";
 import { Alert } from "../../components/Field";
 import { TicketSkeleton } from "../../components/Skeletons";
@@ -13,7 +14,7 @@ import { formatDateTime } from "../../lib/dates";
 import { riyals, useMenu } from "../../lib/menu";
 import { fulfillmentLabel, lineName, lineOptionName, statusLabel } from "../../lib/menuText";
 import { animateTracker, serveCup } from "../../lib/motion";
-import { successFeedback } from "../../lib/native";
+import { isNative, successFeedback } from "../../lib/native";
 import { endOrderOnLockScreen, refreshWidget, trackOrderOnLockScreen } from "../../lib/widget";
 import { tr } from "../../lib/i18n";
 
@@ -241,7 +242,9 @@ export function OrderPage() {
       )}
 
       {order.status === "completed" && <RateOrder order={order} onRated={setOrder} />}
-      {order.status !== "cancelled" && <OffersPrompt />}
+      {/* Website: offer notifications while the order is on its way; ask about offers once it's done. */}
+      {!isNative && active && <NotifyCard />}
+      {order.status !== "cancelled" && (isNative || order.status === "completed") && <OffersPrompt />}
 
       <section className="sheet">
         <h2 className="pass-label">{fulfillmentLabel(order.fulfillment)}</h2>

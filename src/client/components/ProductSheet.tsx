@@ -4,7 +4,6 @@ import { SalePrice } from "./SalePrice";
 import { useCart } from "../lib/cart";
 import { riyals } from "../lib/menu";
 import { flyToCart, morphCardSheet, motionOn } from "../lib/motion";
-import { isNative } from "../lib/native";
 import { itemDescription, itemName, itemSubName, optionLabel, optionName, optionNote, subNameDir } from "../lib/menuText";
 import { stockLeftText, stockRoom } from "../lib/stock";
 import { ItemImage } from "./Shop";
@@ -193,7 +192,7 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
 const DISMISS_PX = 110;
 
 /**
- * iOS app: drag the sheet down from the top to close it; the photo stretches
+ * On touch screens: drag the sheet down from the top to close it; the photo stretches
  * as you pull, and drifts slower than the text as you scroll (parallax).
  */
 function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef: React.RefObject<HTMLDivElement | null>, onClose: () => void) {
@@ -204,7 +203,7 @@ function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef
 
   useEffect(() => {
     const sheet = sheetRef.current;
-    if (!isNative || !sheet) return;
+    if (!sheet) return;
     const img = () => photoRef.current?.querySelector<HTMLElement>(".product-sheet__img") ?? null;
     let startY: number | null = null;
     let drag = 0;

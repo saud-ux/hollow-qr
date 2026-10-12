@@ -4,6 +4,7 @@ import type { AuthVerifier } from "../auth/verifier";
 import type { Repository } from "../data/repository";
 import type { Logger } from "../lib/logger";
 import type { AppPushSender } from "../push/app-push";
+import type { WebPushSender } from "../push/web-push";
 import type { WalletService } from "../wallet/service";
 import type { AppRole } from "../../shared/types";
 import type { Bindings } from "../platform";
@@ -17,6 +18,8 @@ export interface AppDeps {
   auth: AuthVerifier | null;
   wallet: WalletService | null;
   appPush: AppPushSender;
+  /** Browser notifications for the website. */
+  webPush: WebPushSender;
   rateLimiter: RateLimiter;
   logger: Logger;
   now: () => Date;

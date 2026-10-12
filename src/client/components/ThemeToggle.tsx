@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
-import { isNative } from "../lib/native";
 import { currentTheme, onThemeChange, revealOrigin, toggleTheme } from "../lib/theme";
 import { tr } from "../lib/i18n";
 
-/** Sun / moon button in the page header (iOS app only). */
+/** Sun / moon button in the page header. */
 export function ThemeToggle({ className = "" }: { className?: string }) {
   const [theme, setTheme] = useState(currentTheme);
   useEffect(() => onThemeChange(setTheme), []);
-  if (!isNative) return null;
   const dark = theme === "dark";
   return (
     <button
