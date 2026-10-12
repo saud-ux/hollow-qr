@@ -14,7 +14,7 @@ import type {
   SalesReport,
   ShopSettings,
 } from "../../shared/ordering";
-import type { AccountRow, MenuItemRow, OrderSummary, ProfileRow, RateOrderResult, SearchRow, TransactionRow } from "./repository";
+import type { AccountRow, MenuItemRow, OrderSummary, ProfileRow, PushDevice, RateOrderResult, SearchRow, TransactionRow } from "./repository";
 
 type Raw = Record<string, unknown>;
 
@@ -298,6 +298,14 @@ export function mapDiscount(r: Raw): Discount | null {
 }
 
 export const DISCOUNT_COLUMNS = "discount_percent, discount_scope, discount_item_ids, discount_ends_at, discount_started_at";
+
+export function mapPushDevice(r: Raw): PushDevice {
+  const web =
+    r.platform === "web" && r.web_endpoint && r.web_p256dh && r.web_auth
+      ? { endpoint: str(r.web_endpoint), p256dh: str(r.web_p256dh), auth: str(r.web_auth) }
+      : null;
+  return { token: str(r.token), lang: r.lang === "en" ? "en" : "ar", web };
+}
 
 export function mapBroadcast(r: Raw): Broadcast {
   return {

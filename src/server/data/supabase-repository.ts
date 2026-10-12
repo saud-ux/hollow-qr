@@ -17,6 +17,7 @@ import {
   notificationPrefsColumns,
   rateOrderResult,
   mapProfile,
+  mapPushDevice,
   mapSearchRow,
   mapShopSettings,
   mapTransaction,
@@ -41,12 +42,14 @@ import type {
   PlaceInput,
   PlaceOrderParams,
   ProfileRow,
+  PushDevice,
   PushLang,
   PushTarget,
   RateOrderResult,
   RemoveStaffResult,
   Repository,
   StaffAlertKind,
+  WebPushKeyPair,
 } from "./repository";
 import { deleteAccountCode, savePlaceResult } from "./repository";
 
@@ -381,19 +384,48 @@ export class SupabaseRepository implements Repository {
     if (error) throw new RepositoryError("registerPushDevice", error);
   }
 
+  async registerWebPushDevice(userId: string, token: string, sub: { endpoint: string; p256dh: string; auth: string }, lang: PushLang): Promise<void> {
+    const { error } = (await this.db.from("push_devices").upsert(
+      { token, user_id: userId, platform: "web", lang, web_endpoint: sub.endpoint, web_p256dh: sub.p256dh, web_auth: sub.auth },
+      { onConflict: "token" },
+    )) as DbResult;
+    if (error) throw new RepositoryError("registerWebPushDevice", error);
+  }
+
   async unregisterPushDevice(userId: string, token: string): Promise<void> {
     const { error } = (await this.db.from("push_devices").delete().eq("token", token).eq("user_id", userId)) as DbResult;
     if (error) throw new RepositoryError("unregisterPushDevice", error);
   }
 
-  async pushTokensForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]> {
+  async pushDevicesForOrder(orderId: string): Promise<PushDevice[]> {
     const { data, error } = (await this.db.from("orders").select("customer_id").eq("id", orderId).maybeSingle()) as DbResult;
-    if (error) throw new RepositoryError("pushTokensForOrder:order", error);
+    if (error) throw new RepositoryError("pushDevicesForOrder:order", error);
     const customerId = (data as Raw | null)?.customer_id;
     if (typeof customerId !== "string") return [];
-    const res = (await this.db.from("push_devices").select("token, lang").eq("user_id", customerId).limit(20)) as DbResult;
-    if (res.error) throw new RepositoryError("pushTokensForOrder", res.error);
-    return ((res.data ?? []) as Raw[]).map((r) => ({ token: String(r.token), lang: r.lang === "en" ? "en" : "ar" }));
+    const res = (await this.db
+      .from("push_devices")
+      .select("token, lang, platform, web_endpoint, web_p256dh, web_auth")
+      .eq("user_id", customerId)
+      .limit(20)) as DbResult;
+    if (res.error) throw new RepositoryError("pushDevicesForOrder", res.error);
+    return ((res.data ?? []) as Raw[]).map(mapPushDevice);
+  }
+
+  async getWebPushKeys(): Promise<WebPushKeyPair | null> {
+    const { data, error } = (await this.db.from("web_push_keys").select("public_key, private_jwk").eq("id", 1).maybeSingle()) as DbResult;
+    if (error) throw new RepositoryError("getWebPushKeys", error);
+    const row = data as Raw | null;
+    return row ? { publicKey: String(row.public_key), privateJwk: row.private_jwk as JsonWebKey } : null;
+  }
+
+  async saveWebPushKeys(keys: WebPushKeyPair): Promise<WebPushKeyPair> {
+    const { error } = (await this.db
+      .from("web_push_keys")
+      .upsert({ id: 1, public_key: keys.publicKey, private_jwk: keys.privateJwk }, { onConflict: "id", ignoreDuplicates: true })) as DbResult;
+    if (error) throw new RepositoryError("saveWebPushKeys", error);
+    const kept = await this.getWebPushKeys();
+    if (!kept) throw new RepositoryError("saveWebPushKeys:read", { message: "missing after insert" });
+    return kept;
   }
 
   async deletePushToken(token: string): Promise<void> {
@@ -421,14 +453,14 @@ export class SupabaseRepository implements Repository {
     if (error) throw new RepositoryError("deleteLiveActivities", error);
   }
 
-  async staffPushTokens(kind: StaffAlertKind): Promise<string[]> {
-    const data = await this.rpc("staff_push_tokens", { p_kind: kind });
-    return (Array.isArray(data) ? data : []).map(String);
+  async staffPushDevices(kind: StaffAlertKind): Promise<PushDevice[]> {
+    const data = await this.rpc("staff_push_devices", { p_kind: kind });
+    return (Array.isArray(data) ? (data as Raw[]) : []).map(mapPushDevice);
   }
 
-  async offerPushTokens(after: string | null, limit: number): Promise<string[]> {
-    const data = await this.rpc("offer_push_tokens", { p_after: after, p_limit: limit });
-    return (Array.isArray(data) ? data : []).map(String);
+  async offerPushDevices(after: string | null, limit: number): Promise<PushDevice[]> {
+    const data = await this.rpc("offer_push_devices", { p_after: after, p_limit: limit });
+    return (Array.isArray(data) ? (data as Raw[]) : []).map(mapPushDevice);
   }
 
   async offerPushCount(): Promise<number> {

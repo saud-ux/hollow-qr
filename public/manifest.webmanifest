@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "HOLLOW",
+  "short_name": "HOLLOW",
+  "description": "اطلب قهوتك من HOLLOW واجمع أكوابك: الكوب السادس مجاني.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/menu",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4ede0",
+  "theme_color": "#f4ede0",
+  "icons": [
+    { "src": "/brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

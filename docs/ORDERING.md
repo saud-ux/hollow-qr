@@ -39,6 +39,18 @@ The migration creates the bucket where Supabase Storage exists.
 - Keeps the screen awake (Screen Wake Lock) while open, and shows the new-order count in the tab title.
 - Three columns on iPad (جديدة / قيد التحضير / جاهزة), tabs on phones.
 
+## The website and the app
+
+The website runs the same customer screens as the iOS app: it opens on the menu (guests can browse and fill a cart, and sign in at checkout), follows the device's light / dark setting, and uses the app's motion (off with Reduce Motion).
+Swipe-back and pull-to-refresh are left to the browser, except when the site is added to the home screen, where they work like in the app.
+
+**Website notifications** (Web Push, `20261019000000_web_push.sql`):
+- A browser subscribes from the order page («تبينا نعلمك أول ما يجهز؟») or Account → Notifications. Its subscription is a `push_devices` row with `platform = 'web'`, keyed by the SHA-256 of the endpoint, and gets the same order, offer and staff messages as the app, in the browser's language.
+- The Worker signs with a VAPID key pair it creates on first use and keeps in `web_push_keys` (service role only). Nothing to configure.
+- Only real push services are accepted as endpoints (Google, Apple, Mozilla, Microsoft).
+- iPhones allow website notifications only once the site is added to the home screen; the site explains how (`HomeScreenHint`).
+- `public/sw.js` shows the notifications and opens the order (or the menu) when one is tapped. It caches nothing.
+
 ## Deploying
 
 1. Apply `supabase/migrations/20261006000000_online_ordering.sql` to the production database.

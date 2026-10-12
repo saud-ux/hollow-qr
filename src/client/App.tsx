@@ -1,7 +1,8 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import { Spinner } from "./components/Field";
 import { NativeBridge } from "./components/NativeBridge";
+import { WebBridge } from "./components/WebBridge";
 import { RouteTransitions } from "./components/RouteTransitions";
 import { StaffGuard } from "./components/StaffGuard";
 import { Toaster } from "./components/Toast";
@@ -41,17 +42,21 @@ export function App() {
     <BrowserRouter>
       <LangProvider>
         <NativeBridge />
+        <WebBridge />
         <Toaster />
         <Suspense fallback={<Spinner />}>
-          {isNative ? <NativeRoutes /> : <WebRoutes />}
+          {isNative ? <CustomerRoutes /> : <WebRoutes />}
         </Suspense>
       </LangProvider>
     </BrowserRouter>
   );
 }
 
-/** The iOS app is for customers: it opens on the menu and has no staff screens. */
-function NativeRoutes() {
+/**
+ * The customer screens, the same in the iOS app and on the website: both open
+ * on the menu, and pages move with the app's transitions.
+ */
+function CustomerRoutes() {
   return (
     <RouteTransitions
       render={(location) => (
@@ -60,9 +65,8 @@ function NativeRoutes() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/wallet" element={<WalletPage />} />
-        <Route path="/account" element={<AccountPage />} />
-        <Route path="/account/places/:id" element={<PlacePage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/account/notifications" element={<NotificationsPage />} />
           <Route path="/account/places/:id" element={<PlacePage />} />
@@ -72,6 +76,7 @@ function NativeRoutes() {
           <Route path="/orders/:id" element={<OrderPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/support" element={<SupportPage />} />
+          {!isNative && <Route path="/c/:token" element={<QrLandingPage />} />}
           <Route path="*" element={<Navigate to="/menu" replace />} />
         </Routes>
       )}
@@ -79,115 +84,106 @@ function NativeRoutes() {
   );
 }
 
+/** Website: staff and admin pages keep their own layout; everything else is the customer app. */
 function WebRoutes() {
+  const { pathname } = useLocation();
+  return pathname === "/staff" || pathname.startsWith("/staff/") ? <StaffRoutes /> : <CustomerRoutes />;
+}
+
+function StaffRoutes() {
   return (
-        <Routes>
-        <Route path="/" element={<RegisterPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/support" element={<SupportPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/wallet" element={<WalletPage />} />
-        <Route path="/account" element={<AccountPage />} />
-        <Route path="/account/places/:id" element={<PlacePage />} />
-        <Route path="/menu" element={<MenuPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/orders" element={<OrdersPage />} />
-        <Route path="/orders/:id" element={<OrderPage />} />
-        <Route path="/c/:token" element={<QrLandingPage />} />
-        <Route path="/staff/login" element={<StaffLoginPage />} />
-        <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
-        <Route
-          path="/staff/orders"
-          element={
-            <StaffGuard>
-              <StaffOrdersPage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/customers"
-          element={
-            <StaffGuard>
-              <StaffHomePage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/customers/:id"
-          element={
-            <StaffGuard>
-              <CustomerPage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/stock"
-          element={
-            <StaffGuard>
-              <StockPage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/admin"
-          element={
-            <StaffGuard adminOnly>
-              <AdminPage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/admin/orders"
-          element={
-            <StaffGuard adminOnly>
-              <AdminOrdersPage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/admin/discount"
-          element={
-            <StaffGuard adminOnly>
-              <AdminDiscountPage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/admin/menu"
-          element={
-            <StaffGuard adminOnly>
-              <AdminMenuPage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/admin/settings"
-          element={
-            <StaffGuard adminOnly>
-              <AdminSettingsPage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/admin/engage"
-          element={
-            <StaffGuard adminOnly>
-              <AdminEngagePage />
-            </StaffGuard>
-          }
-        />
-        <Route
-          path="/staff/admin/team"
-          element={
-            <StaffGuard adminOnly>
-              <AdminTeamPage />
-            </StaffGuard>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+    <Routes>
+      <Route path="/staff/login" element={<StaffLoginPage />} />
+      <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
+      <Route
+        path="/staff/orders"
+        element={
+          <StaffGuard>
+            <StaffOrdersPage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/customers"
+        element={
+          <StaffGuard>
+            <StaffHomePage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/customers/:id"
+        element={
+          <StaffGuard>
+            <CustomerPage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/stock"
+        element={
+          <StaffGuard>
+            <StockPage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/admin"
+        element={
+          <StaffGuard adminOnly>
+            <AdminPage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/admin/orders"
+        element={
+          <StaffGuard adminOnly>
+            <AdminOrdersPage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/admin/discount"
+        element={
+          <StaffGuard adminOnly>
+            <AdminDiscountPage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/admin/menu"
+        element={
+          <StaffGuard adminOnly>
+            <AdminMenuPage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/admin/settings"
+        element={
+          <StaffGuard adminOnly>
+            <AdminSettingsPage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/admin/engage"
+        element={
+          <StaffGuard adminOnly>
+            <AdminEngagePage />
+          </StaffGuard>
+        }
+      />
+      <Route
+        path="/staff/admin/team"
+        element={
+          <StaffGuard adminOnly>
+            <AdminTeamPage />
+          </StaffGuard>
+        }
+      />
+      <Route path="*" element={<Navigate to="/staff/orders" replace />} />
+    </Routes>
   );
 }

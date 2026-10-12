@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { DISPLAY_NAME_MAX_LENGTH, MAX_STAMPS } from "../../../shared/constants";
 import { MAX_PLACES } from "../../../shared/types";
 import { AccountIcon, type AccountIconName } from "../../components/AccountIcons";
 import { CustomerLayout } from "../../components/CustomerLayout";
 import { ConfirmDialog, Dialog } from "../../components/Dialog";
+import { HomeScreenHint } from "../../components/HomeScreenHint";
 import { Alert } from "../../components/Field";
 import { TabBar } from "../../components/Shop";
 import { SocialLinks } from "../../components/SocialLinks";
@@ -13,6 +14,7 @@ import { useAuth } from "../../lib/auth";
 import { tr, useLang, type LangChoice } from "../../lib/i18n";
 import { isNative } from "../../lib/native";
 import { placeIcon, placeName, usePlaces } from "../../lib/places";
+import { canPromptInstall, needsHomeScreen, onInstallChange, promptInstall } from "../../lib/pwa";
 import { getThemeChoice, revealOrigin, setThemeChoice, type ThemeChoice } from "../../lib/theme";
 
 // Each language is written in itself so it can be found from either one.
@@ -116,7 +118,7 @@ export function AccountPage() {
       await apiPost("/api/me/delete", { confirm: "DELETE" });
       setDeleteOpen(false);
       await signOut().catch(() => undefined);
-      void navigate(isNative ? "/menu" : "/", { replace: true });
+      void navigate("/menu", { replace: true });
     } catch (err) {
       setDeleteError(errorText(err));
     } finally {
@@ -196,11 +198,9 @@ export function AccountPage() {
           <Row icon="orders" to="/orders">
             {tr("طلباتي", "Orders")}
           </Row>
-          {isNative && (
-            <Row icon="bell" to="/account/notifications">
-              {tr("الإشعارات", "Notifications")}
-            </Row>
-          )}
+          <Row icon="bell" to="/account/notifications">
+            {tr("الإشعارات", "Notifications")}
+          </Row>
         </Section>
       )}
 
@@ -242,29 +242,27 @@ export function AccountPage() {
       )}
 
       <Section title={tr("الإعدادات", "Settings")}>
-        {isNative && (
-          <div className="acct-row acct-row--control">
-            <AccountIcon name="moon" />
-            <span className="acct-row__text">{tr("المظهر", "Appearance")}</span>
-            <div className="theme-switch" role="radiogroup" aria-label={tr("المظهر", "Appearance")}>
-              {themes().map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={theme === t.value}
-                  className={`theme-switch__opt ${theme === t.value ? "is-on" : ""}`}
-                  onClick={(e) => {
-                    setThemeChoice(t.value, revealOrigin(e.currentTarget));
-                    setTheme(t.value);
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+        <div className="acct-row acct-row--control">
+          <AccountIcon name="moon" />
+          <span className="acct-row__text">{tr("المظهر", "Appearance")}</span>
+          <div className="theme-switch" role="radiogroup" aria-label={tr("المظهر", "Appearance")}>
+            {themes().map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                role="radio"
+                aria-checked={theme === t.value}
+                className={`theme-switch__opt ${theme === t.value ? "is-on" : ""}`}
+                onClick={(e) => {
+                  setThemeChoice(t.value, revealOrigin(e.currentTarget));
+                  setTheme(t.value);
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
         <div className="acct-row acct-row--control">
           <AccountIcon name="globe" />
           <span className="acct-row__text">{tr("اللغة", "Language")}</span>
@@ -285,6 +283,8 @@ export function AccountPage() {
           </div>
         </div>
       </Section>
+
+      {!isNative && <InstallRow />}
 
       <Section title={tr("المساعدة", "Help")}>
         <Row icon="help" to="/support">
@@ -351,5 +351,25 @@ export function AccountPage() {
         onCancel={() => setDeleteOpen(false)}
       />
     </CustomerLayout>
+  );
+}
+
+/**
+ * Website: put HOLLOW on the home screen, like an app. Chrome shows its own
+ * install dialog; on an iPhone, a card explains Share, then Add to Home Screen.
+ */
+function InstallRow() {
+  const [chrome, setChrome] = useState(canPromptInstall);
+  const [hint, setHint] = useState(false);
+  useEffect(() => onInstallChange(() => setChrome(canPromptInstall())), []);
+  const iphone = needsHomeScreen();
+  if (!chrome && !iphone) return null;
+  return (
+    <Section>
+      <Row icon="install" sub={tr("يفتح كأنه تطبيق، وتوصلك الإشعارات", "Opens like an app, with notifications")} onClick={() => (chrome ? void promptInstall() : setHint(true))}>
+        {tr("ثبّت HOLLOW على جوالك", "Install HOLLOW on your phone")}
+      </Row>
+      <HomeScreenHint open={hint} onClose={() => setHint(false)} />
+    </Section>
   );
 }

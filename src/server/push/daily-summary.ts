@@ -3,10 +3,9 @@
  * hour; it sends once per business day, shortly after the shop closes.
  */
 import { formatSar, type DayHours } from "../../shared/ordering";
-import type { OrderSummary, Repository } from "../data/repository";
-import type { Logger } from "../lib/logger";
-import type { AppPushMessage, AppPushSender } from "./app-push";
-import { sendToTokens } from "./order-notifications";
+import type { OrderSummary } from "../data/repository";
+import type { AppPushMessage } from "./app-push";
+import { pushOff, sendToDevices, type PushDeps } from "./order-notifications";
 
 /** How far back a closing time still counts (the cron runs hourly). */
 const LOOKBACK_MS = 65 * 60 * 1000;
@@ -95,18 +94,18 @@ export function dailySummaryMessage(s: OrderSummary): AppPushMessage {
 
 /** Called by the cron trigger. Safe to run any number of times. */
 export async function runDailySummary(
-  deps: { repo: Repository; appPush: AppPushSender; logger: Logger },
+  deps: PushDeps,
   now: Date,
   timeZone: string,
 ): Promise<"sent" | "not-yet" | "already-sent" | "disabled"> {
-  if (deps.appPush.kind === "disabled") return "disabled";
+  if (pushOff(deps)) return "disabled";
   const settings = await deps.repo.getShopSettings();
   const shift = justClosedShift(now, settings.weeklyHours, timeZone);
   if (!shift) return "not-yet";
   if (!(await deps.repo.claimDailySummary(shift.businessDate))) return "already-sent";
   const summary = await deps.repo.orderSummary(shift.from, shift.to);
-  const tokens = await deps.repo.staffPushTokens("daily_summary");
-  const sent = await sendToTokens(deps, tokens, dailySummaryMessage(summary));
-  deps.logger.info("daily_summary.sent", { businessDate: shift.businessDate, devices: tokens.length, sent });
+  const devices = await deps.repo.staffPushDevices("daily_summary");
+  const sent = await sendToDevices(deps, devices, dailySummaryMessage(summary));
+  deps.logger.info("daily_summary.sent", { businessDate: shift.businessDate, devices: devices.length, sent });
   return "sent";
 }

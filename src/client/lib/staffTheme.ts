@@ -2,6 +2,8 @@
  * Light / dark for the staff and admin pages (website). Follows the device
  * until someone taps the switch; the choice is kept on this device.
  */
+import { applyTheme } from "./theme";
+
 type Resolved = "light" | "dark";
 
 const KEY = "hollow.staffTheme";
@@ -39,6 +41,8 @@ export function enterStaffTheme(onChange: (theme: Resolved) => void): () => void
     media?.removeEventListener("change", follow);
     document.documentElement.classList.remove("staff-ui");
     delete document.documentElement.dataset.theme;
+    // Back on a customer page: its own light / dark choice.
+    applyTheme();
   };
 }
 

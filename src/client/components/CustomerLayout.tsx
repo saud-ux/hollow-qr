@@ -21,7 +21,7 @@ export function CustomerLayout({
   return (
     <div className={`customer ${dock ? "customer--docked" : ""}`}>
       <header className="customer__header">
-        <Link to={isNative ? "/menu" : "/"} className="customer__brand" aria-label={tr("HOLLOW Rewards، الصفحة الرئيسية", "HOLLOW Rewards, home")}>
+        <Link to="/menu" className="customer__brand" aria-label={tr("HOLLOW Rewards، الصفحة الرئيسية", "HOLLOW Rewards, home")}>
           <Wordmark />
         </Link>
         <ThemeToggle className="customer__theme" />

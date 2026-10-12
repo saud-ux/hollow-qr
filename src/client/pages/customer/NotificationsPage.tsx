@@ -6,7 +6,7 @@ import { TabBar } from "../../components/Shop";
 import { useAuth } from "../../lib/auth";
 import { tr } from "../../lib/i18n";
 
-/** Account → Notifications (iOS app): the push switches. */
+/** Account → Notifications: the push switches (this device, offers, staff alerts). */
 export function NotificationsPage() {
   const { session, loading, me } = useAuth();
   if (!loading && !session) return <Navigate to="/login" replace />;

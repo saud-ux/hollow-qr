@@ -1,7 +1,8 @@
 import { flowStep, FULFILLMENT_LABELS_AR, formatSar, orderFlow, type Order } from "../../shared/ordering";
-import type { PushLang, Repository } from "../data/repository";
+import type { PushDevice, PushLang, Repository } from "../data/repository";
 import type { Logger } from "../lib/logger";
 import type { AppPushMessage, AppPushSender, LiveActivityUpdate } from "./app-push";
+import type { WebPushSender } from "./web-push";
 
 const TITLE = "HOLLOW";
 
@@ -63,31 +64,37 @@ function englishText(order: Order): PushText | null {
   }
 }
 
-type PushDeps = { repo: Repository; appPush: AppPushSender; logger: Logger };
+export type PushDeps = { repo: Repository; appPush: AppPushSender; webPush: WebPushSender; logger: Logger };
 
-/** Sends one message to each token; drops tokens APNs reports as gone. Returns how many were delivered. */
-export async function sendToTokens(deps: PushDeps, tokens: string[], message: AppPushMessage): Promise<number> {
+/** Neither the app nor the website can be notified (production without keys or a database). */
+export const pushOff = (deps: PushDeps) => deps.appPush.kind === "disabled" && deps.webPush.kind === "disabled";
+
+/**
+ * Sends one message to each device (the app through APNs, browsers through
+ * Web Push); drops devices the push service reports as gone. Returns how many were delivered.
+ */
+export async function sendToDevices(deps: PushDeps, devices: PushDevice[], message: AppPushMessage): Promise<number> {
   let sent = 0;
-  for (const token of tokens) {
-    const outcome = await deps.appPush.send(token, message);
+  for (const device of devices) {
+    const outcome = device.web ? await deps.webPush.send(device.web, message) : await deps.appPush.send(device.token, message);
     if (outcome === "sent") sent++;
-    else if (outcome === "invalid-token") await deps.repo.deletePushToken(token);
+    else if (outcome === "invalid-token") await deps.repo.deletePushToken(device.token);
   }
   return sent;
 }
 
 /** Sends the status notification to every device of the order's customer, and moves its lock-screen tracker on. */
 export async function notifyOrderStatus(deps: PushDeps, order: Order): Promise<void> {
-  if (deps.appPush.kind === "disabled") return;
-  const devices = await deps.repo.pushTokensForOrder(order.id);
+  if (pushOff(deps)) return;
+  const devices = await deps.repo.pushDevicesForOrder(order.id);
   let sent = 0;
   for (const lang of ["ar", "en"] as const) {
     const message = orderStatusMessage(order, lang);
-    const tokens = devices.filter((d) => d.lang === lang).map((d) => d.token);
-    if (message && tokens.length > 0) sent += await sendToTokens(deps, tokens, message);
+    const mine = devices.filter((d) => d.lang === lang);
+    if (message && mine.length > 0) sent += await sendToDevices(deps, mine, message);
   }
   if (devices.length > 0) deps.logger.info("app_push.order_status", { orderId: order.id, status: order.status, devices: devices.length, sent });
-  await updateLiveActivities(deps, order);
+  if (deps.appPush.kind !== "disabled") await updateLiveActivities(deps, order);
 }
 
 /** How long a finished tracker stays on the lock screen. */
@@ -152,11 +159,11 @@ export function newOrderStaffMessage(order: Order): AppPushMessage {
   };
 }
 
-/** Alerts staff and admins who signed in to the app and kept new-order alerts on. */
+/** Alerts staff and admins who turned notifications on and kept new-order alerts on. */
 export async function notifyStaffNewOrder(deps: PushDeps, order: Order): Promise<void> {
-  if (deps.appPush.kind === "disabled") return;
-  const tokens = await deps.repo.staffPushTokens("new_orders");
-  if (tokens.length === 0) return;
-  const sent = await sendToTokens(deps, tokens, newOrderStaffMessage(order));
-  deps.logger.info("app_push.staff_new_order", { orderId: order.id, devices: tokens.length, sent });
+  if (pushOff(deps)) return;
+  const devices = await deps.repo.staffPushDevices("new_orders");
+  if (devices.length === 0) return;
+  const sent = await sendToDevices(deps, devices, newOrderStaffMessage(order));
+  deps.logger.info("app_push.staff_new_order", { orderId: order.id, devices: devices.length, sent });
 }

@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import { MAX_STAMPS } from "../../shared/constants";
 import { stampCups } from "../lib/motion";
-import { isNative } from "../lib/native";
 
 /** Horizontal centre of each cup in the strip artwork (fraction of the width). */
 const CUP_CENTERS = [0.143, 0.321, 0.5, 0.679, 0.857];
@@ -27,7 +26,7 @@ function writeSeen(memberId: string, count: number) {
 }
 
 /**
- * The Wallet strip with the customer's cups. In the iOS app each filled cup
+ * The Wallet strip with the customer's cups. Each filled cup
  * is its own layer (cut from a plain five-cup strip) so it can stamp onto the
  * card; a full card then glows gold as the reward strip fades in:
  *   - "all": every cup stamps in when the card opens (My card).
@@ -49,7 +48,6 @@ export function CupStrip({
   const cups = Math.min(Math.max(count, 0), MAX_STAMPS);
 
   useLayoutEffect(() => {
-    if (!isNative) return;
     const prev = shown.current;
     shown.current = cups;
     let from: number;
@@ -61,7 +59,6 @@ export function CupStrip({
     stampCups(ref.current, from, cups, prev !== null || stamp === "new");
   }, [cups, memberId, stamp]);
 
-  if (!isNative) return <img src={`/wallet-preview/strip-${cups}.png`} alt="" className={className} />;
   return (
     <div ref={ref} className={`cup-strip ${className}`}>
       <img src="/wallet-preview/strip-0.png" alt="" className="cup-strip__base" />

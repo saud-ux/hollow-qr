@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type RefObject } from "react";
 import { isEdgeSwiping, motionOn } from "../lib/motion";
-import { isNative, tapFeedback } from "../lib/native";
+import { tapFeedback } from "../lib/native";
+import { ownsGestures } from "../lib/pwa";
 
 /** How far the page moves before letting go refreshes it. */
 const THRESHOLD = 72;
@@ -13,7 +14,8 @@ const FULL_Y = 21;
 const MIN_SPIN_MS = 600;
 
 /**
- * iOS app only: pull the page down from the top to refresh it. Coffee rises
+ * The app (and the website added to the home screen; browsers have their own):
+ * pull the page down from the top to refresh it. Coffee rises
  * in a HOLLOW cup as you pull; let go once it's full and it steams while the
  * page reloads. `target` is the element that moves (the page's <main>), and the
  * cup sits in the space it uncovers under the header.
@@ -28,7 +30,7 @@ export function PullToRefresh({ onRefresh, target }: { onRefresh: () => Promise<
 
   useEffect(() => {
     const page = target.current;
-    if (!isNative) return;
+    if (!ownsGestures()) return;
     let startY: number | null = null;
     let pull = 0;
     let armed = false;
@@ -103,7 +105,7 @@ export function PullToRefresh({ onRefresh, target }: { onRefresh: () => Promise<
     };
   }, [target]);
 
-  if (!isNative) return null;
+  if (!ownsGestures()) return null;
   const body = "M9 17 H39 L35.6 53.5 Q35.2 57 31.8 57 H16.2 Q12.8 57 12.4 53.5 Z";
   return (
     <div className="ptr" aria-hidden="true">

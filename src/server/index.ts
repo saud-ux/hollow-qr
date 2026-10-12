@@ -9,11 +9,13 @@ import { BUSINESS_TIME_ZONE } from "../shared/constants";
 import { createApp } from "./app";
 import { SupabaseAuthVerifier } from "./auth/verifier";
 import { loadConfig } from "./config";
+import type { Repository } from "./data/repository";
 import { SupabaseRepository } from "./data/supabase-repository";
 import type { AppDeps } from "./http/context";
 import { WorkersRateLimiter } from "./http/rate-limit";
 import { createLogger } from "./lib/logger";
 import { ApnsTokenSender, DisabledAppPushSender, MockAppPushSender, type AppPushSender } from "./push/app-push";
+import { DisabledWebPushSender, generateVapidKeys, MockWebPushSender, VapidWebPushSender, type VapidKeys, type WebPushSender } from "./push/web-push";
 import { runDailySummary } from "./push/daily-summary";
 import type { Bindings, ExecutionContextLike } from "./platform";
 import { DisabledPushNotifier, MockPushNotifier, MtlsApnsNotifier, type WalletPushNotifier } from "./wallet/apns";
@@ -28,6 +30,17 @@ function repositoryFor(url: string, serviceRoleKey: string): SupabaseRepository 
   const key = `${url}|${serviceRoleKey.length}|${serviceRoleKey.slice(-12)}`;
   if (cachedRepo?.key !== key) cachedRepo = { key, repo: new SupabaseRepository(url, serviceRoleKey) };
   return cachedRepo.repo;
+}
+
+// The VAPID key pair, read (or made) once per isolate.
+let vapidKeys: Promise<VapidKeys> | null = null;
+
+function loadVapidKeys(repo: Repository): Promise<VapidKeys> {
+  vapidKeys ??= (async () => (await repo.getWebPushKeys()) ?? repo.saveWebPushKeys(await generateVapidKeys()))().catch((err: unknown) => {
+    vapidKeys = null;
+    throw err;
+  });
+  return vapidKeys;
 }
 
 export function buildDeps(env: Bindings): AppDeps {
@@ -55,6 +68,13 @@ export function buildDeps(env: Bindings): AppDeps {
     );
   } else appPush = config.isProduction ? new DisabledAppPushSender() : new MockAppPushSender(logger);
 
+  // Browsers are reached with a key pair kept in the database, so production
+  // only needs the database; development and tests record instead of sending.
+  let webPush: WebPushSender;
+  if (!config.isProduction) webPush = new MockWebPushSender(logger);
+  else if (repo) webPush = new VapidWebPushSender(() => loadVapidKeys(repo), config.appUrl, logger);
+  else webPush = new DisabledWebPushSender();
+
   const generator =
     config.wallet.ready && config.wallet.passTypeIdentifier && config.wallet.teamIdentifier
       ? new WebCryptoPassGenerator(env, {
@@ -69,6 +89,7 @@ export function buildDeps(env: Bindings): AppDeps {
     auth,
     wallet: repo ? new WalletService(config, repo, notifier, logger, generator) : null,
     appPush,
+    webPush,
     rateLimiter: new WorkersRateLimiter({
       api: env.API_RATE_LIMITER,
       wallet: env.WALLET_RATE_LIMITER,
@@ -93,10 +114,10 @@ export default {
   /** Hourly cron (wrangler.jsonc "triggers"): the end-of-day summary for admins. */
   scheduled(_event: unknown, env: Bindings, ctx: ExecutionContextLike): void {
     const deps = buildDeps(env);
-    const { repo, appPush } = deps;
+    const { repo, appPush, webPush } = deps;
     if (!repo) return;
     ctx.waitUntil(
-      runDailySummary({ repo, appPush, logger }, new Date(), BUSINESS_TIME_ZONE).catch((err: unknown) => {
+      runDailySummary({ repo, appPush, webPush, logger }, new Date(), BUSINESS_TIME_ZONE).catch((err: unknown) => {
         logger.error("daily_summary.failed", { error: err instanceof Error ? err.message : "unknown" });
       }),
     );

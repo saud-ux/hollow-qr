@@ -1,22 +1,25 @@
 /**
- * Motion for the iOS app. The website never animates; inside the app every
- * effect also switches off when iPhone's Reduce Motion setting is on.
+ * Motion for the iOS app and the customer website. Every effect switches off
+ * when the device's Reduce Motion setting is on.
  *
  * Styles (chosen per moment):
  *   - page transitions and the order tracker: cinematic (slow, depth + blur)
  *   - everything else: calm (short, soft, no bounce), with a light haptic
  */
-import { isNative, successFeedback, tapFeedback } from "./native";
+import { successFeedback, tapFeedback } from "./native";
 
 const reduceQuery = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
 export function motionOn(): boolean {
-  return isNative && !reduceQuery?.matches;
+  return !reduceQuery?.matches;
 }
+
+let motionReady = false;
 
 /** Adds `.motion` to <html> so CSS-only effects follow the same switch. */
 export function initMotion(): void {
-  if (!isNative) return;
+  if (motionReady) return;
+  motionReady = true;
   const apply = () => document.documentElement.classList.toggle("motion", motionOn());
   apply();
   reduceQuery?.addEventListener("change", apply);
@@ -80,6 +83,16 @@ export const GROW = { duration: 560, easing: "cubic-bezier(.3,.7,.1,1)" } as con
 const SLIDE = { duration: 420, easing: "cubic-bezier(.32,.72,0,1)" } as const;
 
 let lastTap: { el: Element; at: number } | null = null;
+let inAppBackAt = -Infinity;
+
+/** The page's own Back button was tapped (the browser's back has its own animation). */
+export function markInAppBack(): void {
+  inAppBackAt = performance.now();
+}
+
+export function wasInAppBack(): boolean {
+  return performance.now() - inAppBackAt < 1000;
+}
 
 /** Remembers what was tapped last, so the page it opens can grow out of it. */
 function watchTaps(): void {

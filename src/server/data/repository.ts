@@ -221,6 +221,19 @@ export interface OrderRpcResult {
 
 export type PushLang = "ar" | "en";
 
+/** Where a notification goes: an iPhone app (APNs token) or a browser (Web Push subscription). */
+export interface PushDevice {
+  token: string;
+  lang: PushLang;
+  web: { endpoint: string; p256dh: string; auth: string } | null;
+}
+
+/** The server's VAPID key pair for Web Push. */
+export interface WebPushKeyPair {
+  publicKey: string;
+  privateJwk: JsonWebKey;
+}
+
 export type StaffAlertKind = "new_orders" | "daily_summary";
 
 export type RateOrderResult = "ok" | "NOT_FOUND" | "NOT_COMPLETED" | "ALREADY_RATED";
@@ -296,19 +309,25 @@ export interface Repository {
 
   /** iOS app push tokens. A token moves to whoever signed in last on that device. */
   registerPushDevice(userId: string, token: string, lang: PushLang): Promise<void>;
+  /** A browser's Web Push subscription, keyed by `token` (the SHA-256 of its endpoint). */
+  registerWebPushDevice(userId: string, token: string, sub: { endpoint: string; p256dh: string; auth: string }, lang: PushLang): Promise<void>;
   unregisterPushDevice(userId: string, token: string): Promise<void>;
-  /** The order customer's devices, each with the language its app is in. */
-  pushTokensForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]>;
+  /** The order customer's devices (apps and browsers), each with the language it is in. */
+  pushDevicesForOrder(orderId: string): Promise<PushDevice[]>;
   deletePushToken(token: string): Promise<void>;
+  /** The VAPID key pair, or null before the first browser subscribes. */
+  getWebPushKeys(): Promise<WebPushKeyPair | null>;
+  /** Stores `keys` unless another request stored a pair first; returns the pair that is kept. */
+  saveWebPushKeys(keys: WebPushKeyPair): Promise<WebPushKeyPair>;
   /** Lock-screen order trackers (iOS Live Activities), one push token each. */
   saveLiveActivity(orderId: string, token: string, lang: PushLang): Promise<void>;
   liveActivitiesForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]>;
   /** Drops one token, or every token of an order when `token` is omitted. */
   deleteLiveActivities(orderId: string, token?: string): Promise<void>;
   /** Devices of staff/admins who want new-order alerts, or of admins who want the daily summary. */
-  staffPushTokens(kind: StaffAlertKind): Promise<string[]>;
+  staffPushDevices(kind: StaffAlertKind): Promise<PushDevice[]>;
   /** Devices that opted in to offers, in token order (`after` is the last token of the previous batch). */
-  offerPushTokens(after: string | null, limit: number): Promise<string[]>;
+  offerPushDevices(after: string | null, limit: number): Promise<PushDevice[]>;
   offerPushCount(): Promise<number>;
 
   getNotificationPrefs(userId: string): Promise<NotificationPrefs>;

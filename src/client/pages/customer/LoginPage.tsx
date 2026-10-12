@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { normalizeEmail } from "../../../shared/format";
 import { CustomerLayout } from "../../components/CustomerLayout";
-import { isNative } from "../../lib/native";
 import { Alert, Field } from "../../components/Field";
 import { Turnstile } from "../../components/Turnstile";
 import { useAuth } from "../../lib/auth";
@@ -98,11 +97,9 @@ export function LoginPage() {
       <p className="form__alt">
         {tr("ليس لديك بطاقة؟", "No card yet?")} <Link to={params.has("next") ? withNext("/register", next) : "/register"}>{tr("انضم الآن", "Join now")}</Link>
       </p>
-      {isNative && (
-        <p className="form__alt">
-          <Link to="/menu">{tr("تصفّح المنيو بدون تسجيل", "Browse the menu without signing in")}</Link>
-        </p>
-      )}
+      <p className="form__alt">
+        <Link to="/menu">{tr("تصفّح المنيو بدون تسجيل", "Browse the menu without signing in")}</Link>
+      </p>
     </CustomerLayout>
   );
 }

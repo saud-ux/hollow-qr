@@ -208,7 +208,8 @@ export const orderRoutes = new Hono<HonoEnv>()
     if (!result.replayed) {
       logger.info("order.placed", { orderId: result.order_id, fulfillment: body.fulfillment });
       // The customer's phone confirms the order was received; staff phones ring.
-      const push = { repo, appPush: c.get("deps").appPush, logger };
+      const { appPush, webPush } = c.get("deps");
+      const push = { repo, appPush, webPush, logger };
       runInBackground(c, notifyOrderStatus(push, order).then(() => notifyStaffNewOrder(push, order)));
     }
     return c.json({ order }, result.replayed ? 200 : 201);

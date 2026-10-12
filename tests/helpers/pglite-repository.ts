@@ -18,6 +18,7 @@ import {
   notificationPrefsColumns,
   rateOrderResult,
   mapProfile,
+  mapPushDevice,
   mapSearchRow,
   mapShopSettings,
   mapTransaction,
@@ -44,6 +45,7 @@ import type {
   PushLang,
   Repository,
   StaffAlertKind,
+  WebPushKeyPair,
 } from "../../src/server/data/repository";
 import { deleteAccountCode, savePlaceResult } from "../../src/server/data/repository";
 
@@ -286,15 +288,34 @@ export class PgliteRepository implements Repository {
       [token, userId, lang],
     );
   }
+  async registerWebPushDevice(userId: string, token: string, sub: { endpoint: string; p256dh: string; auth: string }, lang: PushLang) {
+    await this.db.query(
+      `insert into public.push_devices (token, user_id, platform, lang, web_endpoint, web_p256dh, web_auth) values ($1, $2, 'web', $3, $4, $5, $6)
+       on conflict (token) do update set user_id = excluded.user_id, lang = excluded.lang,
+         web_endpoint = excluded.web_endpoint, web_p256dh = excluded.web_p256dh, web_auth = excluded.web_auth`,
+      [token, userId, lang, sub.endpoint, sub.p256dh, sub.auth],
+    );
+  }
   async unregisterPushDevice(userId: string, token: string) {
     await this.db.query("delete from public.push_devices where token = $1 and user_id = $2", [token, userId]);
   }
-  async pushTokensForOrder(orderId: string): Promise<{ token: string; lang: PushLang }[]> {
+  async pushDevicesForOrder(orderId: string) {
     const res = await this.db.query<Raw>(
-      `select d.token, d.lang from public.push_devices d join public.orders o on o.customer_id = d.user_id where o.id = $1 limit 20`,
+      `select d.* from public.push_devices d join public.orders o on o.customer_id = d.user_id where o.id = $1 limit 20`,
       [orderId],
     );
-    return res.rows.map((r) => ({ token: String(r.token), lang: r.lang === "en" ? "en" : "ar" }));
+    return res.rows.map(mapPushDevice);
+  }
+  async getWebPushKeys(): Promise<WebPushKeyPair | null> {
+    const r = await this.one("select public_key, private_jwk from public.web_push_keys where id = 1", []);
+    return r ? { publicKey: String(r.public_key), privateJwk: r.private_jwk as JsonWebKey } : null;
+  }
+  async saveWebPushKeys(keys: WebPushKeyPair): Promise<WebPushKeyPair> {
+    await this.db.query("insert into public.web_push_keys (id, public_key, private_jwk) values (1, $1, $2::jsonb) on conflict (id) do nothing", [
+      keys.publicKey,
+      JSON.stringify(keys.privateJwk),
+    ]);
+    return (await this.getWebPushKeys())!;
   }
   async deletePushToken(token: string) {
     await this.db.query("delete from public.push_devices where token = $1", [token]);
@@ -314,13 +335,13 @@ export class PgliteRepository implements Repository {
     if (token) await this.db.query("delete from public.live_activities where order_id = $1 and push_token = $2", [orderId, token]);
     else await this.db.query("delete from public.live_activities where order_id = $1", [orderId]);
   }
-  async staffPushTokens(kind: StaffAlertKind) {
-    const res = await this.db.query<Raw>("select token from public.staff_push_tokens($1) as token", [kind]);
-    return res.rows.map((r) => String(r.token));
+  async staffPushDevices(kind: StaffAlertKind) {
+    const res = await this.db.query<Raw>("select * from public.staff_push_devices($1)", [kind]);
+    return res.rows.map(mapPushDevice);
   }
-  async offerPushTokens(after: string | null, limit: number) {
-    const res = await this.db.query<Raw>("select token from public.offer_push_tokens($1, $2) as token", [after, limit]);
-    return res.rows.map((r) => String(r.token));
+  async offerPushDevices(after: string | null, limit: number) {
+    const res = await this.db.query<Raw>("select * from public.offer_push_devices($1, $2)", [after, limit]);
+    return res.rows.map(mapPushDevice);
   }
   async offerPushCount() {
     return Number((await this.one("select public.offer_push_count() as n", []))!.n);
