@@ -107,7 +107,6 @@ export function RegisterPage() {
     <CustomerLayout hero>
       <section className="hero">
         <h1 className="hero__title">{tr("سجّل واجمع 5 أكواب، والسادس مجاني", "Sign up, collect 5 cups, the 6th is free")}</h1>
-        <p className="hero__sub">{tr("بطاقة ولاء HOLLOW في Apple Wallet بدون تطبيق.", "Your HOLLOW loyalty card, right in Apple Wallet.")}</p>
       </section>
       <form className="card form" onSubmit={onSubmit} noValidate>
         <Field label={tr("الاسم", "Name")} name="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} maxLength={80} required />
