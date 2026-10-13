@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { isActiveStatus, isOrderable, MAX_LINE_QUANTITY, priceOf, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
 import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
-import { searchMenu } from "../../../shared/menu-search";
+import { searchMenuForgiving } from "../../../shared/menu-search";
 import { Alert } from "../../components/Field";
-import { SearchField, SearchPill } from "../../components/MenuSearch";
+import { Highlight, SearchField, SearchPill } from "../../components/MenuSearch";
 import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
 import { showToast } from "../../components/Toast";
@@ -15,6 +15,7 @@ import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { flyToCart, growStepper, motionOn } from "../../lib/motion";
 import { riyals, useMenu } from "../../lib/menu";
+import { clearRecentSearches, recentSearches, rememberSearch } from "../../lib/recentSearches";
 import { lowStockBadge, stockLeftText, stockRoom } from "../../lib/stock";
 import { closedNote } from "./hours";
 import { tr } from "../../lib/i18n";
@@ -34,19 +35,54 @@ function menuSections(items: MenuItem[]): Section[] {
   return sections;
 }
 
+/**
+ * The menu is the page on screen (not a copy drawn under another page while
+ * it slides in or out), so it may change the address and take shortcuts.
+ */
+function onMenuPage(): boolean {
+  return window.location.pathname === "/menu";
+}
+
 export function MenuPage() {
   const { me, session, refreshMe } = useAuth();
   const { menu, error, reload } = useMenu();
   const sections = menu ? menuSections(menu.items) : [];
   // null while the search is closed; the menu filters as you type.
-  const [search, setSearch] = useState<string | null>(null);
+  // A link like /menu?q=ماتشا opens with the search already done.
+  const { search: urlSearch } = useLocation();
+  const [search, setSearch] = useState<string | null>(() => new URLSearchParams(urlSearch).get("q"));
   const query = search?.trim() ?? "";
-  const results = menu && query ? searchMenu(menu.items, query) : null;
+  const found = menu && query ? searchMenuForgiving(menu.items, query) : null;
   const closeSearch = useCallback(() => setSearch(null), []);
+  const [recent, setRecent] = useState(recentSearches);
+  const remember = useCallback(() => {
+    if (query) setRecent(rememberSearch(query));
+  }, [query]);
   // New results start from the top.
   useEffect(() => {
     if (query) window.scrollTo({ top: 0 });
   }, [query]);
+  // The address keeps the search, so going back to the menu (or sharing it) shows the same results.
+  useEffect(() => {
+    if (!onMenuPage()) return;
+    const url = new URL(window.location.href);
+    if (query) url.searchParams.set("q", query);
+    else url.searchParams.delete("q");
+    if (url.href !== window.location.href) window.history.replaceState(window.history.state, "", url);
+  }, [query]);
+  // On a computer: «/» or Ctrl/⌘ K opens the search.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const typing = e.target instanceof HTMLElement && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
+      const shortcut = (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) || (e.key.toLowerCase() === "k" && (e.ctrlKey || e.metaKey));
+      if (!shortcut || typing || !onMenuPage() || document.documentElement.classList.contains("sheet-open")) return;
+      e.preventDefault();
+      setSearch((s) => s ?? "");
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+  const popular = menu ? menu.items.filter((i) => i.isBestSeller && isOrderable(i)).map(itemName).slice(0, 4) : [];
   // Bumped by pull-to-refresh so the live order reloads too.
   const [refreshes, setRefreshes] = useState(0);
   const refresh = useCallback(() => {
@@ -63,9 +99,24 @@ export function MenuPage() {
       }
       onRefresh={refresh}
     >
-      {search !== null && <SearchField value={search} onChange={setSearch} onClose={closeSearch} />}
-      {results && menu ? (
-        <SearchResults query={query} items={results} canOrder={menu.shop.isOpen} />
+      {search !== null && (
+        <SearchField
+          value={search}
+          onChange={setSearch}
+          onClose={closeSearch}
+          onSubmit={() => found && found.items.length > 0 && remember()}
+          suggestions={{
+            recent,
+            popular,
+            onClearRecent: () => {
+              clearRecentSearches();
+              setRecent([]);
+            },
+          }}
+        />
+      )}
+      {found && menu ? (
+        <SearchResults query={query} found={found} menu={menu} onPick={remember} />
       ) : (
         <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} />
       )}
@@ -73,25 +124,58 @@ export function MenuPage() {
   );
 }
 
-/** What the search found, in the same cards as the menu. */
-function SearchResults({ query, items, canOrder }: { query: string; items: MenuItem[]; canOrder: boolean }) {
+/**
+ * What the search found, in the same cards as the menu, with the matching
+ * words marked. A typo still shows the closest items; nothing at all shows
+ * the best sellers instead of an empty page.
+ */
+function SearchResults({
+  query,
+  found: { items, closest },
+  menu,
+  onPick,
+}: {
+  query: string;
+  found: { items: MenuItem[]; closest: boolean };
+  menu: MenuResponse;
+  onPick: () => void;
+}) {
+  const canOrder = menu.shop.isOpen;
+  const best = items.length === 0 ? menu.items.filter((i) => i.isBestSeller) : [];
   return (
-    <section className="menu-section search-results" aria-live="polite">
-      <h2 className="menu-section__title">
-        {items.length === 0
-          ? tr(`لا نتائج لـ «${query}»`, `No results for “${query}”`)
-          : tr(`${items.length} ${items.length === 1 ? "نتيجة" : "نتائج"} لـ «${query}»`, `${items.length} ${items.length === 1 ? "result" : "results"} for “${query}”`)}
-      </h2>
-      {items.length === 0 ? (
-        <p className="muted search-results__empty">{tr("جرّب اسمًا ثانيًا، مثل «ماتشا» أو «V60».", "Try another name, like “Matcha” or “V60”.")}</p>
-      ) : (
-        <ul className="menu-grid">
-          {items.map((item) => (
-            <MenuCard key={item.id} item={item} canOrder={canOrder} />
-          ))}
-        </ul>
+    <>
+      {/* Opening or adding something it found: worth offering this search again. */}
+      <section className="menu-section search-results" aria-live="polite" onClickCapture={items.length > 0 ? onPick : undefined}>
+        <h2 className="menu-section__title">
+          {items.length === 0
+            ? tr(`لا نتائج لـ «${query}»`, `No results for “${query}”`)
+            : closest
+              ? tr(`أقرب نتائج لـ «${query}»`, `Closest matches for “${query}”`)
+              : tr(`${items.length} ${items.length === 1 ? "نتيجة" : "نتائج"} لـ «${query}»`, `${items.length} ${items.length === 1 ? "result" : "results"} for “${query}”`)}
+        </h2>
+        {items.length === 0 ? (
+          <p className="muted search-results__empty">{tr("جرّب اسمًا ثانيًا، مثل «ماتشا» أو «V60».", "Try another name, like “Matcha” or “V60”.")}</p>
+        ) : (
+          <ul className="menu-grid">
+            {items.map((item) => (
+              <MenuCard key={item.id} item={item} canOrder={canOrder} highlight={{ query, nearly: closest }} />
+            ))}
+          </ul>
+        )}
+      </section>
+      {best.length > 0 && (
+        <section className="menu-section search-results" aria-labelledby="search-best">
+          <h2 id="search-best" className="menu-section__title menu-section__title--best">
+            {tr("الأفضل مبيعًا", "Best sellers")}
+          </h2>
+          <ul className="menu-grid">
+            {best.map((item) => (
+              <MenuCard key={item.id} item={item} canOrder={canOrder} />
+            ))}
+          </ul>
+        </section>
       )}
-    </section>
+    </>
   );
 }
 
@@ -223,7 +307,7 @@ function MenuSkeleton() {
   );
 }
 
-function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
+function MenuCard({ item, canOrder, highlight }: { item: MenuItem; canOrder: boolean; highlight?: { query: string; nearly: boolean } }) {
   const cart = useCart();
   const hasOptions = item.options.length > 0;
   const qty = hasOptions ? cart.totalOf(item.id) : cart.quantityOf(item.id);
@@ -261,10 +345,10 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
         )}
       </button>
       <div className="menu-card__body">
-        <h3 className="menu-card__name">{itemName(item)}</h3>
+        <h3 className="menu-card__name">{highlight ? <Highlight text={itemName(item)} {...highlight} /> : itemName(item)}</h3>
         {itemSubName(item) && (
           <span className="pass-label" dir={subNameDir()}>
-            {itemSubName(item)}
+            {highlight ? <Highlight text={itemSubName(item)!} {...highlight} /> : itemSubName(item)}
           </span>
         )}
         {itemDescription(item) && <p className="menu-card__desc">{itemDescription(item)}</p>}
