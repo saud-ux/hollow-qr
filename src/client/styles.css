@@ -4111,8 +4111,90 @@ button.rate__star:active {
   font-weight: 700;
   cursor: pointer;
 }
+.search-pill__kbd {
+  display: none;
+}
+/* A computer with a keyboard: show that «/» opens the search. */
+@media (hover: hover) and (pointer: fine) {
+  .search-pill__kbd {
+    display: inline-grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border: 1px solid #e2d5bf;
+    border-radius: 5px;
+    background: var(--paper);
+    color: #8a7a6b;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+}
+.search-bar {
+  flex-wrap: wrap;
+}
+/* Recent searches and best sellers, before anything is typed. */
+.search-bar__chips {
+  flex: 1 0 100%;
+  display: flex;
+  gap: 7px;
+  margin: 0 -12px;
+  padding: 2px 12px 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.search-bar__chips::-webkit-scrollbar {
+  display: none;
+}
+.search-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid #e2d5bf;
+  background: var(--paper);
+  color: var(--espresso);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.search-chip svg {
+  color: #8a7a6b;
+}
+.search-chip--clear {
+  border-style: dashed;
+  background: none;
+  color: #8a7a6b;
+  font-weight: 600;
+}
+.search-chip--best::before {
+  content: "★";
+  color: var(--gold);
+}
+.motion .search-bar__chips .search-chip {
+  animation: hollow-rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+/* The words of a name that match the search. */
+.search-mark {
+  background: var(--gold-soft);
+  color: inherit;
+  border-radius: 4px;
+  padding: 0 2px;
+  margin: 0 -2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
 .search-results {
   padding-bottom: 72px;
+}
+/* Best sellers right under «no results»: the bar's room goes under the last one. */
+.search-results:has(+ .search-results) {
+  padding-bottom: 6px;
 }
 .search-results__empty {
   margin: 0;
@@ -4125,6 +4207,18 @@ button.rate__star:active {
 :is(html.themed, html.staff-ui)[data-theme="dark"] .search-bar {
   background: rgb(23 17 13 / 95%);
   border-top-color: #3a2c22;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.search-chip, .search-pill__kbd) {
+  background: #2a1f18;
+  border-color: #3a2c22;
+  color: #f1e8da;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] .search-chip--clear {
+  background: none;
+  color: #b8a896;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] .search-mark {
+  background: rgb(201 162 39 / 32%);
 }
 html.sheet-open .search-pill-row {
   visibility: hidden;
