@@ -46,7 +46,7 @@ function writeSeen(memberId: string, count: number) {
   try {
     localStorage.setItem(`${SEEN_KEY}.${memberId}`, String(count));
   } catch {
-    // storage blocked: cups simply don't replay
+    // storage blocked: a card that becomes full just doesn't buzz
   }
 }
 
@@ -54,21 +54,10 @@ function writeSeen(memberId: string, count: number) {
  * The Wallet strip with the customer's cups. Each filled cup is drawn as its
  * lid and its body (cut from a plain five-cup strip), over a stream and a
  * coffee level, so coffee can pour into it before the lid goes on; a full
- * card then glows gold as the reward strip fades in:
- *   - "all": every cup fills when the card opens (My card).
- *   - "new": only cups earned since this phone last showed the card (menu band).
+ * card then glows gold as the reward strip fades in. Every time the strip
+ * shows (My card, the menu band), its cups fill.
  */
-export function CupStrip({
-  count,
-  memberId,
-  stamp,
-  className,
-}: {
-  count: number;
-  memberId: string;
-  stamp: "all" | "new";
-  className: string;
-}) {
+export function CupStrip({ count, memberId, className }: { count: number; memberId: string; className: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const shown = useRef<number | null>(null);
   const cups = Math.min(Math.max(count, 0), MAX_STAMPS);
@@ -76,14 +65,11 @@ export function CupStrip({
   useLayoutEffect(() => {
     const prev = shown.current;
     shown.current = cups;
-    let from: number;
-    if (prev !== null) from = prev;
-    else if (stamp === "all") from = 0;
-    else from = Math.min(readSeen(memberId) ?? cups, cups);
+    const seen = readSeen(memberId);
     writeSeen(memberId, cups);
-    // Opening My card refills the cups; only a card that just became full buzzes.
-    pourCups(ref.current, from, cups, prev !== null || stamp === "new");
-  }, [cups, memberId, stamp]);
+    // Only a card that has just become full buzzes: once, on whichever page shows it first.
+    pourCups(ref.current, prev ?? 0, cups, prev !== null || (seen !== null && seen < cups));
+  }, [cups, memberId]);
 
   return (
     <div ref={ref} className={`cup-strip ${className}`}>
