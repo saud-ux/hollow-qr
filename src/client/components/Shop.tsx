@@ -260,6 +260,24 @@ export function ScooterIcon() {
     </svg>
   );
 }
+/** Paying with the phone (Apple Pay, Samsung Pay). */
+export function PhonePayIcon() {
+  return (
+    <svg {...icon} aria-hidden="true">
+      <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+      <path d="M10 5.5h4M9 14l2 2 4-4" />
+    </svg>
+  );
+}
+export function CashIcon() {
+  return (
+    <svg {...icon} aria-hidden="true">
+      <rect x="2.5" y="6.5" width="19" height="11" rx="2" />
+      <circle cx="12" cy="12" r="2.6" />
+      <path d="M6 10v4M18 10v4" />
+    </svg>
+  );
+}
 function TrashIcon() {
   return (
     <svg {...icon} width={18} height={18} aria-hidden="true">

@@ -14,7 +14,7 @@ import { Alert, Field } from "../../components/Field";
 import { showToast } from "../../components/Toast";
 import { inCart, stockLeftText, stockRoom } from "../../lib/stock";
 import { CartSkeleton } from "../../components/Skeletons";
-import { CarIcon, ItemImage, QtyStepper, ScooterIcon, ShopLayout, StoreIcon } from "../../components/Shop";
+import { CarIcon, CardIcon, CashIcon, ItemImage, PhonePayIcon, QtyStepper, ScooterIcon, ShopLayout, StoreIcon } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { enablePush, successFeedback } from "../../lib/native";
 import { CALM, motionOn, play } from "../../lib/motion";
@@ -32,6 +32,7 @@ import { MAX_PLACES } from "../../../shared/types";
 import { AccountIcon } from "../../components/AccountIcons";
 import { placeAddress, placeIcon, placeName, usePlaces } from "../../lib/places";
 import { tr } from "../../lib/i18n";
+import { paymentLabel, paymentNote, paymentReady, usePaymentMethods, type PaymentMethod } from "../../lib/payments";
 
 const lineKey = (line: CartLine) => `${line.menuItemId}|${line.optionId ?? ""}`;
 
@@ -60,6 +61,13 @@ const FULFILLMENT_ICONS: Record<FulfillmentType, () => React.JSX.Element> = {
   delivery: ScooterIcon,
 };
 
+const PAYMENT_ICONS: Record<PaymentMethod, () => React.JSX.Element> = {
+  applepay: PhonePayIcon,
+  samsungpay: PhonePayIcon,
+  card: CardIcon,
+  on_pickup: CashIcon,
+};
+
 type Coords = { lat: number; lng: number };
 
 export function CartPage() {
@@ -68,6 +76,10 @@ export function CartPage() {
   const navigate = useNavigate();
   const { menu, error: menuError, reload } = useMenu();
   const [chosen, setFulfillment] = useState<FulfillmentType>("pickup");
+  // Online methods show as «قريبًا» until they're connected; paying on pickup always works.
+  const payMethods = usePaymentMethods();
+  const [payChosen, setPayment] = useState<PaymentMethod>("on_pickup");
+  const payment: PaymentMethod = paymentReady(payChosen) ? payChosen : "on_pickup";
   const [phone, setPhone] = useState(() => remembered(PHONE_KEY));
   const [car, setCar] = useState(() => remembered(CAR_KEY));
   const [address, setAddress] = useState(() => remembered(ADDRESS_KEY));
@@ -502,6 +514,26 @@ export function CartPage() {
           <div className="field">
             <label htmlFor="order-note">{tr("ملاحظة على الطلب (اختياري)", "Order note (optional)")}</label>
             <textarea id="order-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />
+          </div>
+        </section>
+
+        <section className="sheet" aria-labelledby="payment">
+          <h2 id="payment" className="pass-label">
+            {tr("طريقة الدفع", "How you'll pay")}
+          </h2>
+          <div className="choice-grid" role="radiogroup" aria-labelledby="payment">
+            {payMethods.map((m) => {
+              const Icon = PAYMENT_ICONS[m];
+              const off = !paymentReady(m);
+              return (
+                <label key={m} className={`choice ${payment === m && !off ? "choice--on" : ""} ${off ? "choice--off" : ""}`}>
+                  <input type="radio" name="payment" value={m} checked={payment === m && !off} disabled={off} onChange={() => setPayment(m)} />
+                  <Icon />
+                  <span dir={m === "applepay" || m === "samsungpay" ? "ltr" : undefined}>{paymentLabel(m, fulfillment)}</span>
+                  <small>{paymentNote(m)}</small>
+                </label>
+              );
+            })}
           </div>
         </section>
 
