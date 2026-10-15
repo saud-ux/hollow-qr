@@ -364,7 +364,7 @@ function SearchRow({ item, terms, canOrder, onPick }: { item: MenuItem; terms: s
           </span>
         </span>
       </button>
-      <AddControl item={item} canOrder={canOrder} onChoose={show} onAdd={onPick} />
+      <AddControl item={item} canOrder={canOrder} onAdd={onPick} />
       {open && <ProductSheet item={item} canOrder={canOrder} origin={origin} onClose={() => setOpen(false)} />}
     </li>
   );
