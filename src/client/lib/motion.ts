@@ -6,7 +6,7 @@
  *   - page transitions and the order tracker: cinematic (slow, depth + blur)
  *   - everything else: calm (short, soft, no bounce), with a light haptic
  */
-import { successFeedback, tapFeedback } from "./native";
+import { successFeedback } from "./native";
 
 const reduceQuery = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
@@ -290,31 +290,63 @@ export function serveCup(root: Element | null): void {
 }
 
 // ---------------------------------------------------------------------------
-// Loyalty cups (calm): each new cup settles onto the card with a light tap;
-// a full card gets a gold sheen and a success haptic.
+// Loyalty cups: coffee pours into each cup and rises, then the lid drops on and
+// it becomes the HOLLOW cup. A full card then gets a gold sheen and a success
+// haptic. (CupStrip draws the stream, the coffee, the body and the lid.)
 // ---------------------------------------------------------------------------
 
-/** `haptics`: only for cups that are new to this phone, not every time the card opens. */
-export function stampCups(root: Element | null, from: number, to: number, haptics = true): void {
+/** The next cup starts pouring while this one is still filling. */
+const POUR_STEP = 620;
+/** One cup: the stream (0–1120ms), the coffee rising (140–960), the lid (1020–1320), the body over the coffee (1110–1370). */
+const POUR = { stream: 1120, rise: [140, 820], lid: 1020, body: 1110 } as const;
+const POUR_DONE = 1400;
+
+/** `celebrate`: buzz when the card is full, only when that's new to this phone. */
+export function pourCups(root: Element | null, from: number, to: number, celebrate = true): void {
   if (!root || !motionOn() || to <= from) return;
-  const cups = root.querySelectorAll(".cup-strip__cup");
-  const step = 340;
+  const pours = root.querySelectorAll(".cup-strip__pour");
+  const bodies = root.querySelectorAll(".cup-strip__body");
+  const lids = root.querySelectorAll(".cup-strip__lid");
   for (let i = from; i < to; i++) {
-    const delay = 250 + (i - from) * step;
-    void play(cups[i], [{ opacity: 0, transform: "scale(1.22)" }, { opacity: 1, transform: "scale(1)" }], { duration: 380, easing: CALM.easing, delay });
-    if (haptics) window.setTimeout(tapFeedback, delay + 200);
+    const delay = 250 + (i - from) * POUR_STEP;
+    const pour = pours[i];
+    const level = pour?.querySelector<HTMLElement>(".cup-strip__level");
+    // The stream reaches down into the cup, then its tail falls in after it.
+    void play(
+      pour?.querySelector(".cup-strip__stream"),
+      [
+        { clipPath: "inset(0% 0% 100% 0%)", easing: "ease-in" },
+        { clipPath: "inset(0% 0% 0% 0%)", offset: 0.18 },
+        { clipPath: "inset(0% 0% 0% 0%)", offset: 0.8, easing: "ease-in" },
+        { clipPath: "inset(100% 0% 0% 0%)" },
+      ],
+      { duration: POUR.stream, easing: "linear", delay },
+    );
+    // The coffee stays full until the cup's body has covered it.
+    const rising = level?.animate([{ transform: level.style.transform }, { transform: `translateY(${level.dataset.full})` }], {
+      duration: POUR.rise[1],
+      delay: delay + POUR.rise[0],
+      easing: "cubic-bezier(.35,.05,.35,1)",
+      fill: "both",
+    });
+    pour?.classList.add("is-pouring");
+    void play(lids[i], [{ opacity: 0, transform: "translateY(-9%)" }, { opacity: 1, transform: "none" }], { duration: 300, delay: delay + POUR.lid, easing: "cubic-bezier(.3,1.35,.6,1)" });
+    void play(bodies[i], [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: delay + POUR.body, easing: "ease-out" }).then(() => {
+      rising?.cancel();
+      pour?.classList.remove("is-pouring");
+    });
   }
-  // A full card: once the last cup lands, the gold glow fades in and light sweeps across.
+  // A full card: once the last lid is on, the gold glow fades in and light sweeps across.
   const reward = root.querySelector(".cup-strip__reward");
   if (reward) {
-    const after = 250 + (to - from - 1) * step + 380;
+    const after = 250 + (to - from - 1) * POUR_STEP + POUR_DONE;
     void play(reward, [{ opacity: 0 }, { opacity: 1 }], { duration: 900, easing: CALM.easing, delay: after });
     void play(root.querySelector(".cup-strip__sheen"), [{ transform: "translateX(120%)" }, { transform: "translateX(-120%)" }], {
       duration: 1200,
       easing: "ease-in-out",
       delay: after + 200,
     });
-    if (haptics) window.setTimeout(successFeedback, after + 200);
+    if (celebrate) window.setTimeout(successFeedback, after + 200);
   }
 }
 

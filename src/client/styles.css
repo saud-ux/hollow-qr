@@ -5075,6 +5075,47 @@ html.staff-ui[data-theme="dark"] .ticket-card {
 .cup-strip {
   overflow: hidden;
 }
+/* Coffee pouring into a cup (pourCups in motion.ts): at rest the stream is
+   cut away and the coffee sits below the cup, under the cup's body. */
+.cup-strip__pour,
+.cup-strip__coffee {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cup-strip__stream {
+  position: absolute;
+  top: 0;
+  width: 1.1%;
+  height: 74.65%;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(to right, #6b3d1c, #a5653a 45%, #6b3d1c);
+  clip-path: inset(0% 0% 100% 0%);
+}
+.cup-strip__level {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, #e0a868 0, #b07040 1.4%, #8d5429 7%, #6b3d1c 38%);
+}
+/* The coffee's surface ripples while it pours. */
+.cup-strip__level::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -2.2%;
+  height: 2.6%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6' preserveAspectRatio='none'%3E%3Cpath d='M0 3.2 Q5 0.4 10 3.2 T20 3.2 V6 H0Z' fill='%23e0a868'/%3E%3C/svg%3E") repeat-x 0 0 / 2.6% 100%;
+}
+.motion .cup-strip__pour.is-pouring .cup-strip__level::before {
+  animation: coffee-ripple 0.7s linear infinite;
+}
+@keyframes coffee-ripple {
+  to {
+    /* One tile (2.6% of the width) along: 2.6 / (100 - 2.6). */
+    background-position-x: 2.6694%;
+  }
+}
 .cup-strip__sheen {
   position: absolute;
   inset: 0;

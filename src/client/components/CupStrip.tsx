@@ -1,10 +1,35 @@
-import { useLayoutEffect, useRef } from "react";
+import { Fragment, useLayoutEffect, useRef } from "react";
 import { MAX_STAMPS } from "../../shared/constants";
-import { stampCups } from "../lib/motion";
+import { pourCups } from "../lib/motion";
 
 /** Horizontal centre of each cup in the strip artwork (fraction of the width). */
 const CUP_CENTERS = [0.143, 0.321, 0.5, 0.679, 0.857];
 const HALF_WIDTH = 0.08;
+
+/** The inside of a cup, in pixels of the 750 x 288 strip artwork: where the coffee rises. */
+const ART = { width: 750, height: 288 };
+const INSIDE = { top: 112, bottom: 215, topHalf: 34, bottomHalf: 27 };
+const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
+/** The coffee's top edge when the cup is empty (low enough to hide its ripple too), and when it is full (% of the strip's height). */
+const EMPTY = pct(INSIDE.bottom + 10, ART.height);
+const FULL = pct(INSIDE.top, ART.height);
+
+/** One cup's part of the plain five-cup strip, between `top` and `bottom` (% of its height, from each edge). */
+const cut = (center: number, top: number, bottom: number) =>
+  `inset(${top}% ${((1 - center - HALF_WIDTH) * 100).toFixed(2)}% ${bottom}% ${((center - HALF_WIDTH) * 100).toFixed(2)}%)`;
+
+/** The cup's inside, a little higher than the coffee's full line so its surface can ripple. */
+function insideShape(center: number): string {
+  const x = center * ART.width;
+  const { top, bottom, topHalf, bottomHalf } = INSIDE;
+  const points: [number, number][] = [
+    [x - topHalf, top - 6],
+    [x + topHalf, top - 6],
+    [x + bottomHalf, bottom],
+    [x - bottomHalf, bottom],
+  ];
+  return `polygon(${points.map(([px, py]) => `${pct(px, ART.width)} ${pct(py, ART.height)}`).join(", ")})`;
+}
 
 const SEEN_KEY = "hollow.cups.seen";
 
@@ -26,10 +51,11 @@ function writeSeen(memberId: string, count: number) {
 }
 
 /**
- * The Wallet strip with the customer's cups. Each filled cup
- * is its own layer (cut from a plain five-cup strip) so it can stamp onto the
- * card; a full card then glows gold as the reward strip fades in:
- *   - "all": every cup stamps in when the card opens (My card).
+ * The Wallet strip with the customer's cups. Each filled cup is drawn as its
+ * lid and its body (cut from a plain five-cup strip), over a stream and a
+ * coffee level, so coffee can pour into it before the lid goes on; a full
+ * card then glows gold as the reward strip fades in:
+ *   - "all": every cup fills when the card opens (My card).
  *   - "new": only cups earned since this phone last showed the card (menu band).
  */
 export function CupStrip({
@@ -55,26 +81,26 @@ export function CupStrip({
     else if (stamp === "all") from = 0;
     else from = Math.min(readSeen(memberId) ?? cups, cups);
     writeSeen(memberId, cups);
-    // Opening My card replays the cups quietly; only newly earned ones tap the phone.
-    stampCups(ref.current, from, cups, prev !== null || stamp === "new");
+    // Opening My card refills the cups; only a card that just became full buzzes.
+    pourCups(ref.current, from, cups, prev !== null || stamp === "new");
   }, [cups, memberId, stamp]);
 
   return (
     <div ref={ref} className={`cup-strip ${className}`}>
       <img src="/wallet-preview/strip-0.png" alt="" className="cup-strip__base" />
       {CUP_CENTERS.slice(0, cups).map((center, i) => (
-        <img
-          key={i}
-          src="/wallet-preview/strip-5-plain.png"
-          alt=""
-          className="cup-strip__cup"
-          style={{
-            clipPath: `inset(22% ${((1 - center - HALF_WIDTH) * 100).toFixed(2)}% 16% ${((center - HALF_WIDTH) * 100).toFixed(2)}%)`,
-            transformOrigin: `${(center * 100).toFixed(1)}% 52%`,
-          }}
-        />
+        <Fragment key={i}>
+          <span className="cup-strip__pour" aria-hidden="true">
+            <span className="cup-strip__stream" style={{ left: `${(center * 100 - 0.55).toFixed(2)}%` }} />
+            <span className="cup-strip__coffee" style={{ clipPath: insideShape(center) }}>
+              <span className="cup-strip__level" style={{ transform: `translateY(${EMPTY})` }} data-full={FULL} />
+            </span>
+          </span>
+          <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__body" style={{ clipPath: cut(center, 37.6, 16) }} />
+          <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__lid" style={{ clipPath: cut(center, 22, 61.5) }} />
+        </Fragment>
       ))}
-      {/* Free drink: the full reward strip (gold glow, sparkles) over the stamped cups. */}
+      {/* Free drink: the full reward strip (gold glow, sparkles) over the filled cups. */}
       {cups === MAX_STAMPS && <img src={`/wallet-preview/strip-${MAX_STAMPS}.png`} alt="" className="cup-strip__reward" />}
       {cups === MAX_STAMPS && <span className="cup-strip__sheen" aria-hidden="true" />}
     </div>
