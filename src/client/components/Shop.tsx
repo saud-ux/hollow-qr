@@ -117,7 +117,7 @@ export function LoyaltyBand({ card }: { card: CustomerCard | null }) {
   const remaining = MAX_STAMPS - card.stampCount;
   return (
     <Link to="/wallet" className="band band--link">
-      <CupStrip count={card.stampCount} memberId={card.memberId} stamp="new" className="band__strip" />
+      <CupStrip count={card.stampCount} memberId={card.memberId} className="band__strip" />
       <span className="band__caption">
         <span className="pass-label pass-label--light">{tr("المكافأة", "Reward")}</span>
         <span className={card.rewardAvailable ? "band__reward" : undefined}>

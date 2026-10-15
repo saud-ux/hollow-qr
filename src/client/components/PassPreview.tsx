@@ -32,7 +32,7 @@ export function PassPreview({ card }: { card: CustomerCard }) {
       {cancelled ? (
         <img src={`/wallet-preview/${strip}.png`} alt="" className="pass__strip" />
       ) : (
-        <CupStrip count={card.stampCount} memberId={card.memberId} stamp="all" className="pass__strip" />
+        <CupStrip count={card.stampCount} memberId={card.memberId} className="pass__strip" />
       )}
       <div className="pass__fields">
         <div className="pass__field">
