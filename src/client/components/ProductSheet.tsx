@@ -226,11 +226,11 @@ const FLICK = 0.45;
 const DIM = 45;
 
 /**
- * On touch screens: drag the sheet down from the top to close it; the photo stretches
- * as you pull, the dimming behind lifts with it, and drifts slower than the text as
- * you scroll (parallax).
+ * On touch screens: drag the sheet down from the top to close it; the dimming behind
+ * lifts with it. A sheet with a photo: the photo stretches as you pull, and drifts
+ * slower than the text as you scroll (parallax).
  */
-function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef: React.RefObject<HTMLDivElement | null>, onClose: () => void) {
+export function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef: React.RefObject<HTMLDivElement | null> | null, onClose: () => void) {
   const closeRef = useRef(onClose);
   useEffect(() => {
     closeRef.current = onClose;
@@ -239,7 +239,7 @@ function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef
   useEffect(() => {
     const sheet = sheetRef.current;
     if (!sheet) return;
-    const img = () => photoRef.current?.querySelector<HTMLElement>(".product-sheet__img") ?? null;
+    const img = () => photoRef?.current?.querySelector<HTMLElement>(".product-sheet__img") ?? null;
     let startY: number | null = null;
     let drag = 0;
     let lastY = 0;

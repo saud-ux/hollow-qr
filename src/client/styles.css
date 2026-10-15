@@ -3091,6 +3091,136 @@ html.theme-fade * {
 .motion .sheet-backdrop {
   animation: hollow-fade 250ms ease-out backwards;
 }
+/* The menu's + on an item with origins: a small sheet, one tap adds the origin (OriginSheet). */
+.origin-sheet {
+  width: min(100%, 560px);
+  display: grid;
+  gap: 10px;
+  padding: 10px 16px calc(26px + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
+  background: var(--paper);
+  color: var(--espresso);
+  box-shadow: 0 -12px 40px rgb(0 0 0 / 25%);
+  outline: none;
+}
+.motion .origin-sheet {
+  /* backwards, as for the product sheet: the drag sets the transform once open. */
+  animation: hollow-sheet-up 380ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.origin-sheet__grabber {
+  justify-self: center;
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--sand);
+}
+.origin-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.origin-sheet__thumb {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 11px;
+  overflow: hidden;
+  background: var(--beige);
+}
+.origin-sheet__img {
+  height: 100%;
+  aspect-ratio: auto;
+}
+.origin-sheet__title {
+  display: grid;
+  line-height: 1.35;
+}
+.origin-sheet__title strong {
+  font-size: 1.15rem;
+}
+.origin-sheet__title span {
+  font-size: 0.85rem;
+  color: #6f5f52;
+}
+.origin-sheet__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.origin-choice {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 2px solid var(--sand);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--espresso);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.origin-choice.is-on {
+  border-color: var(--espresso);
+}
+.origin-choice__text {
+  flex: 1;
+  display: grid;
+  line-height: 1.4;
+}
+.origin-choice__text strong {
+  font-size: 1.02rem;
+}
+.origin-choice__text small {
+  font-size: 0.82rem;
+  color: #6f5f52;
+}
+.origin-choice__count {
+  font-weight: 700;
+  color: var(--label);
+}
+.origin-choice__ring {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--sand);
+  border-radius: 50%;
+}
+.origin-choice__ring::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+  transform: scale(0);
+}
+.origin-choice.is-on .origin-choice__ring {
+  border-color: var(--gold);
+}
+.origin-choice.is-on .origin-choice__ring::after {
+  transform: scale(1);
+}
+.motion .origin-choice__ring::after {
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.origin-choice:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.origin-choice:disabled strong {
+  text-decoration: line-through;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.origin-sheet__title span, .origin-choice__text small) {
+  color: #b3a190;
+}
 .product-sheet__close {
   position: absolute;
   top: 12px;

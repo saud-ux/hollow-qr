@@ -1,24 +1,28 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { isOrderable, MAX_LINE_QUANTITY, type MenuItem } from "../../shared/ordering";
 import { useCart } from "../lib/cart";
 import { tr } from "../lib/i18n";
 import { itemName, optionLabel } from "../lib/menuText";
-import { growStepper } from "../lib/motion";
+import { flyToCart, growStepper } from "../lib/motion";
 import { stockLeftText, stockRoom } from "../lib/stock";
+import { OriginSheet } from "./OriginSheet";
 import { QtyStepper } from "./Shop";
 import { showToast } from "./Toast";
 
 /**
  * How a menu item goes in the cart, wherever it is listed (the menu, the
  * search): «+», then the stepper once it's in; items with origins show how
- * many are in and open the sheet to choose; «نفد» when sold out.
+ * many are in and open a small sheet to choose one (OriginSheet); «نفد» when
+ * sold out. `flyFrom` is the photo that flies to the cart; `onAdd` hears of
+ * every add.
  */
-export function AddControl({ item, canOrder, onChoose, onAdd }: { item: MenuItem; canOrder: boolean; onChoose: () => void; onAdd?: () => void }) {
+export function AddControl({ item, canOrder, flyFrom, onAdd }: { item: MenuItem; canOrder: boolean; flyFrom?: () => Element | null; onAdd?: () => void }) {
   const cart = useCart();
   const hasOptions = item.options.length > 0;
   const qty = hasOptions ? cart.totalOf(item.id) : cart.quantityOf(item.id);
   const room = stockRoom(item, cart.lines);
   const ref = useRef<HTMLSpanElement>(null);
+  const [choosing, setChoosing] = useState(false);
   // + grows into the stepper when the first one goes in the cart.
   const lastQty = useRef(qty);
   const addWidth = useRef(40);
@@ -39,7 +43,7 @@ export function AddControl({ item, canOrder, onChoose, onAdd }: { item: MenuItem
         <button
           type="button"
           className="add-btn"
-          onClick={onChoose}
+          onClick={() => setChoosing(true)}
           disabled={!canOrder}
           aria-label={tr(`اختر ${optionLabel(item)} وأضف ${item.nameAr}`, `Choose the ${optionLabel(item)} and add ${itemName(item)}`)}
         >
@@ -58,8 +62,9 @@ export function AddControl({ item, canOrder, onChoose, onAdd }: { item: MenuItem
           type="button"
           className="add-btn"
           onClick={() => {
-            onAdd?.();
+            flyToCart(flyFrom?.() ?? null);
             cart.add(item.id);
+            onAdd?.();
           }}
           disabled={!canOrder}
           aria-label={tr(`إضافة ${item.nameAr} إلى السلة`, `Add ${itemName(item)} to cart`)}
@@ -67,6 +72,7 @@ export function AddControl({ item, canOrder, onChoose, onAdd }: { item: MenuItem
           +
         </button>
       )}
+      {choosing && <OriginSheet item={item} onClose={() => setChoosing(false)} onAdded={onAdd} />}
     </span>
   );
 }

@@ -13,7 +13,7 @@ import { ItemImage, LoyaltyBand, ShopLayout } from "../../components/Shop";
 import { apiGet } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
-import { flyToCart, motionOn } from "../../lib/motion";
+import { motionOn } from "../../lib/motion";
 import { riyals, useMenu } from "../../lib/menu";
 import { lowStockBadge } from "../../lib/stock";
 import { closedNote } from "./hours";
@@ -212,7 +212,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
             <SalePrice item={item} />
             {item.calories !== null && <small className="kcal">{tr(`${item.calories} سعرة`, `${item.calories} kcal`)}</small>}
           </span>
-          <AddControl item={item} canOrder={canOrder} onChoose={openSheet} onAdd={() => flyToCart(cardRef.current?.querySelector(".menu-card__img") ?? null)} />
+          <AddControl item={item} canOrder={canOrder} flyFrom={() => cardRef.current?.querySelector(".menu-card__img") ?? null} />
         </div>
       </div>
       {open && <ProductSheet item={item} canOrder={canOrder} origin={origin} onClose={() => setOpen(false)} />}
