@@ -7,6 +7,7 @@ import { itemName, itemSubName, subNameDir } from "../lib/menuText";
 import { growSearch } from "../lib/motion";
 import { tapFeedback } from "../lib/native";
 import { AddControl } from "./AddControl";
+import { choosesOrigin, OriginSheet } from "./OriginSheet";
 import { ProductSheet } from "./ProductSheet";
 import { SalePrice } from "./SalePrice";
 import { ItemImage } from "./Shop";
@@ -338,8 +339,14 @@ function SearchRow({ item, terms, canOrder, onPick }: { item: MenuItem; terms: s
   const [open, setOpen] = useState(false);
   // The row the sheet grows out of (and folds back into).
   const [origin, setOrigin] = useState<HTMLElement | null>(null);
+  const [choosing, setChoosing] = useState(false);
   const sub = itemSubName(item);
   const show = () => {
+    // V60 and the like: the small origin sheet, as from the +.
+    if (choosesOrigin(item, canOrder)) {
+      setChoosing(true);
+      return;
+    }
     onPick();
     setOrigin(rowRef.current);
     setOpen(true);
@@ -366,6 +373,7 @@ function SearchRow({ item, terms, canOrder, onPick }: { item: MenuItem; terms: s
       </button>
       <AddControl item={item} canOrder={canOrder} onAdd={onPick} />
       {open && <ProductSheet item={item} canOrder={canOrder} origin={origin} onClose={() => setOpen(false)} />}
+      {choosing && <OriginSheet item={item} onClose={() => setChoosing(false)} onAdded={onPick} />}
     </li>
   );
 }

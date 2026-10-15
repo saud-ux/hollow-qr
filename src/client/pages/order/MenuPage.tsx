@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { isActiveStatus, isOrderable, priceOf, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
-import { categoryLabel, itemDescription, itemName, itemSubName, statusLabel, subNameDir } from "../../lib/menuText";
+import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
 import { AddControl } from "../../components/AddControl";
 import { Alert } from "../../components/Field";
+import { choosesOrigin, OriginSheet } from "../../components/OriginSheet";
 import { SearchPill, SearchScreen } from "../../components/MenuSearch";
 import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
@@ -182,13 +183,29 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
   const [open, setOpen] = useState(false);
   // The card the sheet grows out of (and folds back into).
   const [origin, setOrigin] = useState<HTMLElement | null>(null);
+  // V60 and the like: the photo opens the small origin sheet, as the + does.
+  const quick = choosesOrigin(item, canOrder);
+  const [choosing, setChoosing] = useState(false);
   const openSheet = () => {
+    if (quick) {
+      setChoosing(true);
+      return;
+    }
     setOrigin(cardRef.current);
     setOpen(true);
   };
   return (
     <li ref={cardRef} className={`menu-card ${soldOut ? "menu-card--soldout" : ""}`}>
-      <button type="button" className="menu-card__photo" onClick={openSheet} aria-label={tr(`عرض ${item.nameAr}`, `View ${itemName(item)}`)}>
+      <button
+        type="button"
+        className="menu-card__photo"
+        onClick={openSheet}
+        aria-label={
+          quick
+            ? tr(`اختر ${optionLabel(item)} وأضف ${item.nameAr}`, `Choose the ${optionLabel(item)} and add ${itemName(item)}`)
+            : tr(`عرض ${item.nameAr}`, `View ${itemName(item)}`)
+        }
+      >
         <ItemImage item={item} className="menu-card__img" />
         {item.options.length > 0 && <span className="menu-card__tag">{tr(`${item.options.length} محاصيل`, `${item.options.length} origins`)}</span>}
         {item.isBestSeller && <span className="menu-card__ribbon">{tr("الأفضل مبيعًا", "Best seller")}</span>}
@@ -216,6 +233,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
         </div>
       </div>
       {open && <ProductSheet item={item} canOrder={canOrder} origin={origin} onClose={() => setOpen(false)} />}
+      {choosing && <OriginSheet item={item} onClose={() => setChoosing(false)} />}
     </li>
   );
 }
