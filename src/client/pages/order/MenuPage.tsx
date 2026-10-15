@@ -1,22 +1,21 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { isActiveStatus, isOrderable, MAX_LINE_QUANTITY, priceOf, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
-import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
-import { searchMenu } from "../../../shared/menu-search";
+import { isActiveStatus, isOrderable, priceOf, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
+import { categoryLabel, itemDescription, itemName, itemSubName, statusLabel, subNameDir } from "../../lib/menuText";
+import { AddControl } from "../../components/AddControl";
 import { Alert } from "../../components/Field";
-import { SearchField, SearchPill } from "../../components/MenuSearch";
+import { SearchPill, SearchScreen } from "../../components/MenuSearch";
 import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
-import { showToast } from "../../components/Toast";
 import { ProductSheet } from "../../components/ProductSheet";
 import { MenuSkeleton } from "../../components/Skeletons";
-import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
+import { ItemImage, LoyaltyBand, ShopLayout } from "../../components/Shop";
 import { apiGet } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
-import { flyToCart, growStepper, motionOn } from "../../lib/motion";
+import { flyToCart, motionOn } from "../../lib/motion";
 import { riyals, useMenu } from "../../lib/menu";
-import { lowStockBadge, stockLeftText, stockRoom } from "../../lib/stock";
+import { lowStockBadge } from "../../lib/stock";
 import { closedNote } from "./hours";
 import { tr } from "../../lib/i18n";
 
@@ -39,15 +38,9 @@ export function MenuPage() {
   const { me, session, refreshMe } = useAuth();
   const { menu, error, reload } = useMenu();
   const sections = menu ? menuSections(menu.items) : [];
-  // null while the search is closed; the menu filters as you type.
-  const [search, setSearch] = useState<string | null>(null);
-  const query = search?.trim() ?? "";
-  const results = menu && query ? searchMenu(menu.items, query) : null;
+  // The search page, while open: where the «بحث» button was when it was tapped.
+  const [search, setSearch] = useState<{ from: DOMRect } | null>(null);
   const closeSearch = useCallback(() => setSearch(null), []);
-  // New results start from the top.
-  useEffect(() => {
-    if (query) window.scrollTo({ top: 0 });
-  }, [query]);
   // Bumped by pull-to-refresh so the live order reloads too.
   const [refreshes, setRefreshes] = useState(0);
   const refresh = useCallback(() => {
@@ -58,41 +51,15 @@ export function MenuPage() {
     <ShopLayout
       bottom={
         <>
-          {menu && search === null && <SearchPill onOpen={() => setSearch("")} />}
+          {menu && <SearchPill onOpen={(from) => setSearch({ from })} />}
           <CartBar menu={menu} />
         </>
       }
       onRefresh={refresh}
     >
-      {search !== null && <SearchField value={search} onChange={setSearch} onClose={closeSearch} />}
-      {results && menu ? (
-        <SearchResults query={query} items={results} canOrder={menu.shop.isOpen} />
-      ) : (
-        <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} />
-      )}
+      {search && menu && <SearchScreen menu={menu} from={search.from} onClose={closeSearch} />}
+      <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} />
     </ShopLayout>
-  );
-}
-
-/** What the search found, in the same cards as the menu. */
-function SearchResults({ query, items, canOrder }: { query: string; items: MenuItem[]; canOrder: boolean }) {
-  return (
-    <section className="menu-section search-results" aria-live="polite">
-      <h2 className="menu-section__title">
-        {items.length === 0
-          ? tr(`لا نتائج لـ «${query}»`, `No results for “${query}”`)
-          : tr(`${items.length} ${items.length === 1 ? "نتيجة" : "نتائج"} لـ «${query}»`, `${items.length} ${items.length === 1 ? "result" : "results"} for “${query}”`)}
-      </h2>
-      {items.length === 0 ? (
-        <p className="muted search-results__empty">{tr("جرّب اسمًا ثانيًا، مثل «ماتشا» أو «V60».", "Try another name, like “Matcha” or “V60”.")}</p>
-      ) : (
-        <ul className="menu-grid">
-          {items.map((item) => (
-            <MenuCard key={item.id} item={item} canOrder={canOrder} />
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }
 
@@ -210,11 +177,7 @@ function CategoryChips({ sections }: { sections: Section[] }) {
 
 
 function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
-  const cart = useCart();
-  const hasOptions = item.options.length > 0;
-  const qty = hasOptions ? cart.totalOf(item.id) : cart.quantityOf(item.id);
   const soldOut = !isOrderable(item);
-  const room = stockRoom(item, cart.lines);
   const cardRef = useRef<HTMLLIElement>(null);
   const [open, setOpen] = useState(false);
   // The card the sheet grows out of (and folds back into).
@@ -223,21 +186,11 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
     setOrigin(cardRef.current);
     setOpen(true);
   };
-  // + grows into the stepper when the first one goes in the cart.
-  const lastQty = useRef(qty);
-  const addWidth = useRef(40);
-  useLayoutEffect(() => {
-    const was = lastQty.current;
-    lastQty.current = qty;
-    const add = cardRef.current?.querySelector(".menu-card__foot .add-btn");
-    if (add) addWidth.current = add.getBoundingClientRect().width || addWidth.current;
-    if (was === 0 && qty > 0 && !hasOptions) growStepper(cardRef.current?.querySelector(".menu-card__foot .stepper") ?? null, addWidth.current);
-  }, [qty, hasOptions]);
   return (
     <li ref={cardRef} className={`menu-card ${soldOut ? "menu-card--soldout" : ""}`}>
       <button type="button" className="menu-card__photo" onClick={openSheet} aria-label={tr(`عرض ${item.nameAr}`, `View ${itemName(item)}`)}>
         <ItemImage item={item} className="menu-card__img" />
-        {hasOptions && <span className="menu-card__tag">{tr(`${item.options.length} محاصيل`, `${item.options.length} origins`)}</span>}
+        {item.options.length > 0 && <span className="menu-card__tag">{tr(`${item.options.length} محاصيل`, `${item.options.length} origins`)}</span>}
         {item.isBestSeller && <span className="menu-card__ribbon">{tr("الأفضل مبيعًا", "Best seller")}</span>}
         {!soldOut && item.stockQuantity != null && <span className="menu-card__low">{lowStockBadge(item.stockQuantity)}</span>}
         {item.discountPercent !== null && (
@@ -259,41 +212,7 @@ function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
             <SalePrice item={item} />
             {item.calories !== null && <small className="kcal">{tr(`${item.calories} سعرة`, `${item.calories} kcal`)}</small>}
           </span>
-          {soldOut ? (
-            <span className="badge badge--muted">{tr("نفد", "Sold out")}</span>
-          ) : hasOptions ? (
-            // Choosing an origin happens in the sheet.
-            <button
-              type="button"
-              className="add-btn"
-              onClick={openSheet}
-              disabled={!canOrder}
-              aria-label={tr(`اختر ${optionLabel(item)} وأضف ${item.nameAr}`, `Choose the ${optionLabel(item)} and add ${itemName(item)}`)}
-            >
-              {qty > 0 ? <span className="add-btn__count">{qty}</span> : "+"}
-            </button>
-          ) : qty > 0 ? (
-            <QtyStepper
-              quantity={qty}
-              onChange={(q) => cart.setQuantity(item.id, q)}
-              max={Math.min(MAX_LINE_QUANTITY, qty + room)}
-              onLimit={room === 0 ? () => showToast(stockLeftText(item, item.stockQuantity ?? 0)) : undefined}
-              label={itemName(item)}
-            />
-          ) : (
-            <button
-              type="button"
-              className="add-btn"
-              onClick={() => {
-                flyToCart(cardRef.current?.querySelector(".menu-card__img") ?? null);
-                cart.add(item.id);
-              }}
-              disabled={!canOrder}
-              aria-label={tr(`إضافة ${item.nameAr} إلى السلة`, `Add ${itemName(item)} to cart`)}
-            >
-              +
-            </button>
-          )}
+          <AddControl item={item} canOrder={canOrder} onChoose={openSheet} onAdd={() => flyToCart(cardRef.current?.querySelector(".menu-card__img") ?? null)} />
         </div>
       </div>
       {open && <ProductSheet item={item} canOrder={canOrder} origin={origin} onClose={() => setOpen(false)} />}

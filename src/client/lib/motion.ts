@@ -171,7 +171,8 @@ export function runPageTransition(outgoing: HTMLElement, incoming: HTMLElement, 
 // ---------------------------------------------------------------------------
 
 export function flyToCart(source: Element | null): void {
-  if (!source || !motionOn()) return;
+  // Over the search page the cart is out of sight: the + turning into the stepper says it.
+  if (!source || !motionOn() || document.documentElement.classList.contains("search-open")) return;
   const target = document.querySelector('.rt-tabdock a[href="/cart"] svg') ?? document.querySelector('.tabbar a[href="/cart"] svg');
   if (!target) return;
   const from = source.getBoundingClientRect();
@@ -382,9 +383,9 @@ export function morphCardSheet(card: Element | null, sheet: HTMLElement | null, 
   // Measure every shared piece before anything moves.
   const rtl = getComputedStyle(sheet).direction === "rtl";
   const pairs: [string, string, boolean][] = [
-    [".menu-card__img", ".product-sheet__photo", false],
-    [".menu-card__name", ".product-sheet__name", true],
-    [".menu-card__price .price-now", ".product-sheet__price .price-now", true],
+    [":is(.menu-card__img, .search-row__img)", ".product-sheet__photo", false],
+    [":is(.menu-card__name, .search-row__name)", ".product-sheet__name", true],
+    [":is(.menu-card__price, .search-row__price) .price-now", ".product-sheet__price .price-now", true],
   ];
   const shared = pairs.flatMap(([from, to, text]) => {
     const src = card.querySelector(from);
@@ -430,6 +431,34 @@ export function morphCardSheet(card: Element | null, sheet: HTMLElement | null, 
  * where a drag left the sheet: from there it carries on at the finger's pace;
  * from rest (added to the cart) it speeds up as it goes.
  */
+/**
+ * The search page grows out of the «بحث» button (and folds back into it):
+ * its clip opens from the button's box to the whole screen while its
+ * content rises in. Closing, the content fades first and the page fades as
+ * it lands on the button, which shows again under it.
+ */
+export function growSearch(screen: HTMLElement | null, content: Element | null, button: DOMRect | null, opening: boolean): Promise<void> {
+  if (!screen || !button || !motionOn() || !button.width) return Promise.resolve();
+  const box = screen.getBoundingClientRect();
+  const r = button.height / 2;
+  const pill = `inset(${button.top - box.top}px ${box.right - button.right}px ${box.bottom - button.bottom}px ${button.left - box.left}px round ${r}px)`;
+  const open = "inset(0px 0px 0px 0px round 0px)";
+  if (opening) {
+    void play(content, [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 280, delay: 170, easing: CALM.easing });
+    return play(screen, [{ clipPath: pill }, { clipPath: open }], { duration: 460, easing: GROW.easing });
+  }
+  void play(content, [{ opacity: 1 }, { opacity: 0 }], { duration: 140, fill: "forwards" });
+  return play(
+    screen,
+    [
+      { clipPath: open, opacity: 1 },
+      { clipPath: pill, opacity: 1, offset: 0.8 },
+      { clipPath: pill, opacity: 0 },
+    ],
+    { duration: 420, delay: 60, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" },
+  );
+}
+
 export function dropSheet(sheet: HTMLElement | null, from = 0): Promise<void> {
   if (!sheet || !motionOn()) return Promise.resolve();
   const t: KeyframeAnimationOptions = from > 0 ? { duration: 260, easing: CALM.easing, fill: "forwards" } : { duration: 320, easing: "cubic-bezier(.4,0,.8,.3)", fill: "forwards" };
