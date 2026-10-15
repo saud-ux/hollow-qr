@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { MenuItem } from "../../shared/ordering";
+import { isOrderable, type MenuItem } from "../../shared/ordering";
 import { useCart } from "../lib/cart";
 import { tr } from "../lib/i18n";
 import { itemName, optionLabel, optionName, optionNote } from "../lib/menuText";
@@ -11,10 +11,16 @@ import { ItemImage } from "./Shop";
 import { showToast } from "./Toast";
 
 /**
- * The menu's + on an item with origins (V60): a small sheet with the origins
- * and their notes, and one tap adds the one chosen. Its ring fills, the cup
- * flies to the cart and the sheet drops away. The item's full sheet (its
- * photo) still has the same choice.
+ * An item with origins that can be ordered now opens the small origin sheet,
+ * from its + and from its photo, on the menu and in search. Sold out, or the
+ * café closed: the full product sheet says so instead.
+ */
+export const choosesOrigin = (item: MenuItem, canOrder: boolean) => canOrder && isOrderable(item) && item.options.length > 0;
+
+/**
+ * An item with origins (V60) on the menu: a small sheet with the origins and
+ * their notes, and one tap adds the one chosen. Its ring fills, the cup flies
+ * to the cart and the sheet drops away.
  */
 export function OriginSheet({ item, onClose, onAdded }: { item: MenuItem; onClose: () => void; onAdded?: () => void }) {
   const cart = useCart();
