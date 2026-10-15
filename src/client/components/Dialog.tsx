@@ -1,7 +1,10 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { tr } from "../lib/i18n";
 
-/** Accessible modal built on the native <dialog> element (focus trap + Esc). */
+/**
+ * Accessible modal built on the native <dialog> element (focus trap + Esc).
+ * It fades and grows in, and fades out (styles.css).
+ */
 export function Dialog({
   open,
   title,
@@ -19,6 +22,11 @@ export function Dialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  // While it fades out, it keeps showing what it showed when open (pages often
+  // clear what a dialog shows in the same step that closes it).
+  const [shown, setShown] = useState({ title, children, actions });
+  if (open && (shown.title !== title || shown.children !== children || shown.actions !== actions)) setShown({ title, children, actions });
+  const view = open ? { title, children, actions } : shown;
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -36,10 +44,10 @@ export function Dialog({
       }}
     >
       <h2 id={titleId} className="dialog__title">
-        {title}
+        {view.title}
       </h2>
-      {children && <div className="dialog__body">{children}</div>}
-      {actions && <div className="dialog__actions">{actions}</div>}
+      {view.children && <div className="dialog__body">{view.children}</div>}
+      {view.actions && <div className="dialog__actions">{view.actions}</div>}
     </dialog>
   );
 }

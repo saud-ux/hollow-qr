@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { CALM, motionOn } from "../lib/motion";
 import { tapFeedback } from "../lib/native";
 import { tr } from "../lib/i18n";
@@ -8,11 +8,34 @@ const THRESHOLD = 90;
 /**
  * A cart line the customer can swipe sideways (either way) to delete. Only
  * touch starts it, and only a mostly sideways move, so the page still scrolls.
+ * `onDelete` gets the side it went (1 = right, -1 = left); a line put back
+ * (Undo) passes that side as `appear` to slide back in from it.
  */
-export function SwipeToDelete({ onDelete, className, children }: { onDelete: () => void; className?: string; children: ReactNode }) {
+export function SwipeToDelete({
+  onDelete,
+  appear,
+  className,
+  children,
+}: {
+  onDelete: (side: 1 | -1) => void;
+  appear?: 1 | -1;
+  className?: string;
+  children: ReactNode;
+}) {
   const rowRef = useRef<HTMLLIElement>(null);
   const fgRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; dx: number; on: boolean; past: boolean } | null>(null);
+
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    const fg = fgRef.current;
+    if (!appear || !row || !fg || !motionOn()) return;
+    const h = row.getBoundingClientRect().height;
+    row.animate([{ height: "0px", opacity: 0 }, { height: `${h}px`, opacity: 1 }], { duration: 260, easing: CALM.easing });
+    fg.animate([{ transform: `translateX(${appear * 110}%)` }, { transform: "none" }], { duration: 340, easing: CALM.easing, delay: 120, fill: "backwards" });
+    // Only as it first shows.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setX = (x: number) => {
     if (fgRef.current) fgRef.current.style.transform = x ? `translateX(${x}px)` : "";
@@ -26,7 +49,7 @@ export function SwipeToDelete({ onDelete, className, children }: { onDelete: () 
       const h = row.getBoundingClientRect().height;
       await row.animate([{ height: `${h}px`, opacity: 1 }, { height: "0px", opacity: 0, marginBottom: "0px" }], { duration: 260, easing: CALM.easing, fill: "forwards" }).finished.catch(() => undefined);
     }
-    onDelete();
+    onDelete(dx > 0 ? 1 : -1);
   }
 
   return (

@@ -1,11 +1,11 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 import { MAX_STAMPS } from "../../shared/constants";
 import type { MenuItem } from "../../shared/ordering";
 import type { CustomerCard } from "../../shared/types";
 import { useAuth } from "../lib/auth";
 import { useCart } from "../lib/cart";
-import { CALM, play } from "../lib/motion";
+import { CALM, fadeInPhoto, play } from "../lib/motion";
 import { Wordmark } from "./Brand";
 import { CupStrip } from "./CupStrip";
 import { PullToRefresh } from "./PullToRefresh";
@@ -133,8 +133,13 @@ export function LoyaltyBand({ card }: { card: CustomerCard | null }) {
 }
 
 export function ItemImage({ item, className = "" }: { item: Pick<MenuItem, "imageUrl" | "nameAr" | "category">; className?: string }) {
+  // A photo still loading when it was put on the page fades in once it arrives.
+  const shownAt = useRef(0);
+  useLayoutEffect(() => {
+    shownAt.current = performance.now();
+  }, [item.imageUrl]);
   if (item.imageUrl) {
-    return <img src={item.imageUrl} alt="" className={`item-img ${className}`} loading="lazy" decoding="async" />;
+    return <img src={item.imageUrl} alt="" className={`item-img ${className}`} loading="lazy" decoding="async" onLoad={(e) => fadeInPhoto(e.currentTarget, shownAt.current)} />;
   }
   return (
     <span className={`item-img item-img--placeholder ${className}`} aria-hidden="true">

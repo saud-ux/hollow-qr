@@ -1,13 +1,54 @@
+import { useLayoutEffect, useRef } from "react";
 import { tr } from "../lib/i18n";
+import { riseInNew } from "../lib/motion";
+
+/**
+ * When a placeholder makes way for the data, whatever takes its place rises
+ * in, a block at a time, instead of popping in.
+ */
+function useHandOff(ref: React.RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    return () => {
+      // Runs as the placeholder is removed: its parent still shows what was
+      // there before, and the new content is in place right after this commit.
+      const parent = el?.parentElement;
+      if (!parent) return;
+      const before = new Set(parent.children);
+      queueMicrotask(() => riseInNew(parent, before));
+    };
+  }, [ref]);
+}
 
 /**
  * Shimmering placeholders shaped like the screen that is loading, so the
  * layout doesn't jump when the data arrives.
  */
 function Busy({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useHandOff(ref);
   return (
-    <div className={`skeleton-group ${className}`} role="status" aria-busy="true" aria-label={label}>
+    <div ref={ref} className={`skeleton-group ${className}`} role="status" aria-busy="true" aria-label={label}>
       {children}
+    </div>
+  );
+}
+
+/** The menu: a few cards. */
+export function MenuSkeleton() {
+  const ref = useRef<HTMLDivElement>(null);
+  useHandOff(ref);
+  return (
+    <div ref={ref} className="menu-grid" aria-busy="true" aria-label={tr("جارٍ تحميل المنيو", "Loading the menu")}>
+      {Array.from({ length: 4 }, (_, i) => (
+        <div key={i} className="menu-card skeleton-card" aria-hidden="true">
+          <div className="skeleton skeleton--img" />
+          <div className="menu-card__body">
+            <div className="skeleton skeleton--line" />
+            <div className="skeleton skeleton--line skeleton--short" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

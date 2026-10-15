@@ -628,6 +628,45 @@ select {
 .dialog::backdrop {
   background: rgb(43 30 22 / 55%);
 }
+/* Opening, the dialog grows a little as it fades in over the dimming; closing,
+   it fades out. Older iPhones (before iOS 17.5) just open and close it. */
+.motion .dialog {
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 200ms ease-in,
+    transform 200ms ease-in,
+    overlay 200ms allow-discrete,
+    display 200ms allow-discrete;
+}
+.motion .dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 260ms ease-out,
+    transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    overlay 260ms allow-discrete,
+    display 260ms allow-discrete;
+}
+.motion .dialog::backdrop {
+  background-color: rgb(43 30 22 / 0%);
+  transition:
+    background-color 220ms ease-out,
+    overlay 220ms allow-discrete,
+    display 220ms allow-discrete;
+}
+.motion .dialog[open]::backdrop {
+  background-color: rgb(43 30 22 / 55%);
+}
+@starting-style {
+  .motion .dialog[open] {
+    opacity: 0;
+    transform: scale(0.93);
+  }
+  .motion .dialog[open]::backdrop {
+    background-color: rgb(43 30 22 / 0%);
+  }
+}
 .dialog__title {
   font-size: 1.25rem;
 }
@@ -1156,7 +1195,10 @@ html[lang="ar"] .shop__cups-label {
 .tabbar {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  background: var(--paper);
+  /* Frosted like the header: the page shows softly through it. */
+  background: rgb(251 248 242 / 84%);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
   border-top: 1px solid #e2d5bf;
   padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
 }
@@ -2376,8 +2418,8 @@ html[lang="ar"] .shop__cups-label {
   height: 100%;
 }
 
-/* ---------- iOS app motion: <html class="motion"> is set only inside the app,
-   and never when iPhone's Reduce Motion is on. ---------- */
+/* ---------- Motion, in the iOS app and on the website: <html class="motion">
+   is set unless the device's Reduce Motion setting is on. ---------- */
 
 /* Page transitions: both pages sit in fixed layers while one pushes over the other. */
 .rt-layer {
@@ -2421,6 +2463,13 @@ html[lang="ar"] .shop__cups-label {
 [dir="rtl"] :is(.rt--push .rt-layer--current, .rt--pop .rt-layer--leaving, .rt--swipe .rt-layer--current) {
   box-shadow: 14px 0 36px rgb(43 30 22 / 20%);
 }
+/* In the dark theme a brown shadow disappears into the page: use black. */
+:is(html.themed, html.staff-ui)[data-theme="dark"] :is(.rt--push .rt-layer--current, .rt--pop .rt-layer--leaving, .rt--swipe .rt-layer--current) {
+  box-shadow: -14px 0 36px rgb(0 0 0 / 55%);
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"][dir="rtl"] :is(.rt--push .rt-layer--current, .rt--pop .rt-layer--leaving, .rt--swipe .rt-layer--current) {
+  box-shadow: 14px 0 36px rgb(0 0 0 / 55%);
+}
 /* One tab bar for the whole app, so it stays still while pages move. */
 .rt-layer .tabbar {
   visibility: hidden;
@@ -2438,8 +2487,12 @@ html[lang="ar"] .shop__cups-label {
     transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity 0.2s;
 }
-.motion :is(.btn, .add-btn, .stepper__btn, .tabbar__item, .cart-bar):active {
+.motion :is(.btn, .add-btn, .stepper__btn, .tabbar__item, .cart-bar):active:not(:disabled) {
   transform: scale(0.95);
+}
+/* Wide ones press in less: 95% of a full-width button is a jump of ~17px. */
+.motion :is(.btn--block, .btn--lg, .btn--xl, .cart-bar):active:not(:disabled) {
+  transform: scale(0.98);
 }
 .motion .menu-card .stepper {
   animation: hollow-pop-in 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -2531,6 +2584,35 @@ html[lang="ar"] .shop__cups-label {
 }
 .motion .tabbar__pill {
   transition: transform 340ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* With a mouse (the website on a computer): what can be clicked answers the
+   pointer. Phones and tablets never see these. */
+@media (hover: hover) and (pointer: fine) {
+  .motion .menu-card {
+    transition:
+      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 220ms ease;
+  }
+  .motion .menu-card:not(.skeleton-card):hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 26px rgb(43 30 22 / 14%);
+  }
+  :is(.btn--primary, .add-btn):not(:disabled):hover {
+    background: var(--espresso-2);
+  }
+  :is(.btn--secondary, .btn--ghost, .btn--light):not(:disabled):hover {
+    background: var(--beige);
+  }
+  .menu-chip:not(.is-active):hover {
+    border-color: var(--sand);
+  }
+  .tabbar__item:hover {
+    color: var(--espresso);
+  }
+  :is(.settings__row:not(.settings__row--theme), .order-row):hover {
+    background: var(--cream);
+  }
 }
 
 /* Checkout button stays in reach above the tab bar while the form scrolls. */
@@ -2794,9 +2876,9 @@ html[lang="ar"] .shop__cups-label {
   justify-self: end;
 }
 
-/* ---------- Dark theme, iOS app only (see lib/theme.ts): follows the iPhone
-   unless the customer picks light or dark on My card. The loyalty card stays
-   cream, like the real card in Apple Wallet. ---------- */
+/* ---------- Dark theme, in the iOS app and on the website (see lib/theme.ts):
+   follows the device unless the customer picks light or dark on My card. The
+   loyalty card stays cream, like the real card in Apple Wallet. ---------- */
 :is(html.themed, html.staff-ui)[data-theme="dark"] {
   --cream: #17110d;
   --paper: #221914;
@@ -2858,6 +2940,9 @@ html[lang="ar"] .shop__cups-label {
 }
 :is(html.themed, html.staff-ui)[data-theme="dark"] .order-live__meta {
   color: #c9b79f;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] .tabbar {
+  background: rgb(34 25 20 / 84%);
 }
 :is(html.themed, html.staff-ui)[data-theme="dark"] .tabbar__pill::after {
   background: rgb(201 162 39 / 24%);
@@ -2959,7 +3044,8 @@ html.theme-fade * {
   display: block;
   padding: 0;
   border: 0;
-  background: none;
+  /* What a photo fades in over while it loads. */
+  background: var(--beige);
   cursor: zoom-in;
 }
 .menu-card__tag {
@@ -3001,8 +3087,9 @@ html.theme-fade * {
   /* backwards, not both: a finished animation would hold the transform the drag sets. */
   animation: hollow-sheet-up 380ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
+/* backwards too: once open, the drag sets the dimming itself. */
 .motion .sheet-backdrop {
-  animation: hollow-fade 250ms ease-out both;
+  animation: hollow-fade 250ms ease-out backwards;
 }
 .product-sheet__close {
   position: absolute;
@@ -3115,9 +3202,6 @@ html.theme-fade * {
   background: #000;
   cursor: zoom-out;
   touch-action: pinch-zoom;
-}
-.motion .photo-viewer {
-  animation: hollow-fade 220ms ease-out both;
 }
 .photo-viewer__img {
   max-width: 100%;
@@ -4529,6 +4613,38 @@ html.sheet-open .search-pill-row {
     transform: translate(-50%, 12px);
   }
 }
+.motion .toast.is-leaving {
+  animation: toast-out 220ms ease-in both;
+}
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+/* With a button (Undo): the message and the button side by side. */
+.toast--action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+  padding-block: 6px;
+  padding-inline: 18px 6px;
+  text-align: start;
+}
+.toast__action {
+  font: inherit;
+  font-weight: 800;
+  color: var(--gold);
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] .toast__action {
+  color: #7a4e2d;
+}
 @media (prefers-reduced-motion: reduce) {
   .toast {
     animation: none;
@@ -4808,14 +4924,21 @@ html.staff-ui[data-theme="dark"] body {
     z-index: 60;
     width: min(290px, 84vw);
     transform: translateX(100%);
-    transition: transform 0.25s ease;
-    box-shadow: -10px 0 30px rgb(0 0 0 / 25%);
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
   }
   [dir="ltr"] .staff-side {
     transform: translateX(-100%);
   }
+  /* The shadow falls on the page (left in Arabic, right in English), and only
+     while the menu is open, or it shows at the screen's edge. */
   .staff-shell.is-open .staff-side {
     transform: none;
+    box-shadow: -10px 0 30px rgb(0 0 0 / 25%);
+  }
+  [dir="ltr"] .staff-shell.is-open .staff-side {
+    box-shadow: 10px 0 30px rgb(0 0 0 / 25%);
   }
   .staff-scrim {
     display: block;
@@ -4965,7 +5088,7 @@ html.staff-ui[data-theme="dark"] .ticket-card {
 }
 /* Only the dimming fades in, so the growing card stays solid. */
 .motion .sheet-backdrop:has(.product-sheet--zoom) {
-  animation: hollow-dim 300ms ease-out both;
+  animation: hollow-dim 300ms ease-out backwards;
 }
 @keyframes hollow-dim {
   from {

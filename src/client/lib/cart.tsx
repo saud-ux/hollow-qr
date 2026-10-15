@@ -23,6 +23,8 @@ interface CartState {
   /** Moves a line to another option, merging with an existing line for it. */
   setOption: (menuItemId: string, from: string | null, to: string) => void;
   remove: (menuItemId: string, optionId?: string | null) => void;
+  /** Puts a removed line back where it was (Undo), or adds to it if it was added again meanwhile. */
+  restore: (line: CartLine, index: number) => void;
   clear: () => void;
 }
 
@@ -97,6 +99,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
             .map((l) => (l === target ? { ...l, quantity: Math.min(l.quantity + moving.quantity, MAX_LINE_QUANTITY) } : l));
         }),
       remove: (id, optionId = null) => setLines((prev) => prev.filter((l) => !same(l, id, optionId))),
+      restore: (line, index) =>
+        setLines((prev) => {
+          const again = prev.find((l) => same(l, line.menuItemId, line.optionId));
+          if (again) return prev.map((l) => (l === again ? { ...l, quantity: Math.min(l.quantity + line.quantity, MAX_LINE_QUANTITY) } : l));
+          if (prev.length >= MAX_ORDER_LINES) return prev;
+          const at = Math.min(Math.max(index, 0), prev.length);
+          return [...prev.slice(0, at), line, ...prev.slice(at)];
+        }),
       clear: () => setLines([]),
     };
   }, [lines, setQuantity]);
