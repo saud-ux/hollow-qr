@@ -18,6 +18,7 @@ import { CarIcon, CardIcon, CashIcon, ItemImage, PhonePayIcon, QtyStepper, Scoot
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { enablePush, successFeedback } from "../../lib/native";
 import { CALM, motionOn, play } from "../../lib/motion";
+import { OriginSwitch } from "../../components/OriginSwitch";
 import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
 import { SwipeToDelete } from "../../components/SwipeToDelete";
@@ -26,7 +27,7 @@ import { useCart, type CartLine } from "../../lib/cart";
 import { newIdempotencyKey } from "../../lib/hooks";
 import { riyals, useMenu } from "../../lib/menu";
 import { withNext } from "../../lib/next";
-import { fulfillmentLabel, itemName, optionLabel, optionName } from "../../lib/menuText";
+import { fulfillmentLabel, itemName, optionLabel } from "../../lib/menuText";
 import { closedNote } from "./hours";
 import { MAX_PLACES } from "../../../shared/types";
 import { AccountIcon } from "../../components/AccountIcons";
@@ -312,23 +313,7 @@ export function CartPage() {
                         <SalePrice item={item} quantity={line.quantity} rolling />
                       </span>
                     </div>
-                    {item.options.length > 0 && (
-                      <div className="cart-origins" role="radiogroup" aria-label={optionLabel(item)}>
-                        {item.options.map((o) => (
-                          <button
-                            key={o.id}
-                            type="button"
-                            role="radio"
-                            aria-checked={line.optionId === o.id}
-                            className={`cart-origin ${line.optionId === o.id ? "is-on" : ""}`}
-                            disabled={!o.isAvailable}
-                            onClick={() => cart.setOption(item.id, line.optionId, o.id)}
-                          >
-                            {optionName(o)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                    {item.options.length > 0 && <OriginSwitch item={item} value={line.optionId} onChange={(to) => cart.setOption(item.id, line.optionId, to)} />}
                     {problem === "soldout" && <span className="badge badge--danger">{tr("نفد، احذفه من السلة", "Sold out, remove it from your cart")}</span>}
                     {problem === "choose" && <span className="badge badge--warning">{tr(`اختر ${optionLabel(item)}`, `Choose the ${optionLabel(item)}`)}</span>}
                     {problem === "option-out" && <span className="badge badge--danger">{tr("هذا المحصول نفد، اختر غيره", "This origin ran out, choose another")}</span>}
