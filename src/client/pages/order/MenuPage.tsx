@@ -9,6 +9,7 @@ import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
 import { showToast } from "../../components/Toast";
 import { ProductSheet } from "../../components/ProductSheet";
+import { MenuSkeleton } from "../../components/Skeletons";
 import { ItemImage, LoyaltyBand, QtyStepper, ShopLayout } from "../../components/Shop";
 import { apiGet } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -207,21 +208,6 @@ function CategoryChips({ sections }: { sections: Section[] }) {
   );
 }
 
-function MenuSkeleton() {
-  return (
-    <div className="menu-grid" aria-busy="true" aria-label={tr("جارٍ تحميل المنيو", "Loading the menu")}>
-      {Array.from({ length: 4 }, (_, i) => (
-        <div key={i} className="menu-card skeleton-card" aria-hidden="true">
-          <div className="skeleton skeleton--img" />
-          <div className="menu-card__body">
-            <div className="skeleton skeleton--line" />
-            <div className="skeleton skeleton--line skeleton--short" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function MenuCard({ item, canOrder }: { item: MenuItem; canOrder: boolean }) {
   const cart = useCart();

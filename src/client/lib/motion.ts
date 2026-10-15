@@ -393,6 +393,76 @@ export function morphCardSheet(card: Element | null, sheet: HTMLElement | null, 
   });
 }
 
+/**
+ * The product sheet drops away and its dimming clears together. `from` is
+ * where a drag left the sheet: from there it carries on at the finger's pace;
+ * from rest (added to the cart) it speeds up as it goes.
+ */
+export function dropSheet(sheet: HTMLElement | null, from = 0): Promise<void> {
+  if (!sheet || !motionOn()) return Promise.resolve();
+  const t: KeyframeAnimationOptions = from > 0 ? { duration: 260, easing: CALM.easing, fill: "forwards" } : { duration: 320, easing: "cubic-bezier(.4,0,.8,.3)", fill: "forwards" };
+  const runs = [sheet.animate([{ transform: `translateY(${from}px)` }, { transform: "translateY(100%)" }], t)];
+  const backdrop = sheet.parentElement;
+  if (backdrop) runs.push(backdrop.animate([{ backgroundColor: getComputedStyle(backdrop).backgroundColor }, { backgroundColor: "rgb(20 12 8 / 0%)" }], t));
+  return Promise.all(runs.map((r) => r.finished.then(done, done))).then(done);
+}
+
+/**
+ * The sheet's photo opens into the full-screen viewer, and closes back into
+ * it: the viewer's image starts cropped to the photo's box and opens out
+ * while the black fades in behind it.
+ */
+export function zoomPhoto(photo: Element | null, viewer: HTMLElement | null, opening: boolean): Promise<void> {
+  if (!viewer || !motionOn()) return Promise.resolve();
+  const img = viewer.querySelector("img");
+  const t: KeyframeAnimationOptions = { duration: opening ? 460 : 380, easing: GROW.easing, fill: "forwards", direction: opening ? "normal" : "reverse" };
+  const runs = [viewer.animate([{ backgroundColor: "rgb(0 0 0 / 0%)" }, { backgroundColor: "rgb(0 0 0 / 100%)" }], { ...t, duration: opening ? 320 : 300 })];
+  const hint = viewer.querySelector(".photo-viewer__hint");
+  if (hint) runs.push(hint.animate([{ opacity: 0 }, { opacity: 1 }], { ...t, duration: opening ? 300 : 120, delay: opening ? 250 : 0 }));
+  const a = photo?.getBoundingClientRect();
+  const b = img?.getBoundingClientRect();
+  if (img && a?.width && b?.width) {
+    // Scaled so the whole image covers the photo's box, then cut to that box.
+    const k = Math.max(a.width / b.width, a.height / b.height);
+    const dx = a.left + a.width / 2 - (b.left + b.width / 2);
+    const dy = a.top + a.height / 2 - (b.top + b.height / 2);
+    const cutX = Math.max((b.width - a.width / k) / 2, 0);
+    const cutY = Math.max((b.height - a.height / k) / 2, 0);
+    runs.push(
+      img.animate(
+        [
+          { transform: `translate(${dx}px, ${dy}px) scale(${k})`, clipPath: `inset(${cutY}px ${cutX}px)` },
+          { transform: "none", clipPath: "inset(0px 0px)" },
+        ],
+        t,
+      ),
+    );
+  } else if (img) {
+    runs.push(img.animate([{ opacity: 0 }, { opacity: 1 }], { ...t, duration: 260 }));
+  }
+  return Promise.all(runs.map((r) => r.finished.then(done, done))).then(done);
+}
+
+// ---------------------------------------------------------------------------
+// Content arriving: photos that took a moment fade in, and whatever replaces
+// a loading placeholder rises in instead of popping in.
+// ---------------------------------------------------------------------------
+
+/** `shownAt`: when the image was put on the page. Photos that were already cached just show. */
+export function fadeInPhoto(img: HTMLImageElement, shownAt: number): void {
+  if (performance.now() - shownAt < 120) return;
+  void play(img, [{ opacity: 0 }, { opacity: 1 }], { duration: 420, easing: "ease-out" });
+}
+
+/** Rises in the children of `parent` that weren't there `before` (the first few, one after another). */
+export function riseInNew(parent: Element, before: ReadonlySet<Element>): void {
+  if (!parent.isConnected) return;
+  [...parent.children]
+    .filter((el) => !before.has(el))
+    .slice(0, 6)
+    .forEach((el, i) => void play(el, [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 360, easing: CALM.easing, delay: i * 60 }));
+}
+
 // ---------------------------------------------------------------------------
 // My card tilts a few degrees with the phone (or under a finger), with a soft
 // gloss that follows the light. It drifts back to flat when the phone rests.

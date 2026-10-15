@@ -22,7 +22,7 @@ import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
 import { SwipeToDelete } from "../../components/SwipeToDelete";
 import { useAuth } from "../../lib/auth";
-import { useCart } from "../../lib/cart";
+import { useCart, type CartLine } from "../../lib/cart";
 import { newIdempotencyKey } from "../../lib/hooks";
 import { riyals, useMenu } from "../../lib/menu";
 import { withNext } from "../../lib/next";
@@ -32,6 +32,8 @@ import { MAX_PLACES } from "../../../shared/types";
 import { AccountIcon } from "../../components/AccountIcons";
 import { placeAddress, placeIcon, placeName, usePlaces } from "../../lib/places";
 import { tr } from "../../lib/i18n";
+
+const lineKey = (line: CartLine) => `${line.menuItemId}|${line.optionId ?? ""}`;
 
 const PHONE_KEY = "hollow.phone";
 const CAR_KEY = "hollow.car";
@@ -88,6 +90,23 @@ export function CartPage() {
     void play(el, [{ width: `${el.getBoundingClientRect().width}px` }, { width: "58px" }], { duration: 320, easing: CALM.easing, fill: "forwards" });
     void play(el.querySelector("path"), [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 380, easing: "ease-out", delay: 200, fill: "both" });
   }, [placed]);
+  // Deleted with a swipe: the toast above the order button can put the line back.
+  const [returning, setReturning] = useState<{ key: string; side: 1 | -1 } | null>(null);
+  function deleteLine(line: CartLine, item: MenuItem, side: 1 | -1) {
+    const index = cart.lines.indexOf(line);
+    cart.remove(line.menuItemId, line.optionId);
+    showToast(tr(`حُذف ${itemName(item)}`, `Removed ${itemName(item)}`), {
+      action: {
+        label: tr("تراجع", "Undo"),
+        onClick: () => {
+          cart.restore(line, index);
+          setReturning({ key: lineKey(line), side });
+        },
+      },
+      above: submitRef.current,
+    });
+  }
+
   // One key per checkout attempt: a retry after a network error replays it.
   const idempotencyKey = useRef(newIdempotencyKey());
 
@@ -264,10 +283,15 @@ export function CartPage() {
           <ul className="cart-lines">
             {lines.map((entry) => {
               const { line, item } = entry;
-              const key = `${line.menuItemId}|${line.optionId ?? ""}`;
+              const key = lineKey(line);
               const problem = lineProblem(entry);
               return (
-                <SwipeToDelete key={key} className={`cart-line ${problem === "soldout" ? "cart-line--soldout" : ""}`} onDelete={() => cart.remove(item.id, line.optionId)}>
+                <SwipeToDelete
+                  key={key}
+                  className={`cart-line ${problem === "soldout" ? "cart-line--soldout" : ""}`}
+                  onDelete={(side) => deleteLine(line, item, side)}
+                  appear={returning?.key === key ? returning.side : undefined}
+                >
                   <ItemImage item={item} className="cart-line__img" />
                   <div className="cart-line__body">
                     <div className="cart-line__top">

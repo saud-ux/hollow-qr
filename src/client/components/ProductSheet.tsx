@@ -4,7 +4,7 @@ import { isOrderable, MAX_LINE_QUANTITY, priceOf, type MenuItem } from "../../sh
 import { SalePrice } from "./SalePrice";
 import { useCart } from "../lib/cart";
 import { riyals } from "../lib/menu";
-import { flyToCart, morphCardSheet, motionOn } from "../lib/motion";
+import { CALM, dropSheet, flyToCart, morphCardSheet, motionOn, zoomPhoto } from "../lib/motion";
 import { itemDescription, itemName, itemSubName, optionLabel, optionName, optionNote, subNameDir } from "../lib/menuText";
 import { stockLeftText, stockRoom } from "../lib/stock";
 import { ItemImage } from "./Shop";
@@ -25,6 +25,7 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
   const closeRef = useRef<HTMLButtonElement>(null);
   const photoRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
   useSheetDrag(sheetRef, photoRef, onClose);
   // Opened from a menu card: the card itself grows into the sheet, and closing folds it back.
   const [zoomIn] = useState(() => origin !== null && motionOn());
@@ -45,11 +46,33 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
     else onClose();
   };
 
+  // Full screen: the photo opens out of the sheet, and closing puts it back.
+  useLayoutEffect(() => {
+    const photo = photoRef.current?.querySelector<HTMLElement>(".product-sheet__img");
+    if (!zoomed || !photo) return;
+    // Hidden while its copy is on screen, so the photo moves rather than doubles.
+    photo.style.visibility = "hidden";
+    void zoomPhoto(photo, viewerRef.current, true);
+    return () => {
+      photo.style.visibility = "";
+    };
+  }, [zoomed]);
+  const unzooming = useRef(false);
+  const unzoom = () => {
+    if (unzooming.current) return;
+    unzooming.current = true;
+    const photo = photoRef.current?.querySelector(".product-sheet__img") ?? null;
+    void zoomPhoto(photo, viewerRef.current, false).then(() => {
+      unzooming.current = false;
+      setZoomed(false);
+    });
+  };
+
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (zoomed) setZoomed(false);
+      if (zoomed) unzoom();
       else close();
     };
     document.addEventListener("keydown", onKey);
@@ -58,7 +81,7 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
       document.removeEventListener("keydown", onKey);
       document.documentElement.classList.remove("sheet-open");
     };
-    // close() only reads refs and the open-time origin.
+    // close() and unzoom() only read refs and the open-time origin.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose, zoomed]);
 
@@ -72,7 +95,9 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
   function add() {
     flyToCart(photoRef.current?.querySelector(".item-img") ?? null);
     cart.add(item.id, optionId, quantity);
-    onClose();
+    // The photo flies to the cart while the sheet drops away under it.
+    closing.current = true;
+    void dropSheet(sheetRef.current).then(onClose);
   }
 
   // Rendered at the end of <body>: inside the card it would take on the card's
@@ -174,13 +199,14 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
 
       {zoomed && item.imageUrl && (
         <div
+          ref={viewerRef}
           className="photo-viewer"
           role="dialog"
           aria-modal="true"
           aria-label={itemName(item)}
           onClick={(e) => {
             e.stopPropagation();
-            setZoomed(false);
+            unzoom();
           }}
         >
           <img src={item.imageUrl} alt={itemName(item)} className="photo-viewer__img" />
@@ -192,12 +218,17 @@ export function ProductSheet({ item, canOrder, origin = null, onClose }: { item:
   );
 }
 
-/** How far down the sheet must be dragged to close it. */
+/** Dragged this far down, the sheet closes. */
 const DISMISS_PX = 110;
+/** A flick down faster than this (px per ms) closes it too. */
+const FLICK = 0.45;
+/** How dark the backdrop is, in % (as in .sheet-backdrop). */
+const DIM = 45;
 
 /**
  * On touch screens: drag the sheet down from the top to close it; the photo stretches
- * as you pull, and drifts slower than the text as you scroll (parallax).
+ * as you pull, the dimming behind lifts with it, and drifts slower than the text as
+ * you scroll (parallax).
  */
 function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef: React.RefObject<HTMLDivElement | null>, onClose: () => void) {
   const closeRef = useRef(onClose);
@@ -211,6 +242,10 @@ function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef
     const img = () => photoRef.current?.querySelector<HTMLElement>(".product-sheet__img") ?? null;
     let startY: number | null = null;
     let drag = 0;
+    let lastY = 0;
+    let lastT = 0;
+    let velocity = 0;
+    const backdrop = sheet.parentElement;
 
     const onScroll = () => {
       const photo = img();
@@ -219,13 +254,25 @@ function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef
     const onStart = (e: TouchEvent) => {
       startY = sheet.scrollTop <= 0 && e.touches.length === 1 ? e.touches[0]!.clientY : null;
       drag = 0;
+      velocity = 0;
+      lastY = startY ?? 0;
+      lastT = e.timeStamp;
       sheet.style.transition = "none";
+      if (backdrop) backdrop.style.transition = "none";
     };
     const onMove = (e: TouchEvent) => {
       if (startY === null) return;
-      const dy = e.touches[0]!.clientY - startY;
+      const y = e.touches[0]!.clientY;
+      const dy = y - startY;
+      const dt = e.timeStamp - lastT;
+      if (dt > 0) velocity = (y - lastY) / dt;
+      lastY = y;
+      lastT = e.timeStamp;
       if (dy <= 0) {
-        if (drag > 0) sheet.style.transform = "";
+        if (drag > 0) {
+          sheet.style.transform = "";
+          if (backdrop) backdrop.style.backgroundColor = "";
+        }
         drag = 0;
         return;
       }
@@ -233,27 +280,35 @@ function useSheetDrag(sheetRef: React.RefObject<HTMLDivElement | null>, photoRef
       e.preventDefault();
       drag = dy;
       sheet.style.transform = `translateY(${dy}px)`;
+      if (backdrop && motionOn()) backdrop.style.backgroundColor = `rgb(20 12 8 / ${(DIM * Math.max(1 - dy / sheet.offsetHeight, 0)).toFixed(1)}%)`;
       const photo = img();
       if (photo && motionOn()) {
         photo.style.transformOrigin = "50% 100%";
         photo.style.transform = `scale(${1 + Math.min(dy / 500, 0.18)})`;
       }
     };
-    const onEnd = () => {
+    const onEnd = (e: TouchEvent) => {
       if (startY === null) return;
       startY = null;
       const photo = img();
       const smooth = motionOn();
-      sheet.style.transition = smooth ? "transform 280ms cubic-bezier(.2,.8,.2,1)" : "none";
+      const settle = smooth ? `280ms ${CALM.easing}` : "0s";
       if (photo) {
-        photo.style.transition = smooth ? "transform 280ms cubic-bezier(.2,.8,.2,1)" : "none";
+        photo.style.transition = `transform ${settle}`;
         photo.style.transform = "";
       }
-      if (drag >= DISMISS_PX) {
-        sheet.style.transform = "translateY(100%)";
-        if (smooth) window.setTimeout(() => closeRef.current(), 260);
-        else closeRef.current();
-      } else sheet.style.transform = "";
+      // A finger that stopped before letting go isn't a flick.
+      const flick = e.timeStamp - lastT < 80 && velocity > FLICK && drag > 12;
+      if (drag >= DISMISS_PX || flick) {
+        void dropSheet(sheet, drag).then(() => closeRef.current());
+      } else {
+        sheet.style.transition = `transform ${settle}`;
+        sheet.style.transform = "";
+        if (backdrop) {
+          backdrop.style.transition = `background-color ${settle}`;
+          backdrop.style.backgroundColor = "";
+        }
+      }
       drag = 0;
     };
 
