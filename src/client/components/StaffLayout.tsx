@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink } from "react-router";
 import { ROLE_LABELS_AR } from "../../shared/messages";
 import { useAuth } from "../lib/auth";
@@ -111,14 +111,33 @@ const DAILY: NavItem[] = [
   { to: "/staff/stock", label: "المخزون", icon: "stock" },
 ];
 
-const ADMIN: NavItem[] = [
-  { to: "/staff/admin", label: "المبيعات والإحصاءات", icon: "overview", end: true },
-  { to: "/staff/admin/orders", label: "كل الطلبات", icon: "history" },
-  { to: "/staff/admin/menu", label: "المنيو", icon: "menu" },
-  { to: "/staff/admin/discount", label: "الخصم", icon: "discount" },
-  { to: "/staff/admin/settings", label: "أوقات الطلبات والتوصيل", icon: "settings" },
-  { to: "/staff/admin/engage", label: "العروض والتقييمات", icon: "offers" },
-  { to: "/staff/admin/team", label: "الموظفين", icon: "team" },
+/** The admin's pages, in groups of what belongs together. */
+const ADMIN: { title: string; items: NavItem[] }[] = [
+  {
+    title: "المبيعات",
+    items: [
+      { to: "/staff/admin", label: "المبيعات والإحصاءات", icon: "overview", end: true },
+      { to: "/staff/admin/orders", label: "كل الطلبات", icon: "history" },
+    ],
+  },
+  {
+    title: "المنيو والطلبات",
+    items: [
+      { to: "/staff/admin/menu", label: "المنيو", icon: "menu" },
+      { to: "/staff/admin/settings", label: "أوقات الطلبات والتوصيل", icon: "settings" },
+    ],
+  },
+  {
+    title: "العروض والخصومات",
+    items: [
+      { to: "/staff/admin/discount", label: "الخصم", icon: "discount" },
+      { to: "/staff/admin/engage", label: "العروض والتقييمات", icon: "offers" },
+    ],
+  },
+  {
+    title: "الفريق",
+    items: [{ to: "/staff/admin/team", label: "الموظفين", icon: "team" }],
+  },
 ];
 
 /**
@@ -150,12 +169,13 @@ export function StaffLayout({ title, actions, wide, children }: { title?: string
         </Link>
         <nav className="staff-side__nav">
           {DAILY.map(link)}
-          {isAdmin && (
-            <>
-              <p className="staff-side__group">الإدارة</p>
-              {ADMIN.map(link)}
-            </>
-          )}
+          {isAdmin &&
+            ADMIN.map((group) => (
+              <Fragment key={group.title}>
+                <p className="staff-side__group">{group.title}</p>
+                {group.items.map(link)}
+              </Fragment>
+            ))}
         </nav>
         <div className="staff-side__foot">
           {me && (
