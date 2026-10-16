@@ -69,7 +69,7 @@ export function SalesPanel() {
           ))}
         </div>
       </div>
-      <p className="muted small">الطلبات المكتملة فقط، بتوقيت الرياض.</p>
+      <p className="muted small">الطلبات المكتملة فقط.</p>
       {error && <Alert tone="error">{error}</Alert>}
       {!shown && !error && <Spinner />}
       {shown && (

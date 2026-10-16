@@ -24,7 +24,6 @@ import { pushOff, sendToDevices } from "../push/order-notifications";
 
 const EXPORT_PAGE = 1000;
 const BROADCAST_BATCH = 35;
-const BROADCAST_COOLDOWN_MS = 10 * 60 * 1000;
 
 const broadcastSchema = z.object({
   title: z.string().trim().min(1).max(BROADCAST_TITLE_MAX),
@@ -405,11 +404,7 @@ export const adminRoutes = new Hono<HonoEnv>()
   .post("/broadcasts", async (c) => {
     const { title, body } = await parseJsonBody(c, broadcastSchema);
     const repo = repoOf(c);
-    const { now } = c.get("deps");
-    const [last] = await repo.listBroadcasts(1);
-    if (last && now().getTime() - new Date(last.createdAt).getTime() < BROADCAST_COOLDOWN_MS) {
-      throw new ApiError(429, "BROADCAST_TOO_SOON");
-    }
+    // No wait between offers: the dashboard asks before each one is sent.
     const recipients = await repo.offerPushCount();
     if (recipients === 0) throw new ApiError(409, "NO_RECIPIENTS");
     const broadcast = await repo.createBroadcast({ title, body, sentBy: c.get("user").id, recipients });

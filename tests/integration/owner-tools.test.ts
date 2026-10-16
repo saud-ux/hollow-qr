@@ -143,7 +143,7 @@ describe("new-order alerts", () => {
 });
 
 describe("offer broadcasts", () => {
-  it("reach only people who opted in, in batches, with a cooldown", async () => {
+  it("reach only people who opted in, in batches, with no wait between them", async () => {
     const fresh = await createTestDb();
     const local = buildTestApp(fresh);
     const localPush = local.appPush as MockAppPushSender;
@@ -188,8 +188,8 @@ describe("offer broadcasts", () => {
     expect(delivered.map((p) => p.token).sort()).toEqual(optedIn.sort());
     expect(delivered[0]!.message).toMatchObject({ title: "HOLLOW", body: "وافل بيكان بـ 12 ريال اليوم", data: { link: "menu" } });
 
-    const tooSoon = await req("POST", "/api/admin/broadcasts", { title: "HOLLOW", body: "عرض ثاني" }, admin);
-    expect(tooSoon.status).toBe(429);
+    const right = await req("POST", "/api/admin/broadcasts", { title: "HOLLOW", body: "عرض ثاني" }, admin);
+    expect(right.status).toBe(201);
     const customer = (await createAuthUser(fresh, { email: "x@offers.test", name: "X" })).id;
     expect((await req("POST", "/api/admin/broadcasts", { title: "HOLLOW", body: "x" }, customer)).status).toBe(403);
   });
