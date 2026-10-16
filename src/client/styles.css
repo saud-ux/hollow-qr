@@ -3553,6 +3553,21 @@ html.sheet-open {
 .link-btn--danger {
   color: var(--danger);
 }
+/* «حذف الصنف» at the foot of the item editor, asking once more before it deletes. */
+.admin-delete {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--beige);
+}
+.admin-delete p {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.92rem;
+}
 :is(html.themed, html.staff-ui)[data-theme="dark"] :is(.product-sheet__desc, .origin__text small) {
   color: #b3a190;
 }

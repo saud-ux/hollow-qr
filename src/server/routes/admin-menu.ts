@@ -171,6 +171,22 @@ export const adminMenuRoutes = new Hono<HonoEnv>()
     return c.json({ item: toMenuItem(c.get("deps").config, row) });
   })
 
+  // An item never ordered goes for good, with its photo. One with past orders
+  // is kept for them (receipts, the sales report) but leaves the menu and the
+  // dashboard. The others in its section close up.
+  .delete("/menu/:id", async (c) => {
+    const id = parseWith(uuid, c.req.param("id"));
+    const repo = repoOf(c);
+    const item = await repo.getMenuItem(id);
+    if (!item) throw new ApiError(404, "NOT_FOUND");
+    const outcome = await repo.deleteMenuItem(id);
+    if (!outcome) throw new ApiError(404, "NOT_FOUND");
+    if (outcome === "deleted" && item.imagePath) await repo.deleteMenuImage(item.imagePath).catch(() => undefined);
+    if (!item.isArchived) await placeInSection(repo, { ...item, isArchived: true }, null, false);
+    c.get("deps").logger.info("menu.deleted", { itemId: id, kept: outcome === "kept", actor: c.get("user").id });
+    return c.json({ ok: true, kept: outcome === "kept" });
+  })
+
   // Raw image bytes (the dashboard resizes before upload).
   .put("/menu/:id/image", async (c) => {
     const id = parseWith(uuid, c.req.param("id"));

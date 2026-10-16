@@ -13,6 +13,7 @@ import {
 import { Dialog } from "../../components/Dialog";
 import { Alert, Field, Spinner } from "../../components/Field";
 import { ItemImage } from "../../components/Shop";
+import { showToast } from "../../components/Toast";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiDelete, apiGet, apiPost, apiSend, apiUpload, errorText } from "../../lib/api";
 import { riyals } from "../../lib/menu";
@@ -212,6 +213,12 @@ function MenuPanel() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // «حذف الصنف» asks once more before it deletes.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const closeDraft = () => {
+    setDraft(null);
+    setConfirmingDelete(false);
+  };
   const [uploading, setUploading] = useState<string | null>(null);
 
   const load = useCallback(
@@ -324,9 +331,27 @@ function MenuPanel() {
       else await apiPost<{ item: MenuItem }>("/api/admin/menu", body);
       // Positions around the item may have moved, so reload the whole list.
       await load();
-      setDraft(null);
+      closeDraft();
     } catch (err) {
       setDraftError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteDraft() {
+    if (!draft?.id) return;
+    setBusy(true);
+    setDraftError(null);
+    try {
+      await apiDelete<{ ok: true; kept: boolean }>(`/api/admin/menu/${draft.id}`);
+      showToast(`انحذف «${draft.nameAr}»`);
+      // The others in its section moved up, so reload the whole list.
+      await load();
+      closeDraft();
+    } catch (err) {
+      setDraftError(errorText(err));
+      setConfirmingDelete(false);
     } finally {
       setBusy(false);
     }
@@ -408,7 +433,7 @@ function MenuPanel() {
         </details>
       )}
 
-      <Dialog open={draft !== null} title={draft?.id ? "تعديل صنف" : "صنف جديد"} onClose={() => setDraft(null)}>
+      <Dialog open={draft !== null} title={draft?.id ? "تعديل صنف" : "صنف جديد"} onClose={closeDraft}>
         {draft && (
           <form className="form" onSubmit={saveDraft} noValidate>
             <Field label="الاسم بالعربي" value={draft.nameAr} onChange={(e) => setDraft({ ...draft, nameAr: e.target.value })} maxLength={60} />
@@ -546,10 +571,33 @@ function MenuPanel() {
               <button type="submit" className="btn btn--primary" disabled={busy}>
                 {busy ? "جارٍ الحفظ…" : "حفظ"}
               </button>
-              <button type="button" className="btn btn--ghost" onClick={() => setDraft(null)}>
+              <button type="button" className="btn btn--ghost" onClick={closeDraft}>
                 إلغاء
               </button>
             </div>
+            {draft.id && (
+              <div className="admin-delete">
+                {confirmingDelete ? (
+                  <>
+                    <p>
+                      تحذف «{draft.nameAr}»؟ يختفي من المنيو ومن هذه الصفحة، ولا يرجع. الطلبات السابقة وتقرير المبيعات يبقون مثل ما هم.
+                    </p>
+                    <div className="dialog__actions">
+                      <button type="button" className="btn btn--danger" disabled={busy} onClick={() => void deleteDraft()}>
+                        {busy ? "جارٍ الحذف…" : "احذف نهائيًا"}
+                      </button>
+                      <button type="button" className="btn btn--ghost" onClick={() => setConfirmingDelete(false)}>
+                        تراجع
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button type="button" className="link-btn link-btn--danger" onClick={() => setConfirmingDelete(true)}>
+                    حذف الصنف
+                  </button>
+                )}
+              </div>
+            )}
           </form>
         )}
       </Dialog>
