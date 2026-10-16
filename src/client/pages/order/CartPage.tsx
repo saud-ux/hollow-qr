@@ -504,7 +504,7 @@ export function CartPage() {
 
         <section className="sheet" aria-labelledby="payment">
           <h2 id="payment" className="pass-label">
-            {tr("طريقة الدفع", "How you'll pay")}
+            {tr("طرق الدفع", "Ways to pay")}
           </h2>
           <div className="choice-grid" role="radiogroup" aria-labelledby="payment">
             {payMethods.map((m) => {

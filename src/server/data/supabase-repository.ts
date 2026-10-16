@@ -229,7 +229,7 @@ export class SupabaseRepository implements Repository {
   }
 
   async listMenuItems(includeArchived: boolean): Promise<MenuItemRow[]> {
-    let query = this.db.from("menu_items").select(MENU_SELECT);
+    let query = this.db.from("menu_items").select(MENU_SELECT).is("deleted_at", null);
     if (!includeArchived) query = query.eq("is_archived", false);
     const { data, error } = (await query
       .order("category", { ascending: true })
@@ -261,6 +261,20 @@ export class SupabaseRepository implements Repository {
       .maybeSingle()) as DbResult;
     if (error) throw new RepositoryError("updateMenuItem", error);
     return data ? mapMenuItem(data as Raw) : null;
+  }
+
+  async deleteMenuItem(id: string): Promise<"deleted" | "kept" | null> {
+    const gone = (await this.db.from("menu_items").delete().eq("id", id).select("id")) as DbResult;
+    if (!gone.error) return (gone.data as Raw[] | null)?.length ? "deleted" : null;
+    // Past orders point at it (restrict_violation, or foreign_key_violation): keep it for them, out of sight.
+    if (gone.error.code !== "23001" && gone.error.code !== "23503") throw new RepositoryError("deleteMenuItem", gone.error);
+    const kept = (await this.db
+      .from("menu_items")
+      .update({ deleted_at: new Date().toISOString(), is_archived: true })
+      .eq("id", id)
+      .select("id")) as DbResult;
+    if (kept.error) throw new RepositoryError("deleteMenuItem", kept.error);
+    return (kept.data as Raw[] | null)?.length ? "kept" : null;
   }
 
   async uploadMenuImage(path: string, bytes: Uint8Array, contentType: string): Promise<void> {

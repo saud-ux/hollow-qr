@@ -288,6 +288,12 @@ export interface Repository {
   getMenuItem(id: string): Promise<MenuItemRow | null>;
   createMenuItem(input: MenuItemInput): Promise<MenuItemRow>;
   updateMenuItem(id: string, patch: Partial<MenuItemInput> & { imagePath?: string | null; stockQuantity?: number | null }): Promise<MenuItemRow | null>;
+  /**
+   * Deletes a menu item: for good when it was never ordered ("deleted"); one
+   * past orders point at is kept for them, marked deleted and archived
+   * ("kept"). Null: no such item. Deleted items leave every menu list.
+   */
+  deleteMenuItem(id: string): Promise<"deleted" | "kept" | null>;
   /** Stores an image in the public menu bucket. */
   uploadMenuImage(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
   deleteMenuImage(path: string): Promise<void>;

@@ -62,6 +62,9 @@ function assignments(cols: Raw, jsonCols: string[] = []): { sql: string; values:
   };
 }
 
+/** Past orders point at the row: restrict_violation (on delete restrict) or foreign_key_violation. */
+const FOREIGN_KEY_BLOCKS = new Set(["23001", "23503"]);
+
 export class PgliteRepository implements Repository {
   /** Stand-in for the Storage bucket: path -> content type. */
   readonly images = new Map<string, string>();
@@ -155,7 +158,7 @@ export class PgliteRepository implements Repository {
 
   async listMenuItems(includeArchived: boolean) {
     const res = await this.db.query<Raw>(
-      `select * from public.menu_items where $1 or not is_archived order by category, sort_order, name_ar`,
+      `select * from public.menu_items where deleted_at is null and ($1 or not is_archived) order by category, sort_order, name_ar`,
       [includeArchived],
     );
     return res.rows.map(mapMenuItem);
@@ -178,6 +181,15 @@ export class PgliteRepository implements Repository {
     if (!sql) return this.getMenuItem(id);
     const r = await this.one(`update public.menu_items set ${sql} where id = $${values.length + 1} returning *`, [...values, id]);
     return r ? mapMenuItem(r) : null;
+  }
+  async deleteMenuItem(id: string) {
+    try {
+      return (await this.one("delete from public.menu_items where id = $1 returning id", [id])) ? ("deleted" as const) : null;
+    } catch (err) {
+      if (!FOREIGN_KEY_BLOCKS.has((err as { code?: string }).code ?? "")) throw err;
+      const kept = await this.one("update public.menu_items set deleted_at = now(), is_archived = true where id = $1 returning id", [id]);
+      return kept ? ("kept" as const) : null;
+    }
   }
   uploadMenuImage(path: string, _bytes: Uint8Array, contentType: string) {
     this.images.set(path, contentType);
