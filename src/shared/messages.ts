@@ -50,7 +50,6 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   PLACE_KIND_TAKEN: "عندك عنوان محفوظ بهذا النوع. عدّله بدل ما تضيف واحد ثاني",
   NOT_COMPLETED: "تقدر تقيّم الطلب بعد ما تستلمه",
   ALREADY_RATED: "قيّمت هذا الطلب من قبل، شكرًا لك",
-  BROADCAST_TOO_SOON: "أرسلت إشعارًا قبل أقل من 10 دقائق، انتظر شوي قبل الإرسال مرة ثانية",
   NO_RECIPIENTS: "ما فيه أحد مفعّل إشعارات العروض حتى الآن",
   INTERNAL: "حدث خطأ غير متوقع، حاول مرة أخرى",
 };
