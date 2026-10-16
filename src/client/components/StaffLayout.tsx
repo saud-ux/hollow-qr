@@ -103,35 +103,33 @@ interface NavItem {
   label: string;
   icon: StaffIconName;
   end?: boolean;
+  /** Shown to admins only. */
+  admin?: boolean;
 }
 
+/** The day's work, on top: the menu comes before the stock, as it is edited first. */
 const DAILY: NavItem[] = [
   { to: "/staff/orders", label: "الطلبات", icon: "orders" },
   { to: "/staff/customers", label: "العملاء", icon: "customers" },
+  { to: "/staff/admin/menu", label: "المنيو", icon: "menu", admin: true },
   { to: "/staff/stock", label: "المخزون", icon: "stock" },
 ];
 
-/** The admin's pages, in groups of what belongs together. */
+/** The admin's other pages, in groups of what belongs together; the team last. */
 const ADMIN: { title: string; items: NavItem[] }[] = [
-  {
-    title: "المبيعات",
-    items: [
-      { to: "/staff/admin", label: "المبيعات والإحصاءات", icon: "overview", end: true },
-      { to: "/staff/admin/orders", label: "كل الطلبات", icon: "history" },
-    ],
-  },
-  {
-    title: "المنيو والطلبات",
-    items: [
-      { to: "/staff/admin/menu", label: "المنيو", icon: "menu" },
-      { to: "/staff/admin/settings", label: "أوقات الطلبات والتوصيل", icon: "settings" },
-    ],
-  },
   {
     title: "العروض والخصومات",
     items: [
       { to: "/staff/admin/discount", label: "الخصم", icon: "discount" },
       { to: "/staff/admin/engage", label: "العروض والتقييمات", icon: "offers" },
+    ],
+  },
+  {
+    title: "المبيعات والطلبات",
+    items: [
+      { to: "/staff/admin", label: "المبيعات والإحصاءات", icon: "overview", end: true },
+      { to: "/staff/admin/orders", label: "كل الطلبات", icon: "history" },
+      { to: "/staff/admin/settings", label: "أوقات الطلبات والتوصيل", icon: "settings" },
     ],
   },
   {
@@ -168,7 +166,7 @@ export function StaffLayout({ title, actions, wide, children }: { title?: string
           <span dir="ltr">Al Zulfi</span>
         </Link>
         <nav className="staff-side__nav">
-          {DAILY.map(link)}
+          {DAILY.filter((item) => isAdmin || !item.admin).map(link)}
           {isAdmin &&
             ADMIN.map((group) => (
               <Fragment key={group.title}>
