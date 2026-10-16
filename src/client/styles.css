@@ -2625,10 +2625,11 @@ html[lang="ar"] .shop__cups-label {
   background: linear-gradient(to bottom, rgb(244 237 224 / 0%), var(--cream) 40%);
 }
 
-/* Menu section chips, pinned under the header. */
+/* Menu section chips, pinned flush under the header (38px toggle + 20px padding + 1px border),
+   so no strip of the menu shows between the two. */
 .menu-chips {
   position: sticky;
-  top: calc(60px + env(safe-area-inset-top));
+  top: calc(59px + env(safe-area-inset-top));
   z-index: 12;
   display: flex;
   gap: 8px;
