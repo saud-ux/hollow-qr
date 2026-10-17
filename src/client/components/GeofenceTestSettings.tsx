@@ -85,7 +85,6 @@ export function GeofenceTestSettings() {
           onChange={() => void act(() => status.enabled ? Geofence.stop() : Geofence.start())}
         />
       </div>
-      <p className="geofence-card__intro">{tr("ننبّهك إذا صرت قريب من هولو", "A little reminder when you're near HOLLOW")}</p>
       <p className={`geofence-card__state ${active ? "is-active" : ""}`} role="status">
         <span aria-hidden="true" />
         {active ? tr("تنبيهات القرب مفعّلة", "Nearby alerts active")
@@ -125,13 +124,6 @@ export function GeofenceTestSettings() {
       <button type="button" className="geofence-card__settings" disabled={busy} onClick={() => void act(() => Geofence.openSettings())}>
         <GeofenceIcon kind="settings" />{tr("الأذونات والإعدادات", "Permissions & settings")}
       </button>
-      <details className="geofence-card__details">
-        <summary>{tr("تفاصيل الاختبار", "Test details")}</summary>
-        <p>{tr("التجربة اختيارية على هذا الجهاز، ولا نرسل موقعك للخادم. الإشعار التجريبي يعمل حتى لو تنبيهات القرب متوقفة.", "This test is optional and stays on your device. Your location is not sent to the server. Manual notifications also work when nearby alerts are off.")}</p>
-        <p>{tr("تنبيه الموقع عند دخول النطاق فقط، ولا نرسل إشعارًا عند المغادرة. الفاصل يمنع تكرار التنبيهات بسرعة؛ ما يعني إرسال إشعار كل ٣ ثوانٍ وأنت ثابت. دقة وتوقيت التنبيه تعتمد على iOS.", "Location alerts occur on entry only; no notification is sent on exit. The cooldown limits frequent alerts; it does not repeat notifications every 3 seconds while stationary. iOS controls accuracy and timing.")}</p>
-        <p>{tr("للتجربة: اسمح بالموقع أثناء الاستخدام، ثم اختر دائمًا. فعّل الموقع الدقيق واختبر الدخول والخروج والجهاز مقفل. إذا ما ظهر الإشعار، تحقق من التركيز وإعدادات عرض الإشعارات.", "To test: allow While Using, then Always location. Enable Precise Location and cross the boundary with the device locked. If an alert is missing, check Focus and notification presentation settings.")}</p>
-        {status.lastEvent && <p dir="ltr">{status.lastEvent}</p>}
-      </details>
     </section>
   );
 }
