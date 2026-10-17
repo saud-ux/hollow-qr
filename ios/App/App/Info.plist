@@ -74,7 +74,9 @@
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>نستخدم موقعك فقط لتحديد عنوان التوصيل عند طلبك، ولا نتتبعه.</string>
+	<string>نستخدم موقعك لتحديد عنوان التوصيل، وعند تفعيل اختبار القرب لتنبيهك عند دخول نطاق هولو أو مغادرته.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>عند تفعيل اختبار القرب، نستخدم موقعك في الخلفية لتنبيهك عند دخول نطاق هولو أو مغادرته. يمكنك إيقاف الاختبار في أي وقت.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIStatusBarStyle</key>
