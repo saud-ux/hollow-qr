@@ -64,12 +64,16 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
             return
         }
         guard location.authorizationStatus == .authorizedAlways else { return }
-        guard !location.monitoredRegions.contains(where: { $0.identifier == HollowGeofenceConfig.GEOFENCE_IDENTIFIER }) else { return }
+        // Replace the old entry/exit registration after upgrading this build.
+        if let existing = location.monitoredRegions.first(where: { $0.identifier == HollowGeofenceConfig.GEOFENCE_IDENTIFIER }) as? CLCircularRegion {
+            if existing.notifyOnEntry && !existing.notifyOnExit { return }
+            location.stopMonitoring(for: existing)
+        }
         let region = CLCircularRegion(center: HollowGeofenceConfig.coordinate,
                                      radius: HollowGeofenceConfig.GEOFENCE_RADIUS_METERS,
                                      identifier: HollowGeofenceConfig.GEOFENCE_IDENTIFIER)
         region.notifyOnEntry = true
-        region.notifyOnExit = true
+        region.notifyOnExit = false
         location.startMonitoring(for: region)
     }
 
@@ -80,10 +84,6 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         transition(region, event: "entry")
-    }
-
-    func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        transition(region, event: "exit")
     }
 
     private func transition(_ region: CLRegion, event: String) {
@@ -111,7 +111,8 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
         guard HollowGeofenceConfig.GEOFENCE_TEST_MODE else {
             completion("وضع الاختبار غير مفعل في هذه النسخة."); return
         }
-        guard event == "manual" || enabled else { return }
+        // Ignore stale exit callbacks from the previous registration.
+        guard event == "manual" || (event == "entry" && enabled) else { return }
         guard !sending else {
             completion("جارٍ تجهيز إشعار آخر. حاول مجددًا."); return
         }
@@ -123,9 +124,8 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
         }
         sending = true
         let content = UNMutableNotificationContent()
-        content.title = "HOLLOW · اختبار الموقع"
-        content.body = event == "entry" ? "أنت قريب من هولو ☕ مرّنا لقهوة!" :
-            event == "exit" ? "غادرت نطاق هولو — ننتظرك قريبًا ☕" : "إشعار تجريبي من هولو ☕"
+        content.title = "تعديل مزاج💆🏻‍♂️✨"
+        content.body = "بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك."
         content.sound = .default
         content.userInfo = ["kind": "geofence-test", "event": event]
         let request = UNNotificationRequest(identifier: notificationID, content: content,
