@@ -18,7 +18,7 @@ interface GeofencePlugin {
   getStatus(): Promise<GeofenceStatus>;
   start(): Promise<GeofenceStatus>;
   stop(): Promise<GeofenceStatus>;
-  testNotification(): Promise<void>;
+  testNotification(): Promise<{ scheduled: boolean }>;
   openSettings(): Promise<{ opened: boolean }>;
 }
 const Geofence = registerPlugin<GeofencePlugin>("HollowGeofence");
@@ -29,6 +29,7 @@ export function GeofenceTestSettings() {
   const [status, setStatus] = useState<GeofenceStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!available) return;
@@ -47,11 +48,12 @@ export function GeofenceTestSettings() {
   async function act(action: () => Promise<unknown>) {
     setBusy(true);
     setError("");
+    setMessage("");
     try {
       await action();
       setStatus(await Geofence.getStatus());
-    } catch {
-      setError(tr("تعذر تنفيذ اختبار الموقع. تحقق من الأذونات.", "Geofence action failed. Check permissions."));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : tr("تعذر تنفيذ اختبار الموقع. تحقق من الأذونات.", "Geofence action failed. Check permissions."));
     } finally {
       setBusy(false);
     }
@@ -80,9 +82,13 @@ export function GeofenceTestSettings() {
         </button>
         {status.enabled && status.authorization === "whenInUse" && <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={() => void act(() => Geofence.start())}>{tr("السماح دائمًا", "Allow Always")}</button>}
         <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={() => void act(() => Geofence.openSettings())}>{tr("إعدادات HOLLOW", "HOLLOW settings")}</button>
-        <button type="button" className="btn btn--ghost btn--small" disabled={busy || !status.enabled || !status.notificationsAllowed} onClick={() => void act(() => Geofence.testNotification())}>{tr("إشعار تجريبي", "Test notification")}</button>
+        <button type="button" className="btn btn--ghost btn--small" disabled={busy} onClick={() => void act(async () => {
+          const result = await Geofence.testNotification();
+          if (result.scheduled) setMessage(tr("تمت جدولة الإشعار؛ يفترض ظهوره خلال لحظة، حتى والتطبيق مفتوح. إذا لم يظهر، تحقق من التركيز وإعدادات عرض الإشعارات.", "Notification scheduled; it should appear shortly, including while the app is open. If absent, check Focus and notification presentation settings."));
+        })}>{tr("إشعار تجريبي", "Test notification")}</button>
       </div>
-      <p className="muted small">{tr("دقة وتوقيت التنبيه تعتمد على iOS؛ لا يضمن تنبيهًا كل دقيقة. اختبر والجهاز مقفل بعد تجاوز حدود النطاق.", "iOS controls accuracy and timing; minute-by-minute alerts are not guaranteed. Test with the device locked after crossing the boundary.")}</p>
+      <p className="muted small">{tr("الإشعار التجريبي يعمل حتى والاختبار متوقف. تنبيه النطاق عند الدخول أو الخروج فقط، وليس كل ٣ ثوانٍ وأنت ثابت. دقة وتوقيت التنبيه تعتمد على iOS؛ اختبر والجهاز مقفل بعد تجاوز حدود النطاق.", "Manual notifications work even when monitoring is stopped. Region alerts occur on entry/exit, not every 3 seconds while stationary. iOS controls accuracy and timing; Test with the device locked after crossing the boundary.")}</p>
+      {message && <p role="status" className="muted small">{message}</p>}
       {status.lastEvent && <p className="muted small" dir="ltr">{status.lastEvent}</p>}
       {(error || status.error) && <p role="alert" className="muted small">{error || status.error}</p>}
     </section>

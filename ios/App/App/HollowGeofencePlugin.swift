@@ -7,7 +7,7 @@ import UserNotifications
 enum HollowGeofenceConfig {
     static let GEOFENCE_TEST_MODE = true
     static let GEOFENCE_RADIUS_METERS: CLLocationDistance = 75
-    static let GEOFENCE_COOLDOWN_SECONDS: TimeInterval = 60
+    static let GEOFENCE_COOLDOWN_SECONDS: TimeInterval = 3
     static let GEOFENCE_IDENTIFIER = "hollow-zulfi-main"
     static let coordinate = CLLocationCoordinate2D(latitude: 26.303045, longitude: 44.832762)
 }
@@ -102,13 +102,23 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
         lastError = error.localizedDescription
     }
 
-    func testNotification() { notify(event: "manual") }
+    func testNotification(completion: @escaping (String?) -> Void) {
+        // The manual check needs notifications only, not location or monitoring.
+        notify(event: "manual", completion: completion)
+    }
 
-    private func notify(event: String) {
-        guard enabled, HollowGeofenceConfig.GEOFENCE_TEST_MODE, !sending else { return }
+    private func notify(event: String, completion: @escaping (String?) -> Void = { _ in }) {
+        guard HollowGeofenceConfig.GEOFENCE_TEST_MODE else {
+            completion("وضع الاختبار غير مفعل في هذه النسخة."); return
+        }
+        guard event == "manual" || enabled else { return }
+        guard !sending else {
+            completion("جارٍ تجهيز إشعار آخر. حاول مجددًا."); return
+        }
         let now = Date().timeIntervalSince1970
         guard now - defaults.double(forKey: lastKey) >= HollowGeofenceConfig.GEOFENCE_COOLDOWN_SECONDS else {
-            lastError = "Notification skipped: 60-second cooldown."
+            lastError = "انتظر \(Int(HollowGeofenceConfig.GEOFENCE_COOLDOWN_SECONDS)) ثوانٍ بين الإشعارات."
+            completion(lastError)
             return
         }
         sending = true
@@ -126,13 +136,15 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
                 self.sending = false
                 if let error = error {
                     self.lastError = error.localizedDescription
+                    completion(error.localizedDescription)
                 } else {
                     self.defaults.set(now, forKey: self.lastKey)
                     self.lastError = ""
                     // A stop may have happened while the request was being added.
-                    if !self.enabled {
+                    if event != "manual" && !self.enabled {
                         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [self.notificationID])
                     }
+                    completion(nil)
                 }
             }
         }
@@ -164,6 +176,25 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
     }
 }
 
+/// Use Capacitor's local route; leave APNs and the notification-center delegate intact.
+private final class HollowGeofenceNotificationHandler: NSObject, NotificationHandlerProtocol {
+    let previous: NotificationHandlerProtocol?
+    init(previous: NotificationHandlerProtocol?) { self.previous = previous }
+
+    func willPresent(notification: UNNotification) -> UNNotificationPresentationOptions {
+        if notification.request.content.userInfo["kind"] as? String == "geofence-test" {
+            return [.banner, .list, .sound]
+        }
+        return previous?.willPresent(notification: notification) ?? []
+    }
+
+    func didReceive(response: UNNotificationResponse) {
+        if response.notification.request.content.userInfo["kind"] as? String != "geofence-test" {
+            previous?.didReceive(response: response)
+        }
+    }
+}
+
 @objc(HollowGeofencePlugin)
 public class HollowGeofencePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "HollowGeofencePlugin"
@@ -175,6 +206,15 @@ public class HollowGeofencePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "testNotification", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openSettings", returnType: CAPPluginReturnPromise)
     ]
+    private var localHandler: HollowGeofenceNotificationHandler?
+
+    public override func load() {
+        guard let router = bridge?.notificationRouter else { return }
+        let handler = HollowGeofenceNotificationHandler(previous: router.localNotificationHandler)
+        localHandler = handler // Capacitor keeps only a weak reference.
+        router.localNotificationHandler = handler
+    }
+
     @objc func getStatus(_ call: CAPPluginCall) {
         DispatchQueue.main.async { HollowGeofenceManager.shared.status { call.resolve($0) } }
     }
@@ -196,7 +236,20 @@ public class HollowGeofencePlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
     @objc func testNotification(_ call: CAPPluginCall) {
-        DispatchQueue.main.async { HollowGeofenceManager.shared.testNotification(); call.resolve() }
+        // Request permission on this tap even if region monitoring is stopped.
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            DispatchQueue.main.async {
+                if let error = error { call.reject(error.localizedDescription); return }
+                guard granted else {
+                    call.reject("الإشعارات غير مسموحة. فعّلها من إعدادات HOLLOW ← الإشعارات.")
+                    return
+                }
+                HollowGeofenceManager.shared.testNotification { error in
+                    if let error = error { call.reject(error); return }
+                    call.resolve(["scheduled": true])
+                }
+            }
+        }
     }
     @objc func openSettings(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
