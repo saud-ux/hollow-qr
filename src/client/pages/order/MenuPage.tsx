@@ -79,9 +79,30 @@ function FullMenu({
   card: Parameters<typeof LoyaltyBand>[0]["card"];
 }) {
   const [active, setActive] = useState<Section["key"] | null>(null);
-  const [temperature, setTemperature] = useState<DrinkTemperature>("hot");
+  const [temperature, setTemperature] = useState<DrinkTemperature | null>(null);
+  const changeCategory = useCallback((key: Section["key"]) => {
+    setActive(key);
+    if (key !== "drink") setTemperature(null);
+  }, []);
+  useEffect(() => {
+    if (temperature === null) return;
+    let previousY = window.scrollY;
+    function onScroll() {
+      const y = window.scrollY;
+      const drinks = document.getElementById("section-drink");
+      const nav = document.querySelector(".menu-chips--nested");
+      // Reset when scrolling back above the drinks, even if no other section
+      // is in the observer's viewport (e.g. the loyalty card at the top).
+      if (y < previousY && drinks && nav && drinks.getBoundingClientRect().top > nav.getBoundingClientRect().bottom + 16) {
+        setTemperature(null);
+      }
+      previousY = y;
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [temperature]);
   const currentCategory = active ?? sections[0]?.key ?? null;
-  const temperatureLabel = temperature === "hot" ? tr("المشروبات الحارة", "Hot drinks") : tr("المشروبات الباردة", "Cold drinks");
+  const temperatureLabel = temperature === null ? categoryLabel("drink") : temperature === "hot" ? tr("المشروبات الحارة", "Hot drinks") : tr("المشروبات الباردة", "Cold drinks");
   return (
     <>
       <LiveOrder refreshes={refreshes} />
@@ -94,7 +115,7 @@ function FullMenu({
           <span>{closedNote(menu.shop.settings)}</span>
         </div>
       )}
-      {sections.length > 0 && <CategoryChips sections={sections} active={currentCategory} onActiveChange={setActive} temperature={temperature} onTemperatureChange={setTemperature} />}
+      {sections.length > 0 && <CategoryChips sections={sections} active={currentCategory} onActiveChange={changeCategory} temperature={temperature} onTemperatureChange={setTemperature} />}
       {menu &&
         sections.map((section) => (
           <section key={section.key} id={`section-${section.key}`} className={`menu-section${section.key === "drink" && currentCategory === "drink" ? " menu-section--drinks" : ""}`} aria-labelledby={`cat-${section.key}`}>
@@ -102,11 +123,11 @@ function FullMenu({
               {section.key === "drink" ? temperatureLabel : section.title}
             </h2>
             <ul className="menu-grid">
-              {section.items.filter(item => section.key !== "drink" || drinkTemperature(item) === temperature).map((item) => (
+              {section.items.filter(item => section.key !== "drink" || temperature === null || drinkTemperature(item) === temperature).map((item) => (
                 <MenuCard key={item.id} item={item} canOrder={menu.shop.isOpen} />
               ))}
             </ul>
-            {section.key === "drink" && !section.items.some(item => drinkTemperature(item) === temperature) && <p className="empty" role="status">{tr("لا توجد مشروبات في هذا القسم حالياً", "No drinks in this section yet")}</p>}
+            {section.key === "drink" && temperature !== null && !section.items.some(item => drinkTemperature(item) === temperature) && <p className="empty" role="status">{tr("لا توجد مشروبات في هذا القسم حالياً", "No drinks in this section yet")}</p>}
           </section>
         ))}
     </>
@@ -147,7 +168,7 @@ function CategoryChips({ sections, active, onActiveChange, temperature, onTemper
   sections: Section[];
   active: Section["key"] | null;
   onActiveChange: (key: Section["key"]) => void;
-  temperature: DrinkTemperature;
+  temperature: DrinkTemperature | null;
   onTemperatureChange: (value: DrinkTemperature) => void;
 }) {
   const keys = sections.map((s) => s.key).join(",");
