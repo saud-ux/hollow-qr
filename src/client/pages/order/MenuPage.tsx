@@ -19,6 +19,7 @@ import { riyals, useMenu } from "../../lib/menu";
 import { lowStockBadge } from "../../lib/stock";
 import { closedNote } from "./hours";
 import { tr } from "../../lib/i18n";
+import { drinkTemperature, type DrinkTemperature } from "../../../shared/drink-temperature";
 
 const CATEGORIES: MenuCategory[] = ["drink", "dessert"];
 
@@ -77,6 +78,10 @@ function FullMenu({
   refreshes: number;
   card: Parameters<typeof LoyaltyBand>[0]["card"];
 }) {
+  const [active, setActive] = useState<Section["key"] | null>(null);
+  const [temperature, setTemperature] = useState<DrinkTemperature>("hot");
+  const currentCategory = active ?? sections[0]?.key ?? null;
+  const temperatureLabel = temperature === "hot" ? tr("المشروبات الحارة", "Hot drinks") : tr("المشروبات الباردة", "Cold drinks");
   return (
     <>
       <LiveOrder refreshes={refreshes} />
@@ -89,18 +94,19 @@ function FullMenu({
           <span>{closedNote(menu.shop.settings)}</span>
         </div>
       )}
-      {sections.length > 0 && <CategoryChips sections={sections} />}
+      {sections.length > 0 && <CategoryChips sections={sections} active={currentCategory} onActiveChange={setActive} temperature={temperature} onTemperatureChange={setTemperature} />}
       {menu &&
         sections.map((section) => (
-          <section key={section.key} id={`section-${section.key}`} className="menu-section" aria-labelledby={`cat-${section.key}`}>
+          <section key={section.key} id={`section-${section.key}`} className={`menu-section${section.key === "drink" && currentCategory === "drink" ? " menu-section--drinks" : ""}`} aria-labelledby={`cat-${section.key}`}>
             <h2 id={`cat-${section.key}`} className={`menu-section__title ${section.key === "best" ? "menu-section__title--best" : ""}`}>
-              {section.title}
+              {section.key === "drink" ? temperatureLabel : section.title}
             </h2>
             <ul className="menu-grid">
-              {section.items.map((item) => (
+              {section.items.filter(item => section.key !== "drink" || drinkTemperature(item) === temperature).map((item) => (
                 <MenuCard key={item.id} item={item} canOrder={menu.shop.isOpen} />
               ))}
             </ul>
+            {section.key === "drink" && !section.items.some(item => drinkTemperature(item) === temperature) && <p className="empty" role="status">{tr("لا توجد مشروبات في هذا القسم حالياً", "No drinks in this section yet")}</p>}
           </section>
         ))}
     </>
@@ -137,9 +143,14 @@ function LiveOrder({ refreshes }: { refreshes: number }) {
 }
 
 /** Jump between menu sections; the chip of the section in view is highlighted. */
-function CategoryChips({ sections }: { sections: Section[] }) {
+function CategoryChips({ sections, active, onActiveChange, temperature, onTemperatureChange }: {
+  sections: Section[];
+  active: Section["key"] | null;
+  onActiveChange: (key: Section["key"]) => void;
+  temperature: DrinkTemperature;
+  onTemperatureChange: (value: DrinkTemperature) => void;
+}) {
   const keys = sections.map((s) => s.key).join(",");
-  const [active, setActive] = useState<Section["key"] | null>(sections[0]?.key ?? null);
   useEffect(() => {
     const elements = keys
       .split(",")
@@ -148,16 +159,20 @@ function CategoryChips({ sections }: { sections: Section[] }) {
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) setActive(visible.target.id.replace("section-", "") as Section["key"]);
+        if (visible) onActiveChange(visible.target.id.replace("section-", "") as Section["key"]);
       },
       { rootMargin: "-130px 0px -55% 0px" },
     );
     elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [keys]);
-  if (sections.length < 2) return null;
+  }, [keys, onActiveChange]);
+  function jump(key: Section["key"]) {
+    onActiveChange(key);
+    requestAnimationFrame(() => document.getElementById(`section-${key}`)?.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" }));
+  }
   return (
-    <nav className="menu-chips" aria-label={tr("أقسام المنيو", "Menu sections")}>
+    <nav className="menu-chips menu-chips--nested" aria-label={tr("أقسام المنيو", "Menu sections")}>
+      <div className="menu-chips__categories">
       {sections.map((s) => (
         <button
           key={s.key}
@@ -165,13 +180,21 @@ function CategoryChips({ sections }: { sections: Section[] }) {
           className={`menu-chip ${active === s.key ? "is-active" : ""} ${s.key === "best" ? "menu-chip--best" : ""}`}
           aria-current={active === s.key ? "true" : undefined}
           onClick={() => {
-            setActive(s.key);
-            document.getElementById(`section-${s.key}`)?.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" });
+            jump(s.key);
           }}
         >
           {s.title}
         </button>
       ))}
+      </div>
+      {active === "drink" && <div className="drink-temperature" role="group" aria-label={tr("نوع المشروبات", "Drink temperature")}>
+        {(["hot", "cold"] as const).map(value => <button key={value} type="button" className={`drink-temperature__option${temperature === value ? " is-active" : ""}`} aria-pressed={temperature === value} onClick={() => { onTemperatureChange(value); jump("drink"); }}>
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {value === "hot" ? <><path d="M4 10h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-5ZM17 11h2a3 3 0 0 1 0 6h-2M8 7c-3-3 2-3 0-6M13 7c-3-3 2-3 0-6" /></> : <><path d="M5 6h14l-2 15H7L5 6ZM4 6h16M14 6l2-5" /><path d="m8 10 3 1-1 3-3-1 1-3Zm5 5 3-1 1 3-3 1-1-3Z" /></>}
+          </svg>
+          <span>{value === "hot" ? tr("المشروبات الحارة", "Hot drinks") : tr("المشروبات الباردة", "Cold drinks")}</span>
+        </button>)}
+      </div>}
     </nav>
   );
 }
