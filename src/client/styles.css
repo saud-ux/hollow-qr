@@ -766,6 +766,10 @@ select {
 }
 
 .customer-card {
+  /* This is always an espresso loyalty card. Keep its palette local so the
+     page's dark-theme variables cannot turn the background cream. */
+  --espresso: #2b1e16;
+  --paper: #fbf8f2;
   background: var(--espresso);
   color: var(--paper);
   border-radius: 22px;
@@ -797,6 +801,10 @@ select {
   flex-wrap: wrap;
   gap: 6px 16px;
   color: #e9dcc6;
+}
+.customer-card__meta > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .customer-card__count {
   font-size: 2.6rem;
