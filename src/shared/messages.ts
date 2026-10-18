@@ -3,6 +3,15 @@
  * identifiers; only the UI text is Arabic.
  */
 export const ERROR_MESSAGES_AR: Record<string, string> = {
+  PAYMENT_NOT_READY: "الدفع الإلكتروني غير مفعّل حاليًا",
+  COUPON_INVALID: "الكوبون غير صحيح أو غير متاح حاليًا",
+  COUPON_LIMIT: "وصلت للحد المسموح لاستخدام هذا الكوبون",
+  COUPON_MINIMUM: "لم تصل للحد الأدنى المطلوب للكوبون",
+  COUPON_NO_ITEMS: "الكوبون لا يشمل المنتجات المدفوعة في سلتك",
+  NOT_ENOUGH_GIFTS: "عدد أكواب الضيافة المطلوب أكبر من المتاح",
+  GIFT_NEEDS_COFFEE: "أكواب الضيافة لقهوة اليوم والمقطرة فقط، وبحد عددها في السلة",
+  INSUFFICIENT_BALANCE: "الرصيد أو أكواب الضيافة غير كافية",
+
   UNAUTHENTICATED: "يرجى تسجيل الدخول",
   FORBIDDEN: "ليس لديك صلاحية لهذا الإجراء",
   EMAIL_NOT_CONFIRMED: "يرجى تأكيد بريدك الإلكتروني أولًا",
@@ -56,6 +65,15 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
 
 /** English messages for the customer screens (staff screens stay Arabic). */
 export const ERROR_MESSAGES_EN: Record<string, string> = {
+  PAYMENT_NOT_READY: "Online payments are not enabled yet",
+  COUPON_INVALID: "This coupon is invalid or unavailable",
+  COUPON_LIMIT: "You have reached this coupon's usage limit",
+  COUPON_MINIMUM: "The coupon's minimum order has not been reached",
+  COUPON_NO_ITEMS: "This coupon does not cover your payable items",
+  NOT_ENOUGH_GIFTS: "Not enough gift cups",
+  GIFT_NEEDS_COFFEE: "Gift cups cover daily coffee and V60 only",
+  INSUFFICIENT_BALANCE: "Insufficient balance or gift cups",
+
   UNAUTHENTICATED: "Please sign in",
   FORBIDDEN: "You don't have permission to do that",
   EMAIL_NOT_CONFIRMED: "Please confirm your email first",

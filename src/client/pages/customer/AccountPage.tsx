@@ -1,3 +1,4 @@
+import { CustomerBenefits } from "../../components/CustomerBenefits";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { DISPLAY_NAME_MAX_LENGTH, MAX_STAMPS } from "../../../shared/constants";
@@ -185,6 +186,7 @@ export function AccountPage() {
         )}
       </section>
 
+      {signedIn && <CustomerBenefits />}
       {signedIn && (
         <Section title={tr("عام", "General")}>
           {user && user.role !== "customer" && !isNative ? (

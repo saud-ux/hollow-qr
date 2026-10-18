@@ -24,6 +24,8 @@ export interface ExecutionContextLike {
  * set with `wrangler secret put` (or .dev.vars locally) and never committed.
  */
 export interface Bindings {
+  MOYASAR_SECRET_KEY?: string;
+  MOYASAR_TOPUPS_ENABLED?: string;
   // --- vars ---------------------------------------------------------------
   APP_ENV?: string;
   APP_URL?: string;

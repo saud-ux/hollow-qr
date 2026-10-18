@@ -1,3 +1,4 @@
+import { AdminCoupons } from "./AdminCoupons";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { normalizeEmail } from "../../../shared/format";
 import { ROLE_LABELS_AR } from "../../../shared/messages";
@@ -215,6 +216,7 @@ export function AdminEngagePage() {
   return (
     <StaffLayout title="العروض والتقييمات" wide>
       <div className="staff-cols">
+        <AdminCoupons />
         <OffersPanel />
         <RatingsPanel />
       </div>

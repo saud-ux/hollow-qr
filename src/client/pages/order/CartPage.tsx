@@ -1,3 +1,4 @@
+import { useBenefits, useBenefitQuote } from "../../lib/benefits";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import {
@@ -92,6 +93,11 @@ export function CartPage() {
   const [note, setNote] = useState("");
   const [openNotes, setOpenNotes] = useState<Set<string>>(new Set());
   const [useReward, setUseReward] = useState(true);
+  const {account:benefits,error:benefitsError}=useBenefits(!!session);
+  const [couponInput,setCouponInput]=useState("");
+  const [couponCode,setCouponCode]=useState("");
+  const [giftCups,setGiftCups]=useState(0);
+  const [useBalance,setUseBalance]=useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -164,7 +170,14 @@ export function CartPage() {
   // The free drink is the dearest drink, at its discounted price (as the server prices it).
   const discount = rewardApplies ? Math.max(...drinks.map(({ item }) => priceOf(item))) : 0;
   const fee = fulfillment === "delivery" ? (settings?.deliveryFeeHalalas ?? 0) : 0;
-  const total = subtotal + fee - discount;
+  const eligibleGiftQuantity=lines.reduce((n,{line,item})=>n+(benefits?.gift_item_ids.includes(item.id)?line.quantity:0),0);
+  const selectedGifts=Math.min(giftCups,benefits?.gift_cups??0,eligibleGiftQuantity);
+  const needsQuote=!!session && lines.length>0 && !!(couponCode||selectedGifts||useBalance);
+  const {quote,error:quoteError,pending:quotePending}=useBenefitQuote(needsQuote,{
+    items:lines.map(({line})=>({menuItemId:line.menuItemId,quantity:line.quantity,optionId:line.optionId??undefined})),
+    fulfillment,useReward:rewardApplies,couponCode,giftCups:selectedGifts,useBalance,
+  });
+  const total = quote?.due ?? subtotal + fee - discount;
   // A line can't be ordered when the item is off, or its origin is missing or out of stock.
   const lineProblem = ({ line, item }: (typeof lines)[number]): "soldout" | "choose" | "option-out" | "too-many" | null => {
     if (!isOrderable(item)) return "soldout";
@@ -200,6 +213,7 @@ export function CartPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (needsQuote && (!quote || quotePending || quoteError)) {setFormError(quoteError??tr("انتظر تحديث المبلغ","Wait for the price to update"));return;}
     const normalizedPhone = normalizeSaudiPhone(phone);
     const next: Record<string, string | null> = {
       phone: normalizedPhone ? null : tr("اكتب رقم جوال صحيح (مثال: 0512345678)", "Enter a valid mobile number (e.g. 0512345678)"),
@@ -225,6 +239,9 @@ export function CartPage() {
       deliveryLng: fulfillment === "delivery" ? coords?.lng : undefined,
       note: note.trim() || undefined,
       useReward: rewardApplies,
+      couponCode: couponCode || undefined,
+      giftCups: selectedGifts,
+      useBalance,
       idempotencyKey: idempotencyKey.current,
     };
     setBusy(true);
@@ -502,6 +519,18 @@ export function CartPage() {
           </div>
         </section>
 
+        {session && <>
+          <section className="sheet benefits-checkout" aria-label={tr("كود الخصم","Discount code")}>
+            <h2 className="pass-label">{tr("عندك كود خصم؟","Have a discount code?")}</h2>
+            <div className="benefits-row"><input aria-label={tr("أدخل الكود","Enter code")} placeholder={tr("أدخل الكود","Enter code")} maxLength={40} value={couponInput} onChange={e=>setCouponInput(e.target.value)} /><button type="button" className="btn btn--primary" onClick={()=>setCouponCode(couponInput.trim())}>{tr("تطبيق","Apply")}</button></div>
+            {couponCode && <div className="benefits-row"><span>{quote?.coupon_discount ? tr(`تم تطبيق الكود · − ${riyals(quote.coupon_discount)}`,`Applied · − ${riyals(quote.coupon_discount)}`) : couponCode}</span><button type="button" className="btn btn--ghost" onClick={()=>{setCouponCode("");setCouponInput("");}}>{tr("إزالة","Remove")}</button></div>}
+            {(benefits?.gift_cups??0)>0 && <div className="benefits-gift"><label className="field">{tr("لك أكواب ضيافة من هولو","Coffee on HOLLOW")}<small>{tr(`المتاح ${benefits!.gift_cups} كوب · تُطبّق على الأغلى من قهوة اليوم والمقطرة`,`${benefits!.gift_cups} cups available · Covers the most expensive eligible coffee`)}</small><select value={selectedGifts} onChange={e=>setGiftCups(Number(e.target.value))}>{Array.from({length:Math.min(benefits!.gift_cups,eligibleGiftQuantity)+1},(_,n)=><option key={n} value={n}>{n===0?tr("بدون استخدام","Do not use"):tr(`استخدام ${n} كوب مجاني`,`Use ${n} free cups`)}</option>)}</select></label>{eligibleGiftQuantity===0 && <p className="muted">{tr("أضف قهوة اليوم أو القهوة المقطرة لاستخدام هديتك","Add daily coffee or V60 to use your gift")}</p>}</div>}
+          </section>
+          {benefits && <section className="sheet"><label className="benefits-row"><span>{tr("استخدم رصيدي","Use my balance")}<small className="muted"> · {tr("المتاح","Available")} {riyals(benefits.balance_halalas)}</small></span><input type="checkbox" role="switch" checked={useBalance} disabled={benefits.balance_halalas===0} onChange={e=>setUseBalance(e.target.checked)} /></label></section>}
+          {benefitsError && <Alert tone="error">{benefitsError}</Alert>}
+          {quotePending && <p role="status">{tr("جارٍ تحديث المبلغ…","Updating price…")}</p>}
+          {quoteError && <Alert tone="error">{quoteError}</Alert>}
+        </>}
         <section className="sheet" aria-labelledby="payment">
           <h2 id="payment" className="pass-label">
             {tr("طرق الدفع", "Ways to pay")}
@@ -533,12 +562,13 @@ export function CartPage() {
               <span>{riyals(fee)}</span>
             </div>
           )}
-          {discount > 0 && (
+          {!quote && discount > 0 && (
             <div className="summary__row summary__row--reward">
               <span>{tr("المشروب المجاني", "Free drink")}</span>
               <span>− {riyals(discount)}</span>
             </div>
           )}
+          {quote && <>{quote.gift_discount>0 && <div className="summary__row"><span>{tr("أكواب الضيافة","Gift cups")}</span><span>− {riyals(quote.gift_discount)}</span></div>}{quote.reward_discount>0 && <div className="summary__row"><span>{tr("مكافأة الولاء","Loyalty reward")}</span><span>− {riyals(quote.reward_discount)}</span></div>}{quote.coupon_discount>0 && <div className="summary__row"><span>{tr("الكوبون","Coupon")}</span><span>− {riyals(quote.coupon_discount)}</span></div>}{quote.wallet_used>0 && <div className="summary__row"><span>{tr("من رصيدك","From your balance")}</span><span>− {riyals(quote.wallet_used)}</span></div>}</>}
           <div className="summary__row summary__row--total">
             <span>{tr("الإجمالي", "Total")}</span>
             <Rolling text={riyals(total)} />

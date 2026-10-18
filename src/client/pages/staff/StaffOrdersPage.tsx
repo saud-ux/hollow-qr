@@ -391,7 +391,10 @@ function OrderTicket({
         <div>
           <dt>المبلغ</dt>
           <dd>
-            <strong>{riyals(o.totalHalalas)}</strong> · الدفع عند الاستلام
+            <strong>{riyals(o.totalHalalas-(o.walletHalalas??0))}</strong> · المتبقي عند الاستلام
+            {(o.walletHalalas??0)>0 && <span className="badge badge--gold">مدفوع بالرصيد {riyals(o.walletHalalas!)}</span>}
+            {(o.giftCups??0)>0 && <span className="badge badge--gold">ضيافة {o.giftCups} كوب</span>}
+            {(o.couponHalalas??0)>0 && <span className="badge badge--gold">كوبون −{riyals(o.couponHalalas!)}</span>}
             {o.useReward && <span className="badge badge--gold">مشروب مجاني −{riyals(o.discountHalalas)}</span>}
             {o.promoPercent !== null && <span className="badge badge--gold">خصم {o.promoPercent}%</span>}
           </dd>

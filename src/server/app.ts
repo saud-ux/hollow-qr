@@ -6,6 +6,8 @@ import type { AppDeps, HonoEnv } from "./http/context";
 import { ApiError } from "./http/errors";
 import { apiSecurityHeaders, nativeAppCors, sameOriginWrites } from "./http/middleware";
 import { MENU_IMAGE_MAX_BYTES } from "../shared/ordering";
+import { topupRoutes } from "./routes/topups";
+import { benefitRoutes } from "./routes/benefits";
 import { adminRoutes } from "./routes/admin";
 import { adminMenuRoutes } from "./routes/admin-menu";
 import { meRoutes } from "./routes/me";
@@ -43,6 +45,8 @@ export function createApp(deps: AppDeps) {
   app.use("/v1/*", bodyLimit({ maxSize: 64 * 1024, onError: () => { throw new ApiError(413, "PAYLOAD_TOO_LARGE"); } }));
   app.use("/api/*", sameOriginWrites);
 
+  app.route("/api", topupRoutes);
+  app.route("/api", benefitRoutes);
   app.route("/api", publicRoutes);
   app.route("/api", meRoutes);
   app.route("/api", orderRoutes);

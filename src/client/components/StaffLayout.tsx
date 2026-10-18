@@ -121,7 +121,7 @@ const ADMIN: { title: string; items: NavItem[] }[] = [
     title: "العروض والخصومات",
     items: [
       { to: "/staff/admin/discount", label: "الخصم", icon: "discount" },
-      { to: "/staff/admin/engage", label: "العروض والتقييمات", icon: "offers" },
+      { to: "/staff/admin/engage", label: "الكوبونات والعروض والتقييمات", icon: "offers" },
     ],
   },
   {

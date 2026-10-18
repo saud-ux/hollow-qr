@@ -274,7 +274,7 @@ export function OrderPage() {
           )}
           {order.discountHalalas > 0 && (
             <div className="summary__row summary__row--reward">
-              <span>{tr("المشروب المجاني", "Free drink")}</span>
+              <span>{tr("خصم المكافآت والكوبون", "Rewards and coupon discount")}</span>
               <span>− {riyals(order.discountHalalas)}</span>
             </div>
           )}
@@ -282,6 +282,7 @@ export function OrderPage() {
             <span>{tr("الإجمالي", "Total")}</span>
             <span>{riyals(order.totalHalalas)}</span>
           </div>
+          {(order.walletHalalas??0)>0 && <><div className="summary__row"><span>{tr("مدفوع من الرصيد","Paid from balance")}</span><span>{riyals(order.walletHalalas!)}</span></div><div className="summary__row"><span>{tr("المتبقي عند الاستلام","Due on pickup")}</span><strong>{riyals(order.totalHalalas-order.walletHalalas!)}</strong></div></>}
           {order.promoSavingsHalalas > 0 && (
             <p className="summary__saved">
               {tr(`وفّرت ${riyals(order.promoSavingsHalalas)} مع خصم ${order.promoPercent}%`, `You saved ${riyals(order.promoSavingsHalalas)} with ${order.promoPercent}% off`)}

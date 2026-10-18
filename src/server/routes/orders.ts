@@ -138,6 +138,9 @@ export const placeOrderSchema = z
     deliveryLng: z.number().min(-180).max(180).optional(),
     note: optionalText(300),
     useReward: z.boolean().optional().default(false),
+    couponCode: z.string().trim().max(40).optional(),
+    giftCups: z.number().int().min(0).max(40).optional().default(0),
+    useBalance: z.boolean().optional().default(false),
     idempotencyKey: z.uuid(),
   })
   .superRefine((v, ctx) => {
@@ -200,6 +203,9 @@ export const orderRoutes = new Hono<HonoEnv>()
       deliveryLng: body.deliveryLng ?? null,
       note: body.note ?? null,
       useReward: body.useReward,
+      couponCode: body.couponCode,
+      giftCups: body.giftCups,
+      useBalance: body.useBalance,
       idempotencyKey: body.idempotencyKey,
       timeZone: BUSINESS_TIME_ZONE,
     });

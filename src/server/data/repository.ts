@@ -189,6 +189,9 @@ export interface MenuItemRow {
 export type MenuItemInput = Omit<MenuItemRow, "id" | "imagePath" | "stockQuantity">;
 
 export interface PlaceOrderParams {
+  couponCode?: string;
+  giftCups?: number;
+  useBalance?: boolean;
   customerId: string;
   items: { menuItemId: string; quantity: number; note: string | null; optionId: string | null }[];
   fulfillment: FulfillmentType;
@@ -266,6 +269,7 @@ export interface OrderHistoryParams {
 }
 
 export interface Repository {
+  benefits(action: string, actorId: string, payload: Record<string, unknown>): Promise<unknown>;
   getProfile(userId: string): Promise<ProfileRow | null>;
   ensureLoyaltyAccount(userId: string): Promise<void>;
   getAccountByUserId(userId: string): Promise<AccountRow | null>;

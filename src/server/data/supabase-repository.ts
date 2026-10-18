@@ -98,6 +98,10 @@ export class SupabaseRepository implements Repository {
     return data;
   }
 
+  async benefits(action: string, actorId: string, payload: Record<string, unknown>): Promise<unknown> {
+    return this.rpc("benefits", { p_action: action, p_actor: actorId, p_data: payload });
+  }
+
   async getProfile(userId: string): Promise<ProfileRow | null> {
     const { data, error } = (await this.db
       .from("profiles")
@@ -336,6 +340,7 @@ export class SupabaseRepository implements Repository {
   }
 
   async placeOrder(p: PlaceOrderParams): Promise<OrderRpcResult> {
+    if (p.couponCode || p.giftCups || p.useBalance) return await this.benefits("place", p.customerId, p as unknown as Record<string, unknown>) as OrderRpcResult;
     const data = await this.rpc("place_order", {
       p_customer_id: p.customerId,
       p_items: p.items.map((i) => ({ menu_item_id: i.menuItemId, quantity: i.quantity, note: i.note, option_id: i.optionId })),

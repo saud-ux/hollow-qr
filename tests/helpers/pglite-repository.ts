@@ -70,6 +70,11 @@ export class PgliteRepository implements Repository {
   readonly images = new Map<string, string>();
 
   constructor(private readonly db: PGlite) {}
+  async benefits(action: string, actorId: string, payload: Record<string, unknown>): Promise<unknown> {
+    const r = await this.db.query<{ r: unknown }>("select public.benefits($1, $2::uuid, $3::jsonb) as r", [action, actorId, JSON.stringify(payload)]);
+    return r.rows[0]!.r;
+  }
+
 
   private async one(sql: string, params: unknown[]): Promise<Raw | undefined> {
     const res = await this.db.query<Raw>(sql, params);
@@ -228,6 +233,7 @@ export class PgliteRepository implements Repository {
     return Boolean(r!.open);
   }
   async placeOrder(p: PlaceOrderParams): Promise<OrderRpcResult> {
+    if (p.couponCode || p.giftCups || p.useBalance) return await this.benefits("place", p.customerId, p as unknown as Record<string, unknown>) as OrderRpcResult;
     const r = await this.one(
       "select public.place_order($1, $2::jsonb, $3::public.fulfillment_type, $4, $5, $6, $7, $8, $9, $10, $11, $12) as r",
       [

@@ -1,3 +1,4 @@
+import { CustomerBenefitsPanel } from "./CustomerBenefitsPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { MAX_STAMPS } from "../../../shared/constants";
@@ -238,6 +239,7 @@ export function CustomerPage() {
         {customer.rewardAvailable && !cancelled && <div className="status-banner status-banner--reward">لك مشروب مجاني</div>}
       </section>
 
+      {!cancelled && <CustomerBenefitsPanel accountId={id} isAdmin={isAdmin} />}
       {actionError && <Alert tone="error">{actionError}</Alert>}
 
       {!cancelled && (

@@ -152,6 +152,11 @@ export interface Order {
   deliveryFeeHalalas: number;
   discountHalalas: number;
   totalHalalas: number;
+  /** Amount already taken from in-app credit, not a discount. */
+  walletHalalas?: number;
+  giftCups?: number;
+  giftHalalas?: number;
+  couponHalalas?: number;
   paymentMethod: "on_pickup";
   useReward: boolean;
   status: OrderStatus;
@@ -285,6 +290,9 @@ export const BROADCAST_TITLE_MAX = 40;
 export const BROADCAST_BODY_MAX = 180;
 
 export interface PlaceOrderRequest {
+  couponCode?: string;
+  giftCups?: number;
+  useBalance?: boolean;
   items: { menuItemId: string; quantity: number; note?: string; optionId?: string }[];
   fulfillment: FulfillmentType;
   phone: string;
