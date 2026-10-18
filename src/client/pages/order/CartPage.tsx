@@ -1,5 +1,5 @@
 import { CheckoutBenefits } from "../../components/CheckoutBenefits";
-import { useBenefits, useBenefitQuote } from "../../lib/benefits";
+import { benefitCall, useBenefits, useBenefitQuote } from "../../lib/benefits";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import {
@@ -97,6 +97,11 @@ export function CartPage() {
   const {account:benefits,error:benefitsError}=useBenefits(!!session);
   const [couponInput,setCouponInput]=useState("");
   const [couponCode,setCouponCode]=useState("");
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const couponRequest = useRef(0);
+  const couponRequestBusy = useRef(false);
+  useEffect(() => () => { couponRequest.current += 1; }, []);
   const [giftCups,setGiftCups]=useState(0);
   const [useBalance,setUseBalance]=useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
@@ -178,6 +183,33 @@ export function CartPage() {
     items:lines.map(({line})=>({menuItemId:line.menuItemId,quantity:line.quantity,optionId:line.optionId??undefined})),
     fulfillment,useReward:rewardApplies,couponCode,giftCups:selectedGifts,useBalance,
   });
+  async function applyCoupon() {
+    const code = couponInput.trim();
+    if (!code || couponRequestBusy.current) return;
+    const request = ++couponRequest.current;
+    couponRequestBusy.current = true;
+    setCouponChecking(true);
+    setCouponError(null);
+    try {
+      const checked = await benefitCall<{ ok: boolean; coupon_id?: string | null }>("quote", {
+        items: lines.map(({line}) => ({menuItemId: line.menuItemId, quantity: line.quantity, optionId: line.optionId ?? undefined})),
+        fulfillment, useReward: rewardApplies, couponCode: code, giftCups: selectedGifts, useBalance,
+      });
+      if (request !== couponRequest.current) return;
+      if (!checked.ok || !checked.coupon_id) {
+        setCouponError(tr("الكوبون غير صحيح أو غير متاح حالياً", "This coupon is invalid or unavailable"));
+        return;
+      }
+      setCouponCode(code);
+    } catch (e) {
+      if (request === couponRequest.current) setCouponError(errorText(e));
+    } finally {
+      if (request === couponRequest.current) {
+        couponRequestBusy.current = false;
+        setCouponChecking(false);
+      }
+    }
+  }
   const total = quote?.due ?? subtotal + fee - discount;
   // A line can't be ordered when the item is off, or its origin is missing or out of stock.
   const lineProblem = ({ line, item }: (typeof lines)[number]): "soldout" | "choose" | "option-out" | "too-many" | null => {
@@ -214,6 +246,7 @@ export function CartPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (couponRequestBusy.current) return;
     if (needsQuote && (!quote || quotePending || quoteError)) {setFormError(quoteError??tr("انتظر تحديث المبلغ","Wait for the price to update"));return;}
     const normalizedPhone = normalizeSaudiPhone(phone);
     const next: Record<string, string | null> = {
@@ -527,11 +560,13 @@ export function CartPage() {
             giftLimit={Math.min(benefits?.gift_cups ?? 0, eligibleGiftQuantity)}
             onGiftsChange={setGiftCups}
             couponInput={couponInput}
-            onCouponInputChange={setCouponInput}
+            onCouponInputChange={value => { setCouponInput(value); setCouponError(null); }}
+            couponChecking={couponChecking}
+            couponError={couponError}
             couponCode={couponCode}
             couponDiscount={quote?.coupon_discount ?? 0}
-            onApplyCoupon={() => setCouponCode(couponInput.trim())}
-            onRemoveCoupon={() => { setCouponCode(""); setCouponInput(""); }}
+            onApplyCoupon={() => void applyCoupon()}
+            onRemoveCoupon={() => { setCouponCode(""); setCouponInput(""); setCouponError(null); }}
             useBalance={useBalance}
             onBalanceChange={setUseBalance}
           />
@@ -596,7 +631,7 @@ export function CartPage() {
               ref={submitRef}
               type="submit"
               className={`btn btn--primary btn--block btn--lg ${placed ? "btn--placed" : ""}`}
-              disabled={busy || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
+              disabled={busy || couponChecking || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
               aria-label={placed ? tr("تم إرسال الطلب", "Order placed") : undefined}
             >
               {placed ? (

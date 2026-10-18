@@ -6490,3 +6490,10 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .drink-temperature__option:focus-visible { outline: 2px solid var(--label); outline-offset: 2px; }
 .menu-section--drinks { scroll-margin-top: calc(176px + env(safe-area-inset-top)); }
 @media (max-width: 360px) { .drink-temperature__option { font-size: .75rem; gap: 4px; } .menu-chips__categories .menu-chip { padding-inline: 12px; } }
+
+.dialog__heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.dialog__heading .dialog__title { margin: 0; }
+.dialog__close { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border: 1px solid var(--sand); border-radius: 50%; background: transparent; color: var(--espresso); font: inherit; font-size: 28px; cursor: pointer; }
+.dialog__close:focus-visible { outline: 2px solid var(--label); outline-offset: 2px; }
+.dialog { max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; }
+.checkout-coupon [id="checkout-coupon-error"] { margin-top: 12px; }

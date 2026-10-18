@@ -3,6 +3,7 @@ import type { BenefitAccount } from "../../shared/benefits";
 import { tr } from "../lib/i18n";
 import { riyals } from "../lib/menu";
 import { Dialog } from "./Dialog";
+import { Alert } from "./Field";
 
 function BenefitIcon({ kind }: { kind: "cup" | "wallet" | "tag" }) {
   return (
@@ -21,6 +22,8 @@ type Props = {
   onCouponInputChange: (code: string) => void;
   couponCode: string;
   couponDiscount: number;
+  couponChecking: boolean;
+  couponError: string | null;
   onApplyCoupon: () => void;
   onRemoveCoupon: () => void;
   useBalance: boolean;
@@ -57,9 +60,10 @@ export function CheckoutBenefits(props: Props) {
       <details className="sheet checkout-coupon">
         <summary><BenefitIcon kind="tag" /><span>{tr("عندك كود خصم؟", "Have a discount code?")}</span><span className="checkout-coupon__chevron" aria-hidden="true">⌄</span></summary>
         <div className="coupon-entry field">
-          <input type="text" aria-label={tr("أدخل الكود", "Enter code")} placeholder={tr("أدخل الكود", "Enter code")} autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={40} value={props.couponInput} onChange={e => props.onCouponInputChange(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (props.couponInput.trim()) props.onApplyCoupon(); } }} />
-          <button type="button" className="btn btn--primary" disabled={!props.couponInput.trim()} onClick={props.onApplyCoupon}>{tr("تطبيق", "Apply")}</button>
+          <input type="text" disabled={props.couponChecking} aria-invalid={!!props.couponError} aria-describedby={props.couponError ? "checkout-coupon-error" : undefined} aria-label={tr("أدخل الكود", "Enter code")} placeholder={tr("أدخل الكود", "Enter code")} autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={40} value={props.couponInput} onChange={e => props.onCouponInputChange(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (props.couponInput.trim()) props.onApplyCoupon(); } }} />
+          <button type="button" className="btn btn--primary" disabled={props.couponChecking || !props.couponInput.trim()} onClick={props.onApplyCoupon}>{props.couponChecking ? tr("جارٍ التحقق…", "Checking…") : tr("تطبيق", "Apply")}</button>
         </div>
+        {props.couponError && <div id="checkout-coupon-error"><Alert tone="error">{props.couponError}</Alert></div>}
         {props.couponCode && <div className="benefits-row checkout-coupon__result"><span>{props.couponDiscount > 0 ? tr(`تم تطبيق الكود · − ${riyals(props.couponDiscount)}`, `Applied · − ${riyals(props.couponDiscount)}`) : props.couponCode}</span><button type="button" className="btn btn--ghost" onClick={props.onRemoveCoupon}>{tr("إزالة", "Remove")}</button></div>}
       </details>
       <Dialog open={giftOpen} title={tr("اختر عدد أكواب الضيافة", "Choose your gift cups")} onClose={() => setGiftOpen(false)} actions={<button type="button" className="btn btn--primary" autoFocus onClick={() => setGiftOpen(false)}>{tr("تم", "Done")}</button>}>

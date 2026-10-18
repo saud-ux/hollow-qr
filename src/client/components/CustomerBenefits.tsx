@@ -147,6 +147,7 @@ export function CustomerBenefits() {
       </Dialog>
       <Dialog
         open={topup}
+        dismissible
         title={tr("إضافة رصيد", "Add balance")}
         onClose={() => setTopup(false)}
       >
@@ -175,17 +176,7 @@ export function CustomerBenefits() {
             onChange={(e) => setAmount(e.target.value)}
           />
         </label>
-        <p className="muted">
-          {ready
-            ? tr(
-                "تُضاف القيمة بعد تأكيد الدفع عبر ميسر.",
-                "Balance is added after Moyasar confirms payment.",
-              )
-            : tr(
-                "شحن الرصيد عبر ميسر سيتاح بعد تفعيل الدفع الإلكتروني.",
-                "Top-ups through Moyasar will be available once online payments are activated.",
-              )}
-        </p>
+        {ready && <p className="muted">{tr("تُضاف القيمة بعد تأكيد الدفع عبر ميسر.", "Balance is added after Moyasar confirms payment.")}</p>}
         {payError && <Alert tone="error">{payError}</Alert>}
         <button
           className="btn btn--primary"
