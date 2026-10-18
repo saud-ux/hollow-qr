@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hollow-rewards-staging",
+  "main": "src/server/index.ts",
+  "compatibility_date": "2026-09-25",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*",
+      "/v1/*"
+    ]
+  },
+  "vars": {
+    "APP_ENV": "production",
+    "APP_URL": "https://hollow-rewards-staging.hollowzulfi.workers.dev",
+    "SUPABASE_URL": "https://vmssjxiccoflnekvcdfr.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_TQ4vCjKXvf-i6wCatdkzaA_zfvtcSil",
+    "REQUIRE_EMAIL_CONFIRMATION": "false",
+    "TURNSTILE_ENABLED": "false",
+    "TURNSTILE_SITE_KEY": "",
+    "APPLE_WALLET_MODE": "mock",
+    "DUPLICATE_WINDOW_SECONDS": "60"
+  },
+  "triggers": {
+    "crons": []
+  }
+}
