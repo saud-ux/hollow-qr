@@ -6391,7 +6391,6 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 /* Customer credit/coupons inherit the existing light and dark theme tokens. */
 .benefits-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .benefits-row>input:not([type=checkbox]){flex:1;min-width:140px}
-.benefits-row input[type=checkbox]{width:44px;height:24px;accent-color:var(--gold)}
 .benefits-gift{border:1px solid var(--label);border-radius:var(--radius);padding:14px;margin-top:14px}
 .benefits-gift h2{font-size:1rem;margin:0}.benefits-gift p{font-size:.85rem;margin:6px 0}
 .benefits-presets{display:flex;flex-wrap:wrap;gap:8px;margin-block:12px}
@@ -6400,3 +6399,34 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .benefits-history{list-style:none;padding:0;max-height:60vh;overflow:auto}
 .benefits-history li{display:flex;flex-direction:column;padding:12px 0;border-bottom:1px solid var(--beige)}
 .benefits-history small{opacity:.7}.benefits-account h2{margin:4px 0}
+
+/* Use the same form controls as the rest of checkout. 16px avoids iOS focus zoom;
+   leave the viewport scalable for accessibility. minmax(0,1fr) contains long codes. */
+.coupon-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+}
+.coupon-entry input {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+  line-height: 1.5;
+  text-align: start;
+  scroll-margin-block: 100px;
+}
+.coupon-entry .btn {
+  min-width: 76px;
+  min-height: 52px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.benefits-row > .switch {
+  flex-shrink: 0;
+}
