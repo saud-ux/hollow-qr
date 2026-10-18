@@ -1,3 +1,4 @@
+import { CheckoutBenefits } from "../../components/CheckoutBenefits";
 import { useBenefits, useBenefitQuote } from "../../lib/benefits";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
@@ -520,13 +521,20 @@ export function CartPage() {
         </section>
 
         {session && <>
-          <section className="sheet benefits-checkout" aria-label={tr("كود الخصم","Discount code")}>
-            <h2 className="pass-label">{tr("عندك كود خصم؟","Have a discount code?")}</h2>
-            <div className="coupon-entry field"><input type="text" aria-label={tr("أدخل الكود","Enter code")} placeholder={tr("أدخل الكود","Enter code")} autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={40} value={couponInput} onChange={e=>setCouponInput(e.target.value)} /><button type="button" className="btn btn--primary" disabled={!couponInput.trim()} onClick={()=>setCouponCode(couponInput.trim())}>{tr("تطبيق","Apply")}</button></div>
-            {couponCode && <div className="benefits-row"><span>{quote?.coupon_discount ? tr(`تم تطبيق الكود · − ${riyals(quote.coupon_discount)}`,`Applied · − ${riyals(quote.coupon_discount)}`) : couponCode}</span><button type="button" className="btn btn--ghost" onClick={()=>{setCouponCode("");setCouponInput("");}}>{tr("إزالة","Remove")}</button></div>}
-            {(benefits?.gift_cups??0)>0 && <div className="benefits-gift"><label className="field">{tr("لك أكواب ضيافة من هولو","Coffee on HOLLOW")}<small>{tr(`المتاح ${benefits!.gift_cups} كوب · تُطبّق على الأغلى من قهوة اليوم والمقطرة`,`${benefits!.gift_cups} cups available · Covers the most expensive eligible coffee`)}</small><select value={selectedGifts} onChange={e=>setGiftCups(Number(e.target.value))}>{Array.from({length:Math.min(benefits!.gift_cups,eligibleGiftQuantity)+1},(_,n)=><option key={n} value={n}>{n===0?tr("بدون استخدام","Do not use"):tr(`استخدام ${n} كوب مجاني`,`Use ${n} free cups`)}</option>)}</select></label>{eligibleGiftQuantity===0 && <p className="muted">{tr("أضف قهوة اليوم أو القهوة المقطرة لاستخدام هديتك","Add daily coffee or V60 to use your gift")}</p>}</div>}
-          </section>
-          {benefits && <section className="sheet"><label className="benefits-row"><span>{tr("استخدم رصيدي","Use my balance")}<small className="muted"> · {tr("المتاح","Available")} {riyals(benefits.balance_halalas)}</small></span><input className="switch" type="checkbox" role="switch" checked={useBalance} disabled={benefits.balance_halalas===0} onChange={e=>setUseBalance(e.target.checked)} /></label></section>}
+          <CheckoutBenefits
+            account={benefits}
+            selectedGifts={selectedGifts}
+            giftLimit={Math.min(benefits?.gift_cups ?? 0, eligibleGiftQuantity)}
+            onGiftsChange={setGiftCups}
+            couponInput={couponInput}
+            onCouponInputChange={setCouponInput}
+            couponCode={couponCode}
+            couponDiscount={quote?.coupon_discount ?? 0}
+            onApplyCoupon={() => setCouponCode(couponInput.trim())}
+            onRemoveCoupon={() => { setCouponCode(""); setCouponInput(""); }}
+            useBalance={useBalance}
+            onBalanceChange={setUseBalance}
+          />
           {benefitsError && <Alert tone="error">{benefitsError}</Alert>}
           {quotePending && <p role="status">{tr("جارٍ تحديث المبلغ…","Updating price…")}</p>}
           {quoteError && <Alert tone="error">{quoteError}</Alert>}

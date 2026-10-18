@@ -6430,3 +6430,33 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .benefits-row > .switch {
   flex-shrink: 0;
 }
+
+/* Checkout benefits: a coffee ticket, wallet card, and discreet coupon entry. */
+.checkout-perk__icon { width: 28px; height: 28px; flex: 0 0 28px; color: var(--label); }
+.checkout-gift { position: relative; border-color: var(--label); padding: 20px; gap: 16px; overflow: hidden; }
+.checkout-gift::before { content: ""; position: absolute; inset: 6px; border: 1px dotted var(--label); border-radius: 11px; opacity: .45; pointer-events: none; }
+.checkout-gift__heading { display: flex; align-items: center; gap: 14px; color: var(--label); }
+.checkout-gift__heading .checkout-perk__icon { width: 44px; height: 44px; flex-basis: 44px; }
+.checkout-gift h2 { margin: 0; font-size: 1.25rem; }
+.checkout-gift p { margin: 0; font-size: .875rem; }
+.checkout-gift__selection { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px dashed var(--label); padding-top: 14px; }
+.checkout-gift__selection strong { display: block; font-size: .95rem; }
+.checkout-gift__selection small { display: block; color: var(--label); margin-top: 4px; font-size: .8rem; }
+.checkout-gift__selection .btn { min-height: 44px; padding: 8px 16px; border-color: var(--label); border-radius: 10px; flex-shrink: 0; }
+.checkout-perk__row { display: flex; align-items: center; gap: 14px; min-width: 0; cursor: pointer; }
+.checkout-perk__copy { display: grid; flex: 1; min-width: 0; gap: 2px; }
+.checkout-perk__copy strong { font-size: 1.3rem; line-height: 1.4; }
+.checkout-perk__copy small { font-size: .8rem; color: var(--label); }
+.checkout-perk__row .switch { flex-shrink: 0; }
+.checkout-coupon { display: block; }
+.checkout-coupon summary { display: flex; align-items: center; gap: 12px; cursor: pointer; list-style: none; min-height: 44px; color: var(--label); font-weight: 700; }
+.checkout-coupon summary::-webkit-details-marker { display: none; }
+.checkout-coupon__chevron { margin-inline-start: auto; transition: transform .18s ease; font-size: 24px; }
+.checkout-coupon[open] .checkout-coupon__chevron { transform: rotate(180deg); }
+.checkout-coupon .coupon-entry { margin: 14px 0 0; }
+.checkout-coupon .coupon-entry input { border-width: 1px; }
+.checkout-coupon__result { margin-top: 10px; font-size: .875rem; }
+.gift-quantity { display: flex; align-items: center; justify-content: center; gap: 24px; margin-block: 22px; }
+.gift-quantity .btn { min-width: 52px; min-height: 52px; font-size: 24px; padding: 4px; }
+.gift-quantity output { font-size: 2rem; font-weight: 700; min-width: 2ch; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .checkout-coupon__chevron { transition: none; } }
