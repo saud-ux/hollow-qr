@@ -1,0 +1,58 @@
+name: Deploy HOLLOW staging only
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_target:
+        description: Type hollow-rewards-staging
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: hollow-staging-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.event.inputs.confirm_target == 'hollow-rewards-staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build isolated staging configuration
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const c=JSON.parse(fs.readFileSync('wrangler.staging.json','utf8'));
+          if(c.name!=='hollow-rewards-staging'||c.vars.APP_URL!=='https://hollow-rewards-staging.hollowzulfi.workers.dev'||c.vars.SUPABASE_URL!=='https://vmssjxiccoflnekvcdfr.supabase.co') throw new Error('Wrong staging target');
+          if(c.triggers?.crons?.length||c.mtls_certificates?.length||c.routes?.length) throw new Error('Unexpected production binding');
+          fs.copyFileSync('wrangler.staging.json','wrangler.jsonc');
+          JS
+          pnpm build
+      - name: Validate built target and deploy staging only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then echo 'Missing Cloudflare deployment token'; exit 1; fi
+          if [ -n "${ACCOUNT_ID:-}" ]; then export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT_ID"; fi
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
+          const paths=walk('dist').filter(p=>p.endsWith('/wrangler.json'));
+          const configs=paths.filter(p=>JSON.parse(fs.readFileSync(p,'utf8')).name==='hollow-rewards-staging');
+          if(configs.length!==1) throw new Error('Expected exactly one staging build');
+          const c=JSON.parse(fs.readFileSync(configs[0],'utf8'));
+          if(c.vars?.SUPABASE_URL!=='https://vmssjxiccoflnekvcdfr.supabase.co'||c.vars?.APP_URL!=='https://hollow-rewards-staging.hollowzulfi.workers.dev') throw new Error('Built target mismatch');
+          fs.writeFileSync('staging-built-config.txt',configs[0]);
+          JS
+          STAGING_CONFIG_PATH="$(cat staging-built-config.txt)"
+          pnpm exec wrangler deploy --config "$STAGING_CONFIG_PATH" --name hollow-rewards-staging --keep-vars
