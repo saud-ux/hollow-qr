@@ -6460,3 +6460,21 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .gift-quantity .btn { min-width: 52px; min-height: 52px; font-size: 24px; padding: 4px; }
 .gift-quantity output { font-size: 2rem; font-weight: 700; min-width: 2ch; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .checkout-coupon__chevron { transition: none; } }
+
+/* Payment choices: full-width rows with visible radio controls. */
+.payment-list { display: grid; gap: 10px; }
+.payment-option { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 76px; padding: 14px; border: 1px solid var(--sand); border-radius: 12px; background: transparent; color: var(--espresso); cursor: pointer; }
+.payment-option__icon { display: flex; flex: 0 0 28px; align-items: center; justify-content: center; }
+.payment-option__icon svg { width: 28px; height: 28px; }
+.payment-option__copy { display: grid; gap: 2px; flex: 1; min-width: 0; font-weight: 700; font-size: 1rem; }
+.payment-option__copy > span { text-align: start; }
+.payment-option__copy small { font-size: .8rem; font-weight: 400; color: var(--label); }
+.payment-option__badge { flex-shrink: 0; padding: 2px 8px; border: 1px solid var(--sand); border-radius: 6px; color: var(--label); font-size: .75rem; white-space: nowrap; }
+.payment-option__radio { appearance: none; -webkit-appearance: none; width: 24px; height: 24px; flex: 0 0 24px; margin: 0; padding: 0; border: 1.5px solid var(--sand); border-radius: 50%; background: transparent; display: grid; place-content: center; cursor: inherit; }
+.payment-option__radio::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--label); transform: scale(0); }
+.payment-option__radio:checked { border-color: var(--label); }
+.payment-option__radio:checked::before { transform: scale(1); }
+.payment-option--selected { border-color: var(--label); box-shadow: inset 0 0 0 1px var(--label); background: var(--cream); }
+.payment-option--disabled { cursor: not-allowed; color: var(--brown); }
+.payment-option--disabled .payment-option__icon { opacity: .55; }
+.payment-option:has(input:focus-visible) { outline: 3px solid var(--label); outline-offset: 3px; }

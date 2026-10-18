@@ -543,16 +543,20 @@ export function CartPage() {
           <h2 id="payment" className="pass-label">
             {tr("طرق الدفع", "Ways to pay")}
           </h2>
-          <div className="choice-grid" role="radiogroup" aria-labelledby="payment">
-            {payMethods.map((m) => {
+          <div className="payment-list" role="radiogroup" aria-labelledby="payment">
+            {(["on_pickup", ...payMethods.filter(m => m !== "on_pickup")] as PaymentMethod[]).map((m) => {
               const Icon = PAYMENT_ICONS[m];
               const off = !paymentReady(m);
+              const selected = payment === m && !off;
               return (
-                <label key={m} className={`choice ${payment === m && !off ? "choice--on" : ""} ${off ? "choice--off" : ""}`}>
-                  <input type="radio" name="payment" value={m} checked={payment === m && !off} disabled={off} onChange={() => setPayment(m)} />
-                  <Icon />
-                  <span dir={m === "applepay" || m === "samsungpay" ? "ltr" : undefined}>{paymentLabel(m, fulfillment)}</span>
-                  <small>{paymentNote(m)}</small>
+                <label key={m} className={`payment-option${selected ? " payment-option--selected" : ""}${off ? " payment-option--disabled" : ""}`}>
+                  <span className="payment-option__icon"><Icon /></span>
+                  <span className="payment-option__copy">
+                    <span dir={m === "applepay" || m === "samsungpay" ? "ltr" : undefined}>{paymentLabel(m, fulfillment)}</span>
+                    {!off && <small>{paymentNote(m)}</small>}
+                  </span>
+                  {off && <span className="payment-option__badge">{tr("قريبًا", "Soon")}</span>}
+                  <input className="payment-option__radio" type="radio" name="payment" value={m} aria-label={paymentLabel(m, fulfillment)} checked={selected} disabled={off} onChange={() => setPayment(m)} />
                 </label>
               );
             })}
