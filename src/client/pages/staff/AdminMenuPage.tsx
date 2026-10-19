@@ -14,7 +14,7 @@ import { Dialog } from "../../components/Dialog";
 import { Alert, Field, Spinner } from "../../components/Field";
 import { ItemImage } from "../../components/Shop";
 import { showToast } from "../../components/Toast";
-import { StaffLayout } from "../../components/StaffLayout";
+import { StaffIcon, StaffLayout } from "../../components/StaffLayout";
 import { apiDelete, apiGet, apiPost, apiSend, apiUpload, errorText } from "../../lib/api";
 import { riyals } from "../../lib/menu";
 
@@ -60,15 +60,21 @@ export function AdminSettingsPage() {
 function SettingsPanel() {
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [storedPaused, setStoredPaused] = useState(false);
   const [fee, setFee] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [expandedDay, setExpandedDay] = useState<number | null>(0);
+  const [copyDay, setCopyDay] = useState(0);
+  const [saved, setSaved] = useState("");
 
   const apply = useCallback((r: { settings: ShopSettings; isOpen: boolean }) => {
     setSettings(r.settings);
     setIsOpen(r.isOpen);
+    setStoredPaused(r.settings.orderingPaused);
     setFee(sar(r.settings.deliveryFeeHalalas));
+    setSaved(JSON.stringify({ settings: r.settings, fee: sar(r.settings.deliveryFeeHalalas) }));
   }, []);
 
   useEffect(() => {
@@ -84,7 +90,13 @@ function SettingsPanel() {
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!settings) return;
+    if (!settings || busy) return;
+    const invalidDay = settings.weeklyHours.findIndex((d) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(d.open) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(d.close));
+    if (invalidDay !== -1) {
+      setExpandedDay(invalidDay);
+      setError(`حدّد وقت الفتح والإغلاق ليوم ${WEEKDAY_LABELS_AR[invalidDay]}`);
+      return;
+    }
     const feeH = toHalalas(fee);
     if (feeH === null) {
       setError("اكتب رسوم التوصيل بالأرقام");
@@ -110,48 +122,95 @@ function SettingsPanel() {
     }
   }
 
-  return (
-    <section className="panel">
-      <h2>إعدادات الطلبات</h2>
-      <p className={`shop-state ${isOpen ? "shop-state--open" : ""}`}>
-        <span className="shop-state__dot" aria-hidden="true" />
-        {isOpen ? "التطبيق يستقبل الطلبات الآن" : settings.orderingPaused ? "الطلبات متوقفة" : "خارج أوقات الدوام"}
-      </p>
-      <form className="form" onSubmit={save} noValidate>
-        <div className="toggles">
-          <Toggle label="إيقاف الطلبات مؤقتًا" checked={settings.orderingPaused} onChange={(v) => setSettings({ ...settings, orderingPaused: v })} />
-          <Toggle label="استلام من الكاشير" checked={settings.pickupEnabled} onChange={(v) => setSettings({ ...settings, pickupEnabled: v })} />
-          <Toggle label="استلام من السيارة" checked={settings.curbsideEnabled} onChange={(v) => setSettings({ ...settings, curbsideEnabled: v })} />
-          <Toggle label="توصيل" checked={settings.deliveryEnabled} onChange={(v) => setSettings({ ...settings, deliveryEnabled: v })} />
-        </div>
-        <div className="form-row">
-          <Field label="رسوم التوصيل (⃁)" inputMode="decimal" dir="ltr" value={fee} onChange={(e) => setFee(e.target.value)} />
-        </div>
+  const dirty = JSON.stringify({ settings, fee }) !== saved;
+  const timeLabel = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value)
+    ? new Intl.DateTimeFormat("ar-SA", { hour: "numeric", minute: "2-digit", timeZone: "UTC" }).format(new Date(`2000-01-01T${value}:00Z`))
+    : "حدّد الوقت";
 
-        <fieldset className="hours">
-          <legend>أوقات استقبال الطلبات</legend>
+  return (
+    <form className="ordering-settings" onSubmit={save} noValidate onChangeCapture={() => setOk(null)}>
+      <section className="panel ordering-status">
+        <div className="ordering-section-title"><span className="ordering-icon"><StaffIcon name="orders" /></span><div><h2>استقبال الطلبات</h2><p>تحكّم في استقبال الطلبات من الموقع والتطبيق</p></div></div>
+        <p className={`shop-state ${isOpen ? "shop-state--open" : ""}`}>
+          <span className="shop-state__dot" aria-hidden="true" />
+          {isOpen ? "نستقبل الطلبات الآن" : storedPaused ? "الطلبات متوقفة مؤقتًا" : "خارج أوقات الدوام"}
+        </p>
+        <label className="ordering-option ordering-option--pause">
+          <span><strong>إيقاف الطلبات مؤقتًا</strong><small>إيقاف الاستقبال حتى تلغي هذا الخيار وتحفظ</small></span>
+          <input className="switch" type="checkbox" role="switch" aria-label="إيقاف الطلبات مؤقتًا" checked={settings.orderingPaused} disabled={busy} onChange={(e) => setSettings({ ...settings, orderingPaused: e.target.checked })} />
+        </label>
+      </section>
+
+      <section className="panel">
+        <div className="ordering-section-title"><span className="ordering-icon"><StaffIcon name="stock" /></span><div><h2>الاستلام والتوصيل</h2><p>فعّل الطرق المتاحة لعملائك</p></div></div>
+        <div className="ordering-methods">
+          {([
+            ["pickupEnabled", "استلام من الكاشير", "العميل يستلم طلبه داخل هولو"],
+            ["curbsideEnabled", "استلام من السيارة", "نوصل الطلب للعميل عند السيارة"],
+            ["deliveryEnabled", "التوصيل", "توصيل الطلب إلى عنوان العميل"],
+          ] as const).map(([key, title, hint]) => (
+            <label className="ordering-option" key={key}>
+              <span><strong>{title}</strong><small>{hint}</small></span>
+              <input className="switch" type="checkbox" role="switch" aria-label={title} checked={settings[key]} disabled={busy} onChange={(e) => setSettings({ ...settings, [key]: e.target.checked })} />
+            </label>
+          ))}
+        </div>
+        <div className="ordering-fee">
+          <Field label="رسوم التوصيل بالريال" inputMode="decimal" dir="ltr" value={fee} disabled={busy} onChange={(e) => setFee(e.target.value)} hint="تُطبّق عند تفعيل التوصيل · اكتب 0 للتوصيل المجاني" />
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="ordering-section-title"><span className="ordering-icon"><StaffIcon name="settings" /></span><div><h2>جدول استقبال الطلبات</h2><p>بتوقيت السعودية · اضغط على اليوم لتعديل أوقاته</p></div></div>
+        <div className="ordering-copy">
+          <label className="field">نسخ وقت يوم للأيام المفتوحة
+            <select value={copyDay} disabled={busy} onChange={(e) => setCopyDay(Number(e.target.value))}>
+              {settings.weeklyHours.map((_, i) => <option key={i} value={i}>{WEEKDAY_LABELS_AR[i]}</option>)}
+            </select>
+          </label>
+          <button type="button" className="btn btn--secondary" disabled={busy || !settings.weeklyHours[copyDay]?.open || !settings.weeklyHours[copyDay]?.close} onClick={() => {
+            const source = settings.weeklyHours[copyDay]!;
+            setSettings({ ...settings, weeklyHours: settings.weeklyHours.map((day) => day.closed ? day : { ...day, open: source.open, close: source.close }) });
+            setOk(null);
+            showToast("تم نسخ الأوقات للأيام المفتوحة. احفظ لتطبيق التغيير.");
+          }}>نسخ الأوقات</button>
+          <small>الأيام المغلقة تبقى مغلقة.</small>
+        </div>
+        <div className="ordering-week">
           {settings.weeklyHours.map((d, i) => (
-            <div key={i} className={`hours__row ${d.closed ? "is-closed" : ""}`}>
-              <span className="hours__day">{WEEKDAY_LABELS_AR[i]}</span>
-              <label className="hours__closed">
-                <input type="checkbox" checked={!d.closed} onChange={(e) => setDay(i, { closed: !e.target.checked })} />
-                مفتوح
-              </label>
-              <span className="hours__times">
-                <input type="time" value={d.open} disabled={d.closed} onChange={(e) => setDay(i, { open: e.target.value })} aria-label={`فتح ${WEEKDAY_LABELS_AR[i]}`} />
-                <span aria-hidden="true">إلى</span>
-                <input type="time" value={d.close} disabled={d.closed} onChange={(e) => setDay(i, { close: e.target.value })} aria-label={`إغلاق ${WEEKDAY_LABELS_AR[i]}`} />
-              </span>
+            <div key={i} className={`ordering-day ${expandedDay === i ? "is-expanded" : ""} ${d.closed ? "is-closed" : ""}`}>
+              <div className="ordering-day__head">
+                <button className="ordering-day__summary" type="button" aria-expanded={expandedDay === i} aria-controls={`day-times-${i}`} onClick={() => setExpandedDay(expandedDay === i ? null : i)}>
+                  <span><strong>{WEEKDAY_LABELS_AR[i]}</strong><small>{d.closed ? "مغلق" : d.open === d.close ? "مفتوح 24 ساعة" : `${timeLabel(d.open)} – ${timeLabel(d.close)}`}</small></span>
+                  <span className="ordering-day__chevron" aria-hidden="true">⌄</span>
+                </button>
+                <input className="switch" type="checkbox" role="switch" aria-label={`فتح ${WEEKDAY_LABELS_AR[i]} للطلبات`} checked={!d.closed} disabled={busy} onChange={(e) => {
+                  setDay(i, { closed: !e.target.checked });
+                  if (e.target.checked) setExpandedDay(i);
+                }} />
+              </div>
+              <div id={`day-times-${i}`} hidden={expandedDay !== i} className="ordering-day__details">
+                {d.closed ? <p className="muted">الطلبات مغلقة هذا اليوم. فعّل اليوم لتحديد الوقت.</p> : <>
+                  <div className="ordering-time-grid">
+                    <Field label="من" type="time" dir="ltr" value={d.open} disabled={busy} onChange={(e) => setDay(i, { open: e.target.value })} aria-label={`وقت فتح ${WEEKDAY_LABELS_AR[i]}`} />
+                    <Field label="إلى" type="time" dir="ltr" value={d.close} disabled={busy} onChange={(e) => setDay(i, { close: e.target.value })} aria-label={`وقت إغلاق ${WEEKDAY_LABELS_AR[i]}`} />
+                  </div>
+                  {d.open && d.close && <p className="ordering-day__note">{d.open === d.close ? "نفس وقت الفتح والإغلاق يعني استقبال الطلبات 24 ساعة." : d.close < d.open ? "وقت الإغلاق في اليوم التالي." : "الفتح والإغلاق في نفس اليوم."}</p>}
+                </>}
+              </div>
             </div>
           ))}
-        </fieldset>
+        </div>
+      </section>
+      <div className="ordering-save">
         {error && <Alert tone="error">{error}</Alert>}
         {ok && <Alert tone="success">{ok}</Alert>}
-        <button type="submit" className="btn btn--primary" disabled={busy}>
-          {busy ? "جارٍ الحفظ…" : "حفظ الإعدادات"}
-        </button>
-      </form>
-    </section>
+        <div className="ordering-save__row">
+          <span aria-live="polite">{dirty ? "عندك تعديلات غير محفوظة" : "الإعدادات محفوظة"}</span>
+          <button type="submit" className="btn btn--primary" disabled={busy || !dirty}>{busy ? "جارٍ الحفظ…" : "حفظ التغييرات"}</button>
+        </div>
+      </div>
+    </form>
   );
 }
 

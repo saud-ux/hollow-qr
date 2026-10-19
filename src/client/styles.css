@@ -6545,3 +6545,47 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
   .admin-section-nav { gap: 4px; }
   .admin-section-nav button { flex-basis: 90px; padding: 10px 6px; font-size: .85rem; }
 }
+
+/* Ordering settings: compact weekly overview with one day's editor at a time. */
+.ordering-settings { display: grid; gap: 16px; padding-bottom: 20px; }
+.ordering-settings .panel { margin: 0; }
+.ordering-section-title { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
+.ordering-section-title h2 { margin: 0 0 4px !important; }
+.ordering-section-title p { margin: 0; color: var(--staff-muted); font-size: .85rem; line-height: 1.6; }
+.ordering-icon { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 14px; background: var(--staff-bg); color: var(--espresso); }
+.ordering-status .shop-state { margin-block: 0 16px; padding: 12px 14px; background: var(--staff-bg); border-radius: 12px; font-size: .95rem; }
+.ordering-option { cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 0; }
+.ordering-option + .ordering-option { border-top: 1px solid var(--staff-line); }
+.ordering-option strong { display: block; font-size: .98rem; }
+.ordering-option small { display: block; margin-top: 5px; font-size: .82rem; color: var(--staff-muted); line-height: 1.6; }
+.ordering-option--pause { padding: 0; }
+.ordering-option .switch, .ordering-day .switch { flex-shrink: 0; }
+.ordering-fee { border-top: 1px solid var(--staff-line); padding-top: 16px; }
+.ordering-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; padding: 14px; background: var(--staff-bg); border-radius: 14px; margin-bottom: 16px; }
+.ordering-copy .field { font-size: .85rem; }
+.ordering-copy select { min-width: 0; }
+.ordering-copy .btn { min-height: 52px; padding-inline: 12px; font-size: .88rem; }
+.ordering-copy > small { grid-column: 1 / -1; color: var(--staff-muted); font-size: .8rem; }
+.ordering-week { display: grid; gap: 10px; }
+.ordering-day { min-width: 0; border: 1px solid var(--staff-line); border-radius: 14px; overflow: hidden; }
+.ordering-day.is-expanded { border-color: var(--label); }
+.ordering-day__head { display: flex; align-items: center; gap: 14px; padding: 14px; }
+.ordering-day__summary { display: flex; flex: 1; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; padding: 0; border: 0; background: transparent; color: var(--espresso); font: inherit; text-align: start; cursor: pointer; }
+.ordering-day__summary strong { display: block; }
+.ordering-day__summary small { display: block; font-size: .82rem; color: var(--staff-muted); margin-top: 5px; line-height: 1.5; }
+.ordering-day__chevron { color: var(--staff-muted); font-size: 1.3rem; }
+.ordering-day.is-expanded .ordering-day__chevron { transform: rotate(180deg); }
+.ordering-day__details { padding: 0 14px 14px; }
+.ordering-day__details > p { margin: 0; font-size: .85rem; }
+.ordering-time-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 14px; border-top: 1px solid var(--staff-line); }
+.ordering-time-grid .field { min-width: 0; font-size: .85rem; }
+.ordering-time-grid input { min-width: 0; max-width: 100%; padding-inline: 8px; text-align: center; }
+.ordering-day__details .ordering-day__note { margin-top: 12px; color: var(--staff-muted); font-size: .8rem; line-height: 1.6; }
+.ordering-save { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 20; display: grid; gap: 10px; padding: 14px; background: var(--paper); border: 1px solid var(--staff-line); border-radius: 16px; box-shadow: 0 6px 25px rgb(0 0 0 / 10%); }
+.ordering-save__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.ordering-save__row > span { color: var(--staff-muted); font-size: .85rem; }
+.ordering-save .alert { margin: 0; }
+@media (max-width: 380px) {
+  .ordering-copy { grid-template-columns: minmax(0, 1fr); }
+  .ordering-save__row .btn { width: 100%; }
+}
