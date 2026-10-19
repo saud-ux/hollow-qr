@@ -19,7 +19,7 @@ import { CartSkeleton } from "../../components/Skeletons";
 import { CarIcon, CardIcon, CashIcon, ItemImage, PhonePayIcon, QtyStepper, ScooterIcon, ShopLayout, StoreIcon } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { enablePush, successFeedback } from "../../lib/native";
-import { CALM, motionOn, play, pushSide } from "../../lib/motion";
+import { CALM, motionOn, play } from "../../lib/motion";
 import { OriginSwitch } from "../../components/OriginSwitch";
 import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
@@ -84,32 +84,34 @@ export function CartPage() {
   const checkoutForm = useRef<HTMLFormElement>(null);
   const previousStep = useRef(step);
   const submitting = useRef(false);
+  const [changingStep, setChangingStep] = useState(false);
+  const stepTransition = useRef(false);
+  const stepAnimations = useRef<Animation[]>([]);
+  const checkoutMounted = useRef(true);
+  useEffect(() => {
+    checkoutMounted.current = true;
+    return () => {
+      checkoutMounted.current = false;
+      stepAnimations.current.forEach((animation) => animation.cancel());
+    };
+  }, []);
   useLayoutEffect(() => {
     if (previousStep.current === step) return;
-    const direction = step > previousStep.current ? 1 : -1;
     previousStep.current = step;
     stepHeading.current?.focus({ preventScroll: true });
     stepProgress.current?.scrollIntoView({ block: "start", behavior: motionOn() ? "smooth" : "instant" });
     if (!motionOn()) return;
 
-    // Keep every pane mounted so navigating never clears a customer's choices.
-    // Only animate the visible pane; cancel on fast back/forward navigation.
-    const animations: Animation[] = [];
-    const animate = (element: Element | null | undefined, frames: Keyframe[], delay = 0) => {
+    // The whole step fades together; forms remain mounted to retain every choice.
+    const animations = stepAnimations.current;
+    const fade = (element: Element | null | undefined) => {
       if (typeof element?.animate !== "function") return;
-      animations.push(element.animate(frames, { ...CALM, duration: 380, delay, fill: "backwards" }));
+      animations.push(element.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, easing: "ease-out", fill: "backwards" }));
     };
-    const shift = pushSide() * direction * 22;
-    animate(stepHeading.current, [{ opacity: 0, transform: `translateX(${shift / 2}px)` }, { opacity: 1, transform: "none" }]);
-    const pane = checkoutForm.current?.querySelector(".checkout-pane:not([hidden])");
-    Array.from(pane?.children ?? []).slice(0, 6).forEach((card, index) => {
-      animate(card, [{ opacity: 0, transform: `translate(${shift}px, 8px)` }, { opacity: 1, transform: "none" }], index * 45);
-    });
-    animate(checkoutForm.current?.querySelector(".checkout-step-actions"), [{ opacity: .4, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], 80);
-    animate(stepProgress.current?.querySelector(".is-current > span"), [{ transform: "scale(.88)" }, { transform: "scale(1.08)", offset: .6 }, { transform: "scale(1)" }]);
-    if (direction > 0) {
-      animate(stepProgress.current?.querySelector(`.checkout-progress__step:nth-of-type(${step - 1}) > span`), [{ transform: "scale(.8)" }, { transform: "scale(1)" }]);
-    }
+    fade(stepHeading.current);
+    fade(checkoutForm.current?.querySelector(".checkout-pane:not([hidden])"));
+    const currentDot = stepProgress.current?.querySelector(".is-current > span > i");
+    fade(currentDot);
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const cancel = () => animations.forEach((animation) => animation.cancel());
     const onPreferenceChange = () => { if (preference.matches) cancel(); };
@@ -119,6 +121,37 @@ export function CartPage() {
       preference.removeEventListener("change", onPreferenceChange);
     };
   }, [step]);
+
+  async function goToStep(next: 1 | 2 | 3) {
+    if (next === step || stepTransition.current) return;
+    stepTransition.current = true;
+    setChangingStep(true);
+    stepAnimations.current.forEach((animation) => animation.cancel());
+    stepAnimations.current = [];
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const outgoing: Animation[] = [];
+    const cancel = () => outgoing.forEach((animation) => animation.cancel());
+    const onPreferenceChange = () => { if (preference.matches) cancel(); };
+    preference.addEventListener("change", onPreferenceChange);
+    try {
+      if (motionOn()) {
+        const targets = [stepHeading.current, checkoutForm.current?.querySelector(".checkout-pane:not([hidden])")];
+        for (const element of targets) {
+          if (typeof element?.animate !== "function") continue;
+          const animation = element.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: "ease-in", fill: "forwards" });
+          outgoing.push(animation);
+          stepAnimations.current.push(animation);
+        }
+        await Promise.all(outgoing.map((animation) => animation.finished.catch(() => undefined)));
+      }
+      if (checkoutMounted.current) setStep(next);
+    } finally {
+      cancel();
+      preference.removeEventListener("change", onPreferenceChange);
+      stepTransition.current = false;
+      if (checkoutMounted.current) setChangingStep(false);
+    }
+  }
   const [chosen, setFulfillment] = useState<FulfillmentType>("pickup");
   // Online methods show as «قريبًا» until they're connected; paying on pickup always works.
   const payMethods = usePaymentMethods();
@@ -299,26 +332,26 @@ export function CartPage() {
   }
 
   function advance() {
-    if (busy || placed) return;
+    if (busy || placed || stepTransition.current) return;
     setFormError(null);
     if (step === 1) {
       if (unavailable.length > 0) {
         setFormError(tr("راجع الأصناف والمحاصيل غير المتوفرة", "Review unavailable items and origins"));
         return;
       }
-      setStep(2);
+      void goToStep(2);
     } else if (step === 2) {
       if (options.length === 0 || belowMinimum) {
         setFormError(tr("راجع طريقة الاستلام والحد الأدنى للتوصيل", "Review fulfillment and the delivery minimum"));
         return;
       }
-      if (validateContact()) setStep(3);
+      if (validateContact()) void goToStep(3);
     }
   }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (busy || placed || submitting.current) return;
+    if (busy || placed || submitting.current || stepTransition.current) return;
     if (step !== 3) { advance(); return; }
     if (!session) { setFormError(tr("سجّل الدخول لإكمال الطلب", "Sign in to place your order")); return; }
     if (couponRequestBusy.current) return;
@@ -328,12 +361,12 @@ export function CartPage() {
       return;
     }
     if (unavailable.length > 0) {
-      setStep(1);
+      void goToStep(1);
       setFormError(tr("راجع الأصناف والمحاصيل غير المتوفرة", "Review unavailable items and origins"));
       return;
     }
     const normalizedPhone = validateContact();
-    if (!normalizedPhone) { setStep(2); return; }
+    if (!normalizedPhone) { void goToStep(2); return; }
 
     const body: PlaceOrderRequest = {
       items: lines.map(({ line }) => ({
@@ -411,10 +444,11 @@ export function CartPage() {
   return (
     <ShopLayout>
       <nav ref={stepProgress} className="checkout-progress" aria-label={tr("خطوات الطلب", "Checkout steps")}>
+        <span className="checkout-progress__focus" aria-hidden="true" style={{ insetInlineStart: `calc(${(step - .5) * 100 / 3}% + ${(step - 2) * 10 / 3 - 22}px)` }} />
         <span className="checkout-progress__track" aria-hidden="true"><i style={{ transform: `scaleX(${(step - 1) / 2})` }} /></span>
         {([tr("السلة", "Cart"), tr("الاستلام", "Fulfillment"), tr("التأكيد", "Review")] as const).map((label, i) => (
-          <button key={i} type="button" className={`checkout-progress__step ${step === i + 1 ? "is-current" : step > i + 1 ? "is-complete" : ""}`} aria-current={step === i + 1 ? "step" : undefined} disabled={i + 1 >= step || busy || placed} onClick={() => { setStep((i + 1) as 1 | 2 | 3); setFormError(null); }}>
-            <span>{step > i + 1 ? "✓" : i + 1}</span><strong>{label}</strong>
+          <button key={i} type="button" className={`checkout-progress__step ${step === i + 1 ? "is-current" : step > i + 1 ? "is-complete" : ""}`} aria-current={step === i + 1 ? "step" : undefined} disabled={i + 1 >= step || busy || placed || changingStep} onClick={() => { void goToStep((i + 1) as 1 | 2 | 3); setFormError(null); }}>
+            <span><i>{step > i + 1 ? "✓" : i + 1}</i></span><strong>{label}</strong>
           </button>
         ))}
       </nav>
@@ -634,7 +668,7 @@ export function CartPage() {
 
         <div className="checkout-pane" hidden={step !== 3}>
         <section className="sheet checkout-review" aria-label={tr("مراجعة الأصناف", "Review items")}>
-          <div className="checkout-review__head"><h2 className="pass-label">{tr("طلبك", "Your order")}</h2><button type="button" className="link-btn" disabled={busy} onClick={() => setStep(1)}>{tr("تعديل", "Edit")}</button></div>
+          <div className="checkout-review__head"><h2 className="pass-label">{tr("طلبك", "Your order")}</h2><button type="button" className="link-btn" disabled={busy || changingStep} onClick={() => { void goToStep(1); }}>{tr("تعديل", "Edit")}</button></div>
           <ul className="checkout-review__items">{lines.map(({ line, item }) => {
             const origin = item.options.find((o) => o.id === line.optionId);
             return <li key={lineKey(line)}><ItemImage item={item} /><div><strong>{line.quantity} × {itemName(item)}</strong>{origin && <small>{tr(origin.nameAr, origin.nameEn || origin.nameAr)}</small>}{line.note && <small>{line.note}</small>}</div><span>{riyals(priceOf(item) * line.quantity)}</span></li>;
@@ -643,7 +677,7 @@ export function CartPage() {
           {unavailable.length > 0 && <Alert tone="error">{tr("بعض الأصناف لم تعد متوفرة. عدّل سلتك للمتابعة.", "Some items are no longer available. Edit your cart to continue.")}</Alert>}
         </section>
         <section className="sheet checkout-review" aria-label={tr("مراجعة الاستلام", "Review fulfillment")}>
-          <div className="checkout-review__head"><h2 className="pass-label">{tr("الاستلام والتواصل", "Fulfillment and contact")}</h2><button type="button" className="link-btn" disabled={busy} onClick={() => setStep(2)}>{tr("تغيير", "Change")}</button></div>
+          <div className="checkout-review__head"><h2 className="pass-label">{tr("الاستلام والتواصل", "Fulfillment and contact")}</h2><button type="button" className="link-btn" disabled={busy || changingStep} onClick={() => { void goToStep(2); }}>{tr("تغيير", "Change")}</button></div>
           <dl className="checkout-review__contact">
             <div><dt>{tr("الاستلام", "Fulfillment")}</dt><dd>{fulfillmentLabel(fulfillment)}</dd></div>
             <div><dt>{tr("الجوال", "Mobile")}</dt><dd dir="ltr">{phone}</dd></div>
@@ -748,8 +782,8 @@ export function CartPage() {
         </div>
         {formError && <Alert tone="error">{formError}</Alert>}
         <div className="checkout__submit checkout-step-actions">
-          {step > 1 && <button type="button" className="btn btn--secondary checkout-step-back" disabled={busy || placed} onClick={() => { setStep(step === 3 ? 2 : 1); setFormError(null); }}>{tr("رجوع", "Back")}</button>}
-          {step < 3 ? <button type="button" className="btn btn--primary btn--block btn--lg" disabled={busy || (step === 1 && unavailable.length > 0)} onClick={advance}>
+          {step > 1 && <button type="button" className="btn btn--secondary checkout-step-back" disabled={busy || placed || changingStep} onClick={() => { void goToStep(step === 3 ? 2 : 1); setFormError(null); }}>{tr("رجوع", "Back")}</button>}
+          {step < 3 ? <button type="button" className="btn btn--primary btn--block btn--lg" disabled={busy || changingStep || (step === 1 && unavailable.length > 0)} onClick={advance}>
             {step === 1 ? tr("متابعة للاستلام", "Continue to fulfillment") : tr("متابعة للتأكيد", "Continue to review")}
           </button> : session ? (
           <>
@@ -757,7 +791,7 @@ export function CartPage() {
               ref={submitRef}
               type="submit"
               className={`btn btn--primary btn--block btn--lg ${placed ? "btn--placed" : ""}`}
-              disabled={busy || placed || couponChecking || (needsQuote && (!quote || quotePending || !!quoteError)) || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
+              disabled={busy || placed || changingStep || couponChecking || (needsQuote && (!quote || quotePending || !!quoteError)) || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
               aria-label={placed ? tr("تم إرسال الطلب", "Order placed") : undefined}
             >
               {placed ? (
