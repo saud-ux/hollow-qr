@@ -231,9 +231,8 @@ function captionSvg({ caption, text, W, x0, muted }) {
 
 /**
  * Store-card strip: five cups showing progress (375x144 pt).
- * The gold tent sits in the middle, behind the cups (faint cream on a
- * cancelled card); a full card adds a soft glow and a star on its peak.
- * With `text` (the Wallet pass)
+ * The tent sits in the middle, behind the cups: faint cream, turning gold on
+ * a full card. With `text` (the Wallet pass)
  * the cups are bigger and higher and the progress line is drawn under them;
  * without it (the in-app card, which cuts its cups out of these strips and
  * draws its own text) the cups stay centred.
@@ -258,26 +257,15 @@ function stripSvg({ filled, variant, wordmark, tent, tentBg, tentGold, scale, te
     cups += `<g transform="translate(${x} ${y0}) scale(${cupW / 60} ${cupH / 80})">${cupSvg({ state, wordmark, tent })}</g>`;
   }
   const bg = cancelled ? rgb([60, 56, 52]) : rgb(COLORS.espresso);
-  const tentArt = cancelled ? tentBg : tentGold;
+  const tentArt = reward ? tentGold : tentBg;
   const tentW = 300;
   const tentH = (tentW * tentArt.h) / tentArt.w;
-  const tentY = (H - tentH) / 2;
   // On the Wallet pass the gold tent stays dimmer so the words over it read clearly.
-  const tentOpacity = cancelled ? (text ? 0.08 : 0.07) : text ? 0.32 : 0.55;
-  const glow = reward
-    ? `<radialGradient id="g" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="${rgb(COLORS.gold, 0.22)}"/><stop offset="1" stop-color="${rgb(COLORS.gold, 0)}"/></radialGradient>
-       <rect width="${W}" height="${H}" fill="url(#g)"/>`
-    : "";
-  // The Wallet pass's cups cover the peak, so only the in-app card gets the star.
-  const sparkles = reward && !text
-    ? `<path transform="translate(${W / 2} ${tentY + 2}) scale(0.9)" d="M0 -6 L1.6 -1.6 L6 0 L1.6 1.6 L0 6 L-1.6 1.6 L-6 0 L-1.6 -1.6 Z" fill="${rgb(COLORS.gold)}"/>`
-    : "";
+  const tentOpacity = reward ? (text ? 0.32 : 0.55) : text ? 0.08 : 0.07;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W * scale}" height="${H * scale}" viewBox="0 0 ${W} ${H}">
     <rect width="${W}" height="${H}" fill="${bg}"/>
-    ${glow}
-    <image href="${tentArt.uri}" x="${(W - tentW) / 2}" y="${tentY}" width="${tentW}" height="${tentH}" opacity="${tentOpacity}"/>
+    <image href="${tentArt.uri}" x="${(W - tentW) / 2}" y="${(H - tentH) / 2}" width="${tentW}" height="${tentH}" opacity="${tentOpacity}"/>
     ${cups}
-    ${sparkles}
     ${text ? captionSvg({ caption: stripCaption(filled, variant), text, W, x0, muted: cancelled }) : ""}
   </svg>`;
 }
@@ -355,11 +343,11 @@ async function main() {
   // The in-app card draws its own text, so it gets the same cups without the words.
   for (const [name, buf] of Object.entries(previewStrips)) await writeFile(join(PUBLIC_WALLET, name), buf);
   // The app cuts each cup out of a strip and stamps it in. They come from this
-  // plain strip (five cups, no reward glow) so no glow is cut out with the cup;
+  // plain strip (five cups, no gold tent) so no gold is cut out with the cup;
   // the full reward strip then fades in over them.
   await writeFile(
     join(PUBLIC_WALLET, "strip-5-plain.png"),
-    await png(stripSvg({ filled: 5, variant: "progress", wordmark: cupWordmark, tent: cupTent, tentBg: tentCream, tentGold, scale: 2 })),
+    await png(stripSvg({ filled: 5, variant: "progress", wordmark: cupWordmark, tent: cupTent, tentBg: tentCream, scale: 2 })),
   );
   await writeFile(join(PUBLIC_WALLET, "logo.png"), passImages["logo@2x.png"]);
   await writeFile(join(PUBLIC_WALLET, "icon.png"), passImages["icon@2x.png"]);

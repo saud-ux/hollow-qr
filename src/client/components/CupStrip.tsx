@@ -86,9 +86,8 @@ export function CupStrip({ count, memberId, className }: { count: number; member
           <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__rim" style={{ clipPath: cut(center, 29, 66.5) }} />
         </Fragment>
       ))}
-      {/* Free drink: the full reward strip (gold tent, a star on its peak) over the filled cups. */}
+      {/* Free drink: the full reward strip (its tent gold) over the filled cups. */}
       {cups === MAX_STAMPS && <img src={`/wallet-preview/strip-${MAX_STAMPS}.png`} alt="" className="cup-strip__reward" />}
-      {cups === MAX_STAMPS && <span className="cup-strip__sheen" aria-hidden="true" />}
     </div>
   );
 }

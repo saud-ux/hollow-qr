@@ -293,7 +293,7 @@ export function serveCup(root: Element | null): void {
 // ---------------------------------------------------------------------------
 // Loyalty cups: coffee pours into each cup and rises, then the rim and the
 // printed body fade in over it and it becomes the HOLLOW cup. A full card then
-// gets a gold sheen and a success haptic. (CupStrip draws the stream, the
+// turns its tent gold, with a success haptic. (CupStrip draws the stream, the
 // coffee, the body and the rim.)
 // ---------------------------------------------------------------------------
 
@@ -338,16 +338,11 @@ export function pourCups(root: Element | null, from: number, to: number, celebra
       pour?.classList.remove("is-pouring");
     });
   }
-  // A full card: once the last cup shows, the gold tent fades in and light sweeps across.
+  // A full card: once the last cup shows, the gold tent fades in.
   const reward = root.querySelector(".cup-strip__reward");
   if (reward) {
     const after = 250 + (to - from - 1) * POUR_STEP + POUR_DONE;
     void play(reward, [{ opacity: 0 }, { opacity: 1 }], { duration: 900, easing: CALM.easing, delay: after });
-    void play(root.querySelector(".cup-strip__sheen"), [{ transform: "translateX(120%)" }, { transform: "translateX(-120%)" }], {
-      duration: 1200,
-      easing: "ease-in-out",
-      delay: after + 200,
-    });
     if (celebrate) window.setTimeout(successFeedback, after + 200);
   }
 }

@@ -5532,13 +5532,6 @@ html.staff-ui[data-theme="dark"] .ticket-card {
     background-position-x: 2.6694%;
   }
 }
-.cup-strip__sheen {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 30%, rgb(255 226 140 / 40%) 48%, transparent 66%);
-  transform: translateX(120%);
-}
 /* Opened from a menu card: the card itself grows into the sheet (morphCardSheet). */
 .motion .product-sheet.product-sheet--zoom {
   animation: none;
