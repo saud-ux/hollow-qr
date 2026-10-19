@@ -14,6 +14,7 @@ function BenefitIcon({ kind }: { kind: "cup" | "wallet" | "tag" }) {
 }
 
 type Props = {
+  compact?: boolean;
   account: BenefitAccount | null;
   selectedGifts: number;
   giftLimit: number;
@@ -36,10 +37,10 @@ export function CheckoutBenefits(props: Props) {
   return (
     <>
       {account && account.gift_cups > 0 && (
-        <section className="sheet checkout-gift" aria-label={tr("ضيافتك من هولو", "Coffee on HOLLOW")}>
+        <section className={`sheet checkout-gift ${props.compact ? "checkout-gift--compact" : ""}`} aria-label={tr("ضيافتك من هولو", "Coffee on HOLLOW")}>
           <div className="checkout-gift__heading">
             <BenefitIcon kind="cup" />
-            <div><h2>{tr("القهوة علينا", "Coffee on us")}</h2><p>{tr(`${account.gift_cups} أكواب متاحة`, `${account.gift_cups} cups available`)}</p></div>
+            <div><h2>{props.compact ? tr("أكواب الضيافة", "Gift cups") : tr("القهوة علينا", "Coffee on us")}</h2><p>{props.compact && selectedGifts > 0 ? tr(`استخدام ${selectedGifts} من ${account.gift_cups} أكواب`, `Using ${selectedGifts} of ${account.gift_cups} cups`) : tr(`${account.gift_cups} أكواب متاحة`, `${account.gift_cups} cups available`)}</p></div>
           </div>
           <div className="checkout-gift__selection">
             <div><strong>{selectedGifts > 0 ? tr(`استخدام ${selectedGifts} كوب في هذا الطلب`, `Use ${selectedGifts} cups in this order`) : tr("كم كوب تبي تستخدم؟", "How many cups would you like?")}</strong><small>{tr("قهوة اليوم والمقطرة · حار أو بارد", "Daily coffee and V60 · Hot or iced")}</small></div>
@@ -49,7 +50,7 @@ export function CheckoutBenefits(props: Props) {
         </section>
       )}
       {account && (
-        <section className="sheet checkout-wallet">
+        <section className={`sheet checkout-wallet ${props.compact ? "checkout-wallet--compact" : ""}`}>
           <label className="checkout-perk__row">
             <BenefitIcon kind="wallet" />
             <span className="checkout-perk__copy"><span>{tr("رصيد هولو", "HOLLOW balance")}</span><strong>{riyals(account.balance_halalas)}</strong><small>{account.balance_halalas === 0 ? tr("ما عندك رصيد حالياً", "No balance available yet") : tr("استخدام الرصيد", "Use balance")}</small></span>
@@ -66,7 +67,7 @@ export function CheckoutBenefits(props: Props) {
         {props.couponError && <div id="checkout-coupon-error"><Alert tone="error">{props.couponError}</Alert></div>}
         {props.couponCode && <div className="benefits-row checkout-coupon__result"><span>{props.couponDiscount > 0 ? tr(`تم تطبيق الكود · − ${riyals(props.couponDiscount)}`, `Applied · − ${riyals(props.couponDiscount)}`) : props.couponCode}</span><button type="button" className="btn btn--ghost" onClick={props.onRemoveCoupon}>{tr("إزالة", "Remove")}</button></div>}
       </details>
-      <Dialog open={giftOpen} title={tr("اختر عدد أكواب الضيافة", "Choose your gift cups")} onClose={() => setGiftOpen(false)} actions={<button type="button" className="btn btn--primary" autoFocus onClick={() => setGiftOpen(false)}>{tr("تم", "Done")}</button>}>
+      <Dialog open={giftOpen} dismissible title={tr("اختر عدد أكواب الضيافة", "Choose your gift cups")} onClose={() => setGiftOpen(false)} actions={<button type="button" className="btn btn--primary" autoFocus onClick={() => setGiftOpen(false)}>{tr("تم", "Done")}</button>}>
         <p>{tr(`تقدر تستخدم حتى ${giftLimit} كوب من طلبك الحالي`, `You can use up to ${giftLimit} cups in this order`)}</p>
         <div className="gift-quantity" dir="ltr">
           <button type="button" className="btn btn--secondary" aria-label={tr("تقليل الأكواب", "Fewer cups")} disabled={selectedGifts <= 0} onClick={() => props.onGiftsChange(Math.max(0, selectedGifts - 1))}>−</button>

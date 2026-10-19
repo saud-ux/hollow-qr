@@ -78,6 +78,16 @@ export function CartPage() {
   const cart = useCart();
   const navigate = useNavigate();
   const { menu, error: menuError, reload } = useMenu();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const stepHeading = useRef<HTMLHeadingElement>(null);
+  const previousStep = useRef(step);
+  const submitting = useRef(false);
+  useEffect(() => {
+    if (previousStep.current === step) return;
+    previousStep.current = step;
+    stepHeading.current?.focus({ preventScroll: true });
+    stepHeading.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [step]);
   const [chosen, setFulfillment] = useState<FulfillmentType>("pickup");
   // Online methods show as «قريبًا» until they're connected; paying on pickup always works.
   const payMethods = usePaymentMethods();
@@ -244,10 +254,7 @@ export function CartPage() {
     );
   }
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (couponRequestBusy.current) return;
-    if (needsQuote && (!quote || quotePending || quoteError)) {setFormError(quoteError??tr("انتظر تحديث المبلغ","Wait for the price to update"));return;}
+  function validateContact() {
     const normalizedPhone = normalizeSaudiPhone(phone);
     const next: Record<string, string | null> = {
       phone: normalizedPhone ? null : tr("اكتب رقم جوال صحيح (مثال: 0512345678)", "Enter a valid mobile number (e.g. 0512345678)"),
@@ -256,7 +263,46 @@ export function CartPage() {
     };
     setErrors(next);
     setFormError(null);
-    if (Object.values(next).some(Boolean)) return;
+    return Object.values(next).some(Boolean) ? null : normalizedPhone;
+
+  }
+
+  function advance() {
+    if (busy || placed) return;
+    setFormError(null);
+    if (step === 1) {
+      if (unavailable.length > 0) {
+        setFormError(tr("راجع الأصناف والمحاصيل غير المتوفرة", "Review unavailable items and origins"));
+        return;
+      }
+      setStep(2);
+    } else if (step === 2) {
+      if (options.length === 0 || belowMinimum) {
+        setFormError(tr("راجع طريقة الاستلام والحد الأدنى للتوصيل", "Review fulfillment and the delivery minimum"));
+        return;
+      }
+      if (validateContact()) setStep(3);
+    }
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (busy || placed || submitting.current) return;
+    if (step !== 3) { advance(); return; }
+    if (!session) { setFormError(tr("سجّل الدخول لإكمال الطلب", "Sign in to place your order")); return; }
+    if (couponRequestBusy.current) return;
+    if (needsQuote && (!quote || quotePending || quoteError)) {setFormError(quoteError??tr("انتظر تحديث المبلغ","Wait for the price to update"));return;}
+    if (!menu?.shop.isOpen || options.length === 0 || belowMinimum) {
+      setFormError(tr("الطلب غير متاح حاليًا، راجع طريقة الاستلام", "Ordering is unavailable; review the fulfillment method"));
+      return;
+    }
+    if (unavailable.length > 0) {
+      setStep(1);
+      setFormError(tr("راجع الأصناف والمحاصيل غير المتوفرة", "Review unavailable items and origins"));
+      return;
+    }
+    const normalizedPhone = validateContact();
+    if (!normalizedPhone) { setStep(2); return; }
 
     const body: PlaceOrderRequest = {
       items: lines.map(({ line }) => ({
@@ -266,7 +312,7 @@ export function CartPage() {
         optionId: line.optionId ?? undefined,
       })),
       fulfillment,
-      phone: normalizedPhone!,
+      phone: normalizedPhone,
       carDescription: fulfillment === "curbside" ? car.trim() : undefined,
       deliveryAddress: fulfillment === "delivery" ? address.trim() : undefined,
       deliveryLat: fulfillment === "delivery" ? coords?.lat : undefined,
@@ -278,10 +324,11 @@ export function CartPage() {
       useBalance,
       idempotencyKey: idempotencyKey.current,
     };
+    submitting.current = true;
     setBusy(true);
     try {
       const { order } = await apiPost<{ order: Order }>("/api/orders", body);
-      remember(PHONE_KEY, normalizedPhone!);
+      remember(PHONE_KEY, normalizedPhone);
       if (fulfillment === "curbside") remember(CAR_KEY, car.trim());
       if (fulfillment === "delivery") remember(ADDRESS_KEY, address.trim());
       successFeedback();
@@ -300,6 +347,7 @@ export function CartPage() {
       const short = err instanceof ApiClientError && err.code === "NOT_ENOUGH_STOCK" ? menu?.items.find((i) => i.id === err.details.menuItemId) : undefined;
       setFormError(short && err instanceof ApiClientError ? stockLeftText(short, Number(err.details.remaining ?? 0)) : errorText(err));
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -331,7 +379,14 @@ export function CartPage() {
 
   return (
     <ShopLayout>
-      <h1 className="page-title">{tr("السلة", "Cart")}</h1>
+      <nav className="checkout-progress" aria-label={tr("خطوات الطلب", "Checkout steps")}>
+        {([tr("السلة", "Cart"), tr("الاستلام", "Fulfillment"), tr("التأكيد", "Review")] as const).map((label, i) => (
+          <button key={i} type="button" className={`checkout-progress__step ${step === i + 1 ? "is-current" : step > i + 1 ? "is-complete" : ""}`} aria-current={step === i + 1 ? "step" : undefined} disabled={i + 1 >= step || busy || placed} onClick={() => { setStep((i + 1) as 1 | 2 | 3); setFormError(null); }}>
+            <span>{step > i + 1 ? "✓" : i + 1}</span><strong>{label}</strong>
+          </button>
+        ))}
+      </nav>
+      <h1 ref={stepHeading} tabIndex={-1} className="page-title checkout-step-title">{step === 1 ? tr("سلتك", "Your cart") : step === 2 ? tr("الاستلام والتواصل", "Fulfillment and contact") : tr("راجع طلبك", "Review your order")}</h1>
       {!menu.shop.isOpen && (
         <div className="shop-closed" role="status">
           <strong>{tr("لا نستقبل طلبات الآن", "We're not taking orders right now")}</strong>
@@ -339,7 +394,8 @@ export function CartPage() {
         </div>
       )}
 
-      <form className="checkout" onSubmit={submit} noValidate>
+      <form className="checkout checkout-flow" onSubmit={submit} noValidate>
+        <div className="checkout-pane" hidden={step !== 1}>
         <section className="sheet" aria-labelledby="cart-items">
           <h2 id="cart-items" className="pass-label">
             {tr("طلبك", "Your order")}
@@ -364,7 +420,10 @@ export function CartPage() {
                         <SalePrice item={item} quantity={line.quantity} rolling />
                       </span>
                     </div>
-                    {item.options.length > 0 && <OriginSwitch item={item} value={line.optionId} onChange={(to) => cart.setOption(item.id, line.optionId, to)} />}
+                    {item.options.length > 0 && <details className="checkout-line-options" open={problem === "choose" || problem === "option-out" ? true : undefined}>
+                      <summary>{(() => { const selected = item.options.find((o) => o.id === line.optionId); return selected ? tr(selected.nameAr, selected.nameEn || selected.nameAr) : tr(`اختر ${optionLabel(item)}`, `Choose ${optionLabel(item)}`); })()}<span>{tr("تغيير", "Change")}</span></summary>
+                      <OriginSwitch item={item} value={line.optionId} onChange={(to) => cart.setOption(item.id, line.optionId, to)} />
+                    </details>}
                     {problem === "soldout" && <span className="badge badge--danger">{tr("نفد، احذفه من السلة", "Sold out, remove it from your cart")}</span>}
                     {problem === "choose" && <span className="badge badge--warning">{tr(`اختر ${optionLabel(item)}`, `Choose the ${optionLabel(item)}`)}</span>}
                     {problem === "option-out" && <span className="badge badge--danger">{tr("هذا المحصول نفد، اختر غيره", "This origin ran out, choose another")}</span>}
@@ -404,24 +463,14 @@ export function CartPage() {
           </Link>
         </section>
 
-        {rewardAvailable && (
-          <section className="sheet sheet--dark">
-            <label className="reward-toggle">
-              <input type="checkbox" checked={useReward} onChange={(e) => setUseReward(e.target.checked)} />
-              <span>
-                <strong>{tr("استخدم مشروبك المجاني", "Use your free drink")}</strong>
-                <small>
-                  {drinks.length === 0
-                    ? tr("أضف مشروبًا لاستخدام المكافأة", "Add a drink to use your reward")
-                    : useReward
-                      ? tr(`نخصم ${riyals(discount)} (أغلى مشروب في طلبك)`, `${riyals(discount)} off (the priciest drink in your order)`)
-                      : tr("بطاقتك ممتلئة: استخدم المكافأة لتبدأ جمع أكواب جديدة", "Your card is full: use the reward to start collecting again")}
-                </small>
-              </span>
-            </label>
-          </section>
-        )}
+        <details className="sheet checkout-order-note">
+          <summary>{note ? tr("ملاحظة الطلب", "Order note") : tr("إضافة ملاحظة على الطلب", "Add an order note")}</summary>
+          <div className="field"><label htmlFor="order-note">{tr("ملاحظة (اختياري)", "Note (optional)")}</label><textarea id="order-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} /></div>
+        </details>
+        <div className="sheet checkout-subtotal"><span>{tr("المجموع", "Subtotal")}</span><strong>{riyals(subtotal)}</strong></div>
+        </div>
 
+        <div className="checkout-pane" hidden={step !== 2}>
         <section className="sheet" aria-labelledby="fulfillment">
           <h2 id="fulfillment" className="pass-label">
             {tr("طريقة الاستلام", "How you'll get it")}
@@ -547,14 +596,50 @@ export function CartPage() {
             placeholder="05XXXXXXXX"
             error={errors.phone}
           />
-          <div className="field">
-            <label htmlFor="order-note">{tr("ملاحظة على الطلب (اختياري)", "Order note (optional)")}</label>
-            <textarea id="order-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />
-          </div>
         </section>
+
+        </div>
+
+        <div className="checkout-pane" hidden={step !== 3}>
+        <section className="sheet checkout-review" aria-label={tr("مراجعة الأصناف", "Review items")}>
+          <div className="checkout-review__head"><h2 className="pass-label">{tr("طلبك", "Your order")}</h2><button type="button" className="link-btn" disabled={busy} onClick={() => setStep(1)}>{tr("تعديل", "Edit")}</button></div>
+          <ul className="checkout-review__items">{lines.map(({ line, item }) => {
+            const origin = item.options.find((o) => o.id === line.optionId);
+            return <li key={lineKey(line)}><ItemImage item={item} /><div><strong>{line.quantity} × {itemName(item)}</strong>{origin && <small>{tr(origin.nameAr, origin.nameEn || origin.nameAr)}</small>}{line.note && <small>{line.note}</small>}</div><span>{riyals(priceOf(item) * line.quantity)}</span></li>;
+          })}</ul>
+          {note && <p className="checkout-review__note">{note}</p>}
+          {unavailable.length > 0 && <Alert tone="error">{tr("بعض الأصناف لم تعد متوفرة. عدّل سلتك للمتابعة.", "Some items are no longer available. Edit your cart to continue.")}</Alert>}
+        </section>
+        <section className="sheet checkout-review" aria-label={tr("مراجعة الاستلام", "Review fulfillment")}>
+          <div className="checkout-review__head"><h2 className="pass-label">{tr("الاستلام والتواصل", "Fulfillment and contact")}</h2><button type="button" className="link-btn" disabled={busy} onClick={() => setStep(2)}>{tr("تغيير", "Change")}</button></div>
+          <dl className="checkout-review__contact">
+            <div><dt>{tr("الاستلام", "Fulfillment")}</dt><dd>{fulfillmentLabel(fulfillment)}</dd></div>
+            <div><dt>{tr("الجوال", "Mobile")}</dt><dd dir="ltr">{phone}</dd></div>
+            {fulfillment === "curbside" && <div><dt>{tr("السيارة", "Car")}</dt><dd>{car}</dd></div>}
+            {fulfillment === "delivery" && <div><dt>{tr("العنوان", "Address")}</dt><dd>{address}</dd></div>}
+          </dl>
+        </section>
+        {rewardAvailable && (
+          <section className="sheet sheet--dark">
+            <label className="reward-toggle">
+              <input type="checkbox" checked={useReward} onChange={(e) => setUseReward(e.target.checked)} />
+              <span>
+                <strong>{tr("استخدم مشروبك المجاني", "Use your free drink")}</strong>
+                <small>
+                  {drinks.length === 0
+                    ? tr("أضف مشروبًا لاستخدام المكافأة", "Add a drink to use your reward")
+                    : useReward
+                      ? tr(`نخصم ${riyals(discount)} (أغلى مشروب في طلبك)`, `${riyals(discount)} off (the priciest drink in your order)`)
+                      : tr("بطاقتك ممتلئة: استخدم المكافأة لتبدأ جمع أكواب جديدة", "Your card is full: use the reward to start collecting again")}
+                </small>
+              </span>
+            </label>
+          </section>
+        )}
 
         {session && <>
           <CheckoutBenefits
+            compact
             account={benefits}
             selectedGifts={selectedGifts}
             giftLimit={Math.min(benefits?.gift_cups ?? 0, eligibleGiftQuantity)}
@@ -574,12 +659,12 @@ export function CartPage() {
           {quotePending && <p role="status">{tr("جارٍ تحديث المبلغ…","Updating price…")}</p>}
           {quoteError && <Alert tone="error">{quoteError}</Alert>}
         </>}
-        <section className="sheet" aria-labelledby="payment">
+        <section className="sheet checkout-payment" aria-labelledby="payment">
           <h2 id="payment" className="pass-label">
-            {tr("طرق الدفع", "Ways to pay")}
+            {total === 0 && !quotePending && !quoteError ? tr("لا يوجد مبلغ متبقٍ للدفع", "No payment remaining") : tr("طريقة الدفع", "Payment method")}
           </h2>
-          <div className="payment-list" role="radiogroup" aria-labelledby="payment">
-            {(["on_pickup", ...payMethods.filter(m => m !== "on_pickup")] as PaymentMethod[]).map((m) => {
+          <div className="payment-list" role="radiogroup" aria-labelledby="payment" hidden={total === 0 && !quotePending && !quoteError}>
+            {(["on_pickup", ...payMethods.filter(m => m !== "on_pickup" && paymentReady(m))] as PaymentMethod[]).map((m) => {
               const Icon = PAYMENT_ICONS[m];
               const off = !paymentReady(m);
               const selected = payment === m && !off;
@@ -596,6 +681,10 @@ export function CartPage() {
               );
             })}
           </div>
+          {total > 0 && payMethods.some(m => !paymentReady(m)) && <details className="checkout-upcoming">
+            <summary>{tr("الدفع الإلكتروني قريبًا", "Online payments coming soon")}</summary>
+            <div>{payMethods.filter(m => !paymentReady(m)).map(m => <span key={m} aria-disabled="true">{paymentLabel(m, fulfillment)} · {tr("قريبًا", "Soon")}</span>)}</div>
+          </details>}
         </section>
 
         <section className="sheet summary" aria-label={tr("ملخص الطلب", "Order summary")}>
@@ -617,21 +706,26 @@ export function CartPage() {
           )}
           {quote && <>{quote.gift_discount>0 && <div className="summary__row"><span>{tr("أكواب الضيافة","Gift cups")}</span><span>− {riyals(quote.gift_discount)}</span></div>}{quote.reward_discount>0 && <div className="summary__row"><span>{tr("مكافأة الولاء","Loyalty reward")}</span><span>− {riyals(quote.reward_discount)}</span></div>}{quote.coupon_discount>0 && <div className="summary__row"><span>{tr("الكوبون","Coupon")}</span><span>− {riyals(quote.coupon_discount)}</span></div>}{quote.wallet_used>0 && <div className="summary__row"><span>{tr("من رصيدك","From your balance")}</span><span>− {riyals(quote.wallet_used)}</span></div>}</>}
           <div className="summary__row summary__row--total">
-            <span>{tr("الإجمالي", "Total")}</span>
+            <span>{quote && quote.wallet_used > 0 ? tr("المتبقي للدفع", "Amount remaining") : tr("الإجمالي", "Total")}</span>
             <Rolling text={riyals(total)} />
           </div>
           {saved > 0 && <p className="summary__saved">{tr(`وفّرت ${riyals(saved)} مع الخصم`, `You save ${riyals(saved)} with the discount`)}</p>}
-          <p className="summary__pay">{tr("الدفع عند الاستلام", "Pay on pickup")}</p>
+          <p className="summary__pay">{total === 0 && !quotePending && !quoteError ? tr("لا يوجد مبلغ متبقٍ للدفع", "No payment remaining") : paymentLabel(payment, fulfillment)}</p>
         </section>
 
+        </div>
         {formError && <Alert tone="error">{formError}</Alert>}
-        {session ? (
-          <div className="checkout__submit">
+        <div className="checkout__submit checkout-step-actions">
+          {step > 1 && <button type="button" className="btn btn--secondary checkout-step-back" disabled={busy || placed} onClick={() => { setStep(step === 3 ? 2 : 1); setFormError(null); }}>{tr("رجوع", "Back")}</button>}
+          {step < 3 ? <button type="button" className="btn btn--primary btn--block btn--lg" disabled={busy || (step === 1 && unavailable.length > 0)} onClick={advance}>
+            {step === 1 ? tr("متابعة للاستلام", "Continue to fulfillment") : tr("متابعة للتأكيد", "Continue to review")}
+          </button> : session ? (
+          <>
             <button
               ref={submitRef}
               type="submit"
               className={`btn btn--primary btn--block btn--lg ${placed ? "btn--placed" : ""}`}
-              disabled={busy || couponChecking || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
+              disabled={busy || placed || couponChecking || (needsQuote && (!quote || quotePending || !!quoteError)) || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
               aria-label={placed ? tr("تم إرسال الطلب", "Order placed") : undefined}
             >
               {placed ? (
@@ -640,6 +734,8 @@ export function CartPage() {
                 </svg>
               ) : busy ? (
                 tr("جارٍ إرسال الطلب…", "Sending your order…")
+              ) : quotePending ? (
+                tr("جارٍ تحديث المبلغ…", "Updating price…")
               ) : (
                 <>
                   {tr("تأكيد الطلب · ", "Place order · ")}
@@ -647,7 +743,7 @@ export function CartPage() {
                 </>
               )}
             </button>
-          </div>
+          </>
         ) : (
           <div className="signin-cta">
             <p>{tr("سجّل الدخول لإكمال الطلب وجمع أكوابك", "Sign in to place your order and collect cups")}</p>
@@ -659,6 +755,7 @@ export function CartPage() {
             </Link>
           </div>
         )}
+        </div>
       </form>
     </ShopLayout>
   );
