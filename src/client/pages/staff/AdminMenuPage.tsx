@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
   CATEGORY_LABELS_AR,
+  isOrderable,
   toLatinDigits,
   WEEKDAY_LABELS_AR,
   type DayHours,
@@ -10,6 +11,7 @@ import {
   type MenuOption,
   type ShopSettings,
 } from "../../../shared/ordering";
+import { normalizeSearch } from "../../../shared/menu-search";
 import { Dialog } from "../../components/Dialog";
 import { Alert, Field, Spinner } from "../../components/Field";
 import { ItemImage } from "../../components/Shop";
@@ -266,6 +268,9 @@ const emptyDraft = (category: MenuCategory = "drink", position = "1"): Draft => 
 
 function MenuPanel() {
   const [items, setItems] = useState<MenuItem[] | null>(null);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<"all" | MenuCategory>("all");
+  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
@@ -292,31 +297,30 @@ function MenuPanel() {
   const replace = (item: MenuItem) => setItems((list) => (list ? list.map((i) => (i.id === item.id ? item : i)) : list));
 
   async function quickToggle(item: MenuItem) {
+    if (updating) return;
+    setUpdating(true);
+    setError(null);
     try {
       const { item: updated } = await apiSend<{ item: MenuItem }>("PATCH", `/api/admin/menu/${item.id}`, { isAvailable: !item.isAvailable });
       replace(updated);
     } catch (err) {
       setError(errorText(err));
+    } finally {
+      setUpdating(false);
     }
   }
 
-  // «الأفضل مبيعًا»: shown together at the top of the customer menu.
   async function toggleBestSeller(item: MenuItem) {
+    if (updating) return;
+    setUpdating(true);
+    setError(null);
     try {
       const { item: updated } = await apiSend<{ item: MenuItem }>("PATCH", `/api/admin/menu/${item.id}`, { isBestSeller: !item.isBestSeller });
       replace(updated);
     } catch (err) {
       setError(errorText(err));
-    }
-  }
-
-  // Turn one origin on or off without opening the editor.
-  async function toggleOption(item: MenuItem, optionId: string) {
-    const options = item.options.map((o) => (o.id === optionId ? { ...o, isAvailable: !o.isAvailable } : o));
-    try {
-      replace((await apiSend<{ item: MenuItem }>("PATCH", `/api/admin/menu/${item.id}`, { options })).item);
-    } catch (err) {
-      setError(errorText(err));
+    } finally {
+      setUpdating(false);
     }
   }
 
@@ -324,28 +328,33 @@ function MenuPanel() {
     if (!file) return;
     setUploading(item.id);
     setError(null);
+    setDraftError(null);
     try {
       const blob = await resizeImage(file);
       const { item: updated } = await apiUpload<{ item: MenuItem }>(`/api/admin/menu/${item.id}/image`, blob);
       replace(updated);
     } catch (err) {
-      setError(err instanceof Error && err.message === "encode" ? "تعذّر قراءة الصورة" : errorText(err));
+      setDraftError(err instanceof Error && err.message === "encode" ? "تعذّر قراءة الصورة" : errorText(err));
     } finally {
       setUploading(null);
     }
   }
 
   async function removeImage(item: MenuItem) {
+    setUploading(item.id);
+    setDraftError(null);
     try {
       replace((await apiDelete<{ item: MenuItem }>(`/api/admin/menu/${item.id}/image`)).item);
     } catch (err) {
-      setError(errorText(err));
+      setDraftError(errorText(err));
+    } finally {
+      setUploading(null);
     }
   }
 
   async function saveDraft(e: FormEvent) {
     e.preventDefault();
-    if (!draft) return;
+    if (!draft || busy || uploading !== null) return;
     const price = toHalalas(draft.price);
     const sortOrder = Number.parseInt(toLatinDigits(draft.sortOrder), 10);
     if (!draft.nameAr.trim()) return setDraftError("اكتب اسم الصنف");
@@ -397,7 +406,7 @@ function MenuPanel() {
   }
 
   async function deleteDraft() {
-    if (!draft?.id) return;
+    if (!draft?.id || busy || uploading !== null) return;
     setBusy(true);
     setDraftError(null);
     try {
@@ -433,66 +442,71 @@ function MenuPanel() {
       isBestSeller: i.isBestSeller,
     });
 
+  const words = normalizeSearch(query).split(" ").filter(Boolean);
+  const matches = (item: MenuItem) => {
+    const text = normalizeSearch([item.nameAr, item.nameEn, ...item.options.map((o) => o.nameAr)].join(" "));
+    return (category === "all" || item.category === category) && words.every((word) => text.includes(word));
+  };
+  const draftItem = items?.find((item) => item.id === draft?.id);
+  const visibleItems = items?.filter((item) => !item.isArchived && matches(item)) ?? [];
+  const hiddenItems = items?.filter((item) => item.isArchived && matches(item)) ?? [];
+
   return (
-    <section className="panel">
-      <div className="panel__head">
+    <section className="panel catalog-panel">
+      <div className="panel__head catalog-heading">
         <h2>الأصناف</h2>
-        <button type="button" className="btn btn--primary btn--small" onClick={() => setDraft(emptyDraft("drink", nextPosition(items, "drink")))}>
-          + صنف جديد
-        </button>
+        <button type="button" className="btn btn--primary" disabled={updating} onClick={() => {
+          setDraftError(null); setConfirmingDelete(false);
+          setDraft(emptyDraft(category === "dessert" ? "dessert" : "drink", nextPosition(items, category === "dessert" ? "dessert" : "drink")));
+        }}>+ صنف جديد</button>
       </div>
       {error && <Alert tone="error">{error}</Alert>}
       {!items && !error && <Spinner />}
-      {items &&
-        (["drink", "dessert"] as MenuCategory[]).map((cat) => {
-          const list = items.filter((i) => i.category === cat && !i.isArchived);
-          return (
-            <div key={cat} className="admin-menu">
-              <h3 className="pass-label">{CATEGORY_LABELS_AR[cat]}</h3>
-              <ul>
-                {list.map((i) => (
-                  <MenuRow
-                    key={i.id}
-                    item={i}
-                    uploading={uploading === i.id}
-                    onToggle={() => void quickToggle(i)}
-                    onEdit={() => edit(i)}
-                    onUpload={(f) => void upload(i, f)}
-                    onRemoveImage={() => void removeImage(i)}
-                    onToggleOption={(id) => void toggleOption(i, id)}
-                    onToggleBest={() => void toggleBestSeller(i)}
-                  />
-                ))}
-              </ul>
-            </div>
-          );
+      {items && <>
+        <div className="catalog-search"><Field label="بحث الأصناف" type="search" placeholder="ابحث عن صنف" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+        <div className="catalog-tabs" role="group" aria-label="أقسام المنيو">
+          {([["all", "الكل"], ["drink", "المشروبات"], ["dessert", "الحلويات"]] as const).map(([key, label]) => (
+            <button key={key} type="button" aria-pressed={category === key} onClick={() => setCategory(key)}>{label}</button>
+          ))}
+        </div>
+        {visibleItems.length === 0 && <p className="empty">لا توجد أصناف مطابقة</p>}
+        {(["drink", "dessert"] as const).map((cat) => {
+          const list = visibleItems.filter((item) => item.category === cat);
+          if (!list.length) return null;
+          return <div key={cat} className="admin-menu catalog-section">
+            <h3 className="pass-label">{CATEGORY_LABELS_AR[cat]} <span className="catalog-count">{list.length}</span></h3>
+            <ul className="catalog-grid">
+              {list.map((item) => <MenuRow key={item.id} item={item} disabled={updating}
+                onToggle={() => void quickToggle(item)} onEdit={() => { setDraftError(null); setConfirmingDelete(false); edit(item); }}
+                onToggleBest={() => void toggleBestSeller(item)} />)}
+            </ul>
+          </div>;
         })}
-      {items && items.some((i) => i.isArchived) && (
-        <details className="admin-menu">
-          <summary>أصناف مخفية ({items.filter((i) => i.isArchived).length})</summary>
-          <ul>
-            {items
-              .filter((i) => i.isArchived)
-              .map((i) => (
-                <MenuRow
-                  key={i.id}
-                  item={i}
-                  uploading={false}
-                  onToggle={() => void quickToggle(i)}
-                  onEdit={() => edit(i)}
-                  onUpload={(f) => void upload(i, f)}
-                  onRemoveImage={() => void removeImage(i)}
-                  onToggleOption={(id) => void toggleOption(i, id)}
-                  onToggleBest={() => void toggleBestSeller(i)}
-                />
-              ))}
+        {hiddenItems.length > 0 && <details className="admin-menu catalog-section catalog-archived">
+          <summary>أصناف مخفية ({hiddenItems.length})</summary>
+          <ul className="catalog-grid">
+            {hiddenItems.map((item) => <MenuRow key={item.id} item={item} disabled={updating}
+              onToggle={() => void quickToggle(item)} onEdit={() => { setDraftError(null); setConfirmingDelete(false); edit(item); }}
+              onToggleBest={() => void toggleBestSeller(item)} />)}
           </ul>
-        </details>
-      )}
+        </details>}
+      </>}
 
-      <Dialog open={draft !== null} title={draft?.id ? "تعديل صنف" : "صنف جديد"} onClose={closeDraft}>
+      <Dialog open={draft !== null} dismissible title={draft?.id ? "تعديل صنف" : "صنف جديد"} onClose={() => { if (!busy && !uploading) closeDraft(); }}>
         {draft && (
           <form className="form" onSubmit={saveDraft} noValidate>
+            {draftItem && <div className="catalog-photo-editor">
+              <ItemImage item={draftItem} />
+              <div className="catalog-photo-editor__actions">
+                <label className="btn btn--secondary catalog-upload">
+                  {uploading === draftItem.id ? "جارٍ التحديث…" : draftItem.imageUrl ? "تغيير الصورة" : "إضافة صورة"}
+                  <input type="file" accept="image/*" disabled={busy || uploading !== null} aria-label={`صورة ${draftItem.nameAr}`} onChange={(e) => {
+                    void upload(draftItem, e.target.files?.[0]); e.target.value = "";
+                  }} />
+                </label>
+                {draftItem.imageUrl && <button type="button" className="btn btn--danger-soft" disabled={busy || uploading !== null} onClick={() => void removeImage(draftItem)}>حذف الصورة</button>}
+              </div>
+            </div>}
             <Field label="الاسم بالعربي" value={draft.nameAr} onChange={(e) => setDraft({ ...draft, nameAr: e.target.value })} maxLength={60} />
             <Field label="الاسم بالإنجليزي (اختياري)" dir="ltr" value={draft.nameEn} onChange={(e) => setDraft({ ...draft, nameEn: e.target.value })} maxLength={60} />
             <div className="field">
@@ -625,10 +639,10 @@ function MenuPanel() {
             </fieldset>
             {draftError && <Alert tone="error">{draftError}</Alert>}
             <div className="dialog__actions">
-              <button type="submit" className="btn btn--primary" disabled={busy}>
+              <button type="submit" className="btn btn--primary" disabled={busy || uploading !== null}>
                 {busy ? "جارٍ الحفظ…" : "حفظ"}
               </button>
-              <button type="button" className="btn btn--ghost" onClick={closeDraft}>
+              <button type="button" className="btn btn--ghost" disabled={busy || uploading !== null} onClick={closeDraft}>
                 إلغاء
               </button>
             </div>
@@ -640,7 +654,7 @@ function MenuPanel() {
                       تحذف «{draft.nameAr}»؟ يختفي من المنيو ومن هذه الصفحة، ولا يرجع. الطلبات السابقة وتقرير المبيعات يبقون مثل ما هم.
                     </p>
                     <div className="dialog__actions">
-                      <button type="button" className="btn btn--danger" disabled={busy} onClick={() => void deleteDraft()}>
+                      <button type="button" className="btn btn--danger" disabled={busy || uploading !== null} onClick={() => void deleteDraft()}>
                         {busy ? "جارٍ الحذف…" : "احذف نهائيًا"}
                       </button>
                       <button type="button" className="btn btn--ghost" onClick={() => setConfirmingDelete(false)}>
@@ -649,7 +663,7 @@ function MenuPanel() {
                     </div>
                   </>
                 ) : (
-                  <button type="button" className="link-btn link-btn--danger" onClick={() => setConfirmingDelete(true)}>
+                  <button type="button" className="link-btn link-btn--danger" disabled={busy || uploading !== null} onClick={() => setConfirmingDelete(true)}>
                     حذف الصنف
                   </button>
                 )}
@@ -662,77 +676,32 @@ function MenuPanel() {
   );
 }
 
-function MenuRow({
-  item,
-  uploading,
-  onToggle,
-  onEdit,
-  onUpload,
-  onRemoveImage,
-  onToggleOption,
-  onToggleBest,
-}: {
+function MenuRow({ item, disabled, onToggle, onEdit, onToggleBest }: {
   item: MenuItem;
-  uploading: boolean;
+  disabled: boolean;
   onToggle: () => void;
   onEdit: () => void;
-  onUpload: (file: File | undefined) => void;
-  onRemoveImage: () => void;
-  onToggleOption: (optionId: string) => void;
   onToggleBest: () => void;
 }) {
+  const available = isOrderable(item);
   return (
-    <li className={`admin-menu__row ${item.isAvailable ? "" : "is-off"}`}>
-      <label className="admin-menu__img" title="تغيير الصورة">
+    <li className={`catalog-card ${item.isAvailable ? "" : "is-off"}`}>
+      <div className="catalog-card__photo">
         <ItemImage item={item} />
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            onUpload(e.target.files?.[0]);
-            e.target.value = "";
-          }}
-          aria-label={`صورة ${item.nameAr}`}
-        />
-        <span className="admin-menu__img-label">{uploading ? "جارٍ الرفع…" : item.imageUrl ? "تغيير" : "إضافة صورة"}</span>
-      </label>
-      <div className="admin-menu__info">
-        <strong>{item.nameAr}</strong>
-        <span>{riyals(item.priceHalalas)}</span>
-        {item.imageUrl && (
-          <button type="button" className="link-btn" onClick={onRemoveImage}>
-            حذف الصورة
-          </button>
-        )}
-        {item.options.length > 0 && (
-          <div className="admin-origins" aria-label={item.optionLabel ?? "الخيارات"}>
-            {item.options.map((o) => (
-              <button
-                key={o.id}
-                type="button"
-                className={`admin-origin ${o.isAvailable ? "" : "is-out"}`}
-                aria-pressed={o.isAvailable}
-                onClick={() => onToggleOption(o.id)}
-                title={o.isAvailable ? "اضغط إذا نفد" : "اضغط إذا توفر"}
-              >
-                {o.nameAr} · {o.isAvailable ? "متوفر" : "نفد"}
-              </button>
-            ))}
-          </div>
-        )}
+        <button type="button" className={`catalog-star ${item.isBestSeller ? "is-on" : ""}`} disabled={disabled}
+          aria-pressed={item.isBestSeller} aria-label={`الأفضل مبيعًا: ${item.nameAr}`} onClick={onToggleBest} title="الأفضل مبيعًا">★</button>
+        {item.isArchived && <span className="catalog-hidden badge badge--muted">مخفي</span>}
       </div>
-      <div className="admin-menu__actions">
-        <Toggle label={item.isAvailable ? "متوفر" : "نفد"} checked={item.isAvailable} onChange={onToggle} />
-        <button
-          type="button"
-          className={`best-toggle ${item.isBestSeller ? "is-on" : ""}`}
-          aria-pressed={item.isBestSeller}
-          onClick={onToggleBest}
-          title={item.isBestSeller ? "اضغط لإزالته من الأفضل مبيعًا" : "اضغط لإضافته للأفضل مبيعًا"}
-        >
-          ★ الأفضل مبيعًا
-        </button>
-        <button type="button" className="btn btn--small btn--ghost" onClick={onEdit}>
+      <div className="catalog-card__body">
+        <h4>{item.nameAr}</h4>
+        <p className="catalog-card__price">{riyals(item.priceHalalas)}</p>
+        <label className="catalog-card__availability">
+          <input type="checkbox" role="switch" className="switch" checked={item.isAvailable} disabled={disabled}
+            aria-label={`تفعيل ${item.nameAr}`} onChange={onToggle} />
+          <span>{!item.isAvailable ? "متوقف" : available ? "متوفر" : "نفد"}</span>
+        </label>
+        <button type="button" className="btn btn--secondary catalog-card__edit" disabled={disabled} onClick={onEdit}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m15 4 5 5M4 20l5-1L21 7a2 2 0 0 0-5-5L4 14v6Z" /></svg>
           تعديل
         </button>
       </div>
