@@ -3,12 +3,12 @@ import { MAX_STAMPS } from "../../shared/constants";
 import { pourCups } from "../lib/motion";
 
 /** Horizontal centre of each cup in the strip artwork (fraction of the width). */
-const CUP_CENTERS = [0.143, 0.321, 0.5, 0.679, 0.857];
-const HALF_WIDTH = 0.08;
+const CUP_CENTERS = [0.1053, 0.3027, 0.5, 0.6973, 0.8947];
+const HALF_WIDTH = 0.09;
 
 /** The inside of a cup, in pixels of the 750 x 288 strip artwork: where the coffee rises. */
 const ART = { width: 750, height: 288 };
-const INSIDE = { top: 111, bottom: 213, topHalf: 40, bottomHalf: 28 };
+const INSIDE = { top: 96, bottom: 215, topHalf: 47, bottomHalf: 33 };
 const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
 /** The coffee's top edge when the cup is empty (low enough to hide its ripple too), and when it is full (% of the strip's height). */
 const EMPTY = pct(INSIDE.bottom + 10, ART.height);
@@ -82,8 +82,8 @@ export function CupStrip({ count, memberId, className }: { count: number; member
               <span className="cup-strip__level" style={{ transform: `translateY(${EMPTY})` }} data-full={FULL} />
             </span>
           </span>
-          <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__body" style={{ clipPath: cut(center, 37.6, 16) }} />
-          <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__rim" style={{ clipPath: cut(center, 22, 61.5) }} />
+          <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__body" style={{ clipPath: cut(center, 32.5, 20) }} />
+          <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__rim" style={{ clipPath: cut(center, 29, 66.5) }} />
         </Fragment>
       ))}
       {/* Free drink: the full reward strip (gold tent, a star on its peak) over the filled cups. */}

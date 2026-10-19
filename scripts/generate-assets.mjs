@@ -241,13 +241,14 @@ function captionSvg({ caption, text, W, x0, muted }) {
 function stripSvg({ filled, variant, wordmark, tent, tentBg, tentGold, scale, text }) {
   const W = 375;
   const H = 144;
-  // The Wallet strip uses bigger cups, closer together, to fill its fixed height.
-  const cupW = text ? 57 : 54;
-  const cupH = text ? 76 : 72;
-  const gap = text ? 10 : 13;
+  // The cups fill most of the width. On the Wallet strip they sit closer
+  // together and higher (the rim near the top) so the words fit under them.
+  const cupW = 63;
+  const cupH = 84;
+  const gap = text ? 8 : 11;
   const total = 5 * cupW + 4 * gap;
   const x0 = (W - total) / 2;
-  const y0 = text ? 6 : (H - cupH) / 2 + 4;
+  const y0 = text ? -4 : (H - cupH) / 2;
   const reward = variant === "reward";
   const cancelled = variant === "cancelled";
   let cups = "";
