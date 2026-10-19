@@ -6505,3 +6505,43 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .dialog__close:focus-visible { outline: 2px solid var(--label); outline-offset: 2px; }
 .dialog { max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; }
 .checkout-coupon [id="checkout-coupon-error"] { margin-top: 12px; }
+
+/* Manager controls: generous touch targets and progressive coupon settings. */
+.staff-shell .btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.staff-shell :is(button, a, summary):focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.admin-section-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; padding: 6px; border: 1px solid var(--staff-line); border-radius: 16px; background: var(--paper); }
+.admin-section-nav button { flex: 1 1 150px; min-height: 48px; padding: 10px 14px; border: 0; border-radius: 11px; font: inherit; font-weight: 700; color: var(--espresso); background: transparent; cursor: pointer; }
+.admin-section-nav button[aria-selected="true"] { color: #f4ede0; background: #352419; }
+.admin-panel-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-block: 22px 14px; }
+.admin-panel-heading :is(h3, p) { margin: 0; }
+.admin-panel-heading p { margin-top: 4px; font-size: .88rem; }
+.admin-coupon-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 10px; }
+.admin-coupon-card { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 16px; text-align: start; color: var(--espresso); background: var(--paper); border: 1px solid var(--staff-line); border-radius: 14px; font: inherit; cursor: pointer; }
+.admin-coupon-card strong { display: block; overflow-wrap: anywhere; }
+.admin-coupon-card small { display: block; color: var(--staff-muted); margin-top: 4px; }
+.admin-coupon-card.is-selected { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.admin-coupon-card__edit { margin-inline-start: auto; font-size: .85rem; white-space: nowrap; }
+.admin-coupon-editor { scroll-margin-top: 100px; margin-block: 18px; padding: 18px; border: 1px solid var(--staff-line); border-radius: 16px; background: var(--staff-bg); }
+.admin-coupon-editor h3 { margin: 0; }
+.admin-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.admin-form-grid .field:first-child { grid-column: 1 / -1; }
+.admin-form-grid :is(input, select) { min-width: 0; max-width: 100%; }
+.admin-disclosure { padding: 14px; border: 1px solid var(--staff-line); border-radius: 14px; }
+.admin-disclosure summary { min-height: 30px; cursor: pointer; font-weight: 700; }
+.admin-disclosure summary span { color: var(--staff-muted); font-size: .85rem; font-weight: 400; margin-inline-start: 10px; }
+.admin-disclosure[open] summary { margin-bottom: 16px; }
+.admin-disclosure .benefits-products { margin: 0; border-color: var(--staff-line); }
+.admin-disclosure .benefits-products label { min-height: 44px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.admin-disclosure .benefits-products input { width: 20px; height: 20px; flex-shrink: 0; accent-color: #93732a; }
+.admin-toggle-row { display: flex; align-items: center; gap: 12px; min-height: 48px; font-weight: 700; }
+.admin-form-actions { display: flex; gap: 10px; padding-top: 12px; border-top: 1px solid var(--staff-line); }
+.admin-form-actions .btn--primary { flex: 1; }
+.admin-gifts { margin-top: 22px; }
+.admin-gifts > .btn { margin-top: 16px; }
+@media (max-width: 540px) {
+  .admin-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-coupon-editor { padding: 12px; }
+  .admin-panel-heading > .btn { width: 100%; }
+  .admin-section-nav { gap: 4px; }
+  .admin-section-nav button { flex-basis: 90px; padding: 10px 6px; font-size: .85rem; }
+}

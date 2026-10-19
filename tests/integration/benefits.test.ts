@@ -133,6 +133,17 @@ describe("customer benefits", () => {
     expect((await send(other, "account", { accountId })).status).toBe(403);
     expect((await send(customer, "spend", { accountId })).status).toBe(403);
   });
+  it("lists, creates and updates coupons, including the full manager form payload", async () => {
+    expect((await send(admin, "coupons")).status).toBe(200);
+    await coupon("manager-form", { minimum_halalas: 0, maximum_halalas: null, starts_at: null, ends_at: null, active: true });
+    const list = await call<{ items: { id: string; code: string }[] }>(admin, "coupons");
+    const saved = list.items.find((c) => c.code === "manager-form")!;
+    expect(saved.id).toBeTruthy();
+    await coupon("manager-form", { id: saved.id, value: 25 });
+    const duplicate = await send(admin, "save_coupon", { code: "manager-form", kind: "percent", value: 20 });
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toMatchObject({ error: { code: "COUPON_EXISTS" } });
+  });
   it("manager grants separate credit and gifts and retries exactly once", async () => {
     const data = {
       accountId,

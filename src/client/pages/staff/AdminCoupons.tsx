@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Coupon } from "../../../shared/benefits";
 import { benefitCall } from "../../lib/benefits";
 import { useMenu } from "../../lib/menu";
@@ -31,7 +31,12 @@ export function AdminCoupons() {
   const [gifts, setGifts] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const editorRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (editorOpen) editorRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [editorOpen, form.id]);
   useEffect(() => {
     let live = true;
     Promise.all([
@@ -54,6 +59,18 @@ export function AdminCoupons() {
   async function save(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
+    if (!form.code.trim()) {
+      setError("اكتب كود الكوبون أولًا");
+      return;
+    }
+    if (form.starts_at && form.ends_at && form.ends_at <= form.starts_at) {
+      setError("تاريخ النهاية يجب أن يكون بعد تاريخ البداية");
+      return;
+    }
+    if (coupons.some((c) => c.id !== form.id && c.code === form.code.trim().toLowerCase())) {
+      setError("هذا الكود موجود مسبقًا، اختر كودًا آخر أو عدّل الكوبون الموجود");
+      return;
+    }
     setBusy(true);
     setError(null);
     setOk(false);
@@ -62,6 +79,7 @@ export function AdminCoupons() {
       const c = await benefitCall<{ items: Coupon[] }>("coupons");
       setCoupons(c.items);
       setForm(empty());
+      setEditorOpen(false);
       setOk(true);
     } catch (err) {
       setError(errorText(err));
@@ -70,6 +88,7 @@ export function AdminCoupons() {
     }
   }
   async function saveGifts() {
+    if (busy) return;
     setBusy(true);
     setError(null);
     setOk(false);
@@ -83,7 +102,7 @@ export function AdminCoupons() {
     }
   }
   return (
-    <section className="panel">
+    <section className="panel admin-coupons">
       <h2>الكوبونات وأكواب الضيافة</h2>
       <p className="muted">
         الكوبونات تُدخل عند الدفع في الموقع والتطبيق فقط، ولا تُعرض للعملاء في
@@ -91,29 +110,45 @@ export function AdminCoupons() {
       </p>
       {error && <Alert tone="error">{error}</Alert>}
       {ok && <Alert tone="success">تم الحفظ</Alert>}
-      <div className="benefits-presets">
+      <div className="admin-panel-heading">
+        <div><h3>كوبونات الخصم</h3><p className="muted">{coupons.length} كوبون · اختر كوبونًا لتعديله</p></div>
+        <button type="button" className="btn btn--primary" disabled={busy} onClick={() => {
+          setForm(empty()); setEditorOpen(true); setError(null); setOk(false);
+        }}>+ كوبون جديد</button>
+      </div>
+      <div className="admin-coupon-list">
         {coupons.map((c) => (
           <button
-            className="btn btn--secondary"
+            className={`admin-coupon-card ${editorOpen && form.id === c.id ? "is-selected" : ""}`}
+            type="button" disabled={busy}
             key={c.id}
             onClick={() => {
               setForm(c);
+              setEditorOpen(true);
+              setError(null);
               setOk(false);
             }}
           >
-            {c.code} · {c.active ? "مفعّل" : "متوقف"}
+            <span><strong dir="auto">{c.code}</strong><small>{c.kind === "percent" ? `${c.value}% خصم` : `${c.value / 100} ريال خصم`}</small></span>
+            <span className={`badge ${c.active ? "badge--gold" : "badge--muted"}`}>{c.active ? "مفعّل" : "متوقف"}</span>
+            <span className="admin-coupon-card__edit">تعديل ‹</span>
           </button>
         ))}
-        <button className="btn btn--ghost" onClick={() => setForm(empty())}>
-          كوبون جديد
-        </button>
+        {coupons.length === 0 && <p className="muted">ما عندك كوبونات حتى الآن. ابدأ بإضافة أول كوبون.</p>}
       </div>
-      <form className="form" onSubmit={(e) => void save(e)}>
+      {editorOpen && <form ref={editorRef} className="form admin-coupon-editor" onSubmit={(e) => void save(e)} onInvalidCapture={(e) => {
+        const details = (e.target as HTMLElement).closest("details");
+        if (details) details.open = true;
+      }}>
+        <h3>{form.id ? "تعديل الكوبون" : "إضافة كوبون جديد"}</h3>
+        <div className="admin-form-grid">
         <label className="field">
-          الكود
+          كود الكوبون
           <input
             required
             maxLength={40}
+            placeholder="مثال: HOLLOW20"
+            dir="ltr" autoCapitalize="none" autoCorrect="off" spellCheck={false}
             value={form.code}
             onChange={(e) => setForm({ ...form, code: e.target.value })}
           />
@@ -153,8 +188,11 @@ export function AdminCoupons() {
             }
           />
         </label>
-        <fieldset className="benefits-products">
-          <legend>المنتجات المشمولة (بدون تحديد = كل المنتجات)</legend>
+        </div>
+        <details className="admin-disclosure">
+          <summary>المنتجات المشمولة <span>{form.item_ids.length ? `${form.item_ids.length} منتجات` : "جميع المنتجات"}</span></summary>
+          <fieldset className="benefits-products">
+          <legend>اتركها بدون تحديد ليشمل الكوبون جميع المنتجات</legend>
           {menu?.items.map((i) => (
             <label key={i.id}>
               <input
@@ -172,7 +210,11 @@ export function AdminCoupons() {
               {i.nameAr}
             </label>
           ))}
-        </fieldset>
+          </fieldset>
+        </details>
+        <details className="admin-disclosure">
+          <summary>شروط الاستخدام والمدة <span>اختياري</span></summary>
+          <div className="admin-form-grid">
         <label className="field">
           الحد الأدنى للطلب بالريال
           <input
@@ -254,23 +296,29 @@ export function AdminCoupons() {
             }
           />
         </label>
-        <label>
+          </div>
+        </details>
+        <label className="admin-toggle-row">
           <input
+            className="switch"
             type="checkbox"
             checked={form.active}
             onChange={(e) => setForm({ ...form, active: e.target.checked })}
           />{" "}
           الكوبون مفعّل
         </label>
-        <button className="btn btn--primary" disabled={busy}>
-          حفظ الكوبون
-        </button>
-      </form>
-      <details>
+        {error && <Alert tone="error">{error}</Alert>}
+        <div className="admin-form-actions">
+          <button type="submit" className="btn btn--primary" disabled={busy}>
+            {busy ? "جارٍ الحفظ…" : "حفظ الكوبون"}
+          </button>
+          <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => { setEditorOpen(false); setError(null); }}>إلغاء</button>
+        </div>
+      </form>}
+      <details className="admin-disclosure admin-gifts">
         <summary>القهوة المشمولة بأكواب الضيافة</summary>
         <p>
-          اختر قهوة اليوم والمقطرة، الحارة والباردة فقط. هذه الإعدادات مشتركة
-          للعشرة أشخاص.
+          حدّد المشروبات التي يمكن للعميل استخدام أكواب الضيافة عليها.
         </p>
         <div className="benefits-products">
           {menu?.items
@@ -297,7 +345,7 @@ export function AdminCoupons() {
           disabled={busy}
           onClick={() => void saveGifts()}
         >
-          حفظ المشروبات المشمولة
+          {busy ? "جارٍ الحفظ…" : "حفظ مشروبات الضيافة"}
         </button>
       </details>
     </section>

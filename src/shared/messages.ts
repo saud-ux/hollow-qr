@@ -4,6 +4,7 @@
  */
 export const ERROR_MESSAGES_AR: Record<string, string> = {
   PAYMENT_NOT_READY: "الدفع الإلكتروني غير مفعّل حاليًا",
+  COUPON_EXISTS: "هذا الكود موجود مسبقًا، اختر كودًا آخر أو عدّل الكوبون الموجود",
   COUPON_INVALID: "الكوبون غير صحيح أو غير متاح حاليًا",
   COUPON_LIMIT: "وصلت للحد المسموح لاستخدام هذا الكوبون",
   COUPON_MINIMUM: "لم تصل للحد الأدنى المطلوب للكوبون",
@@ -66,6 +67,7 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
 /** English messages for the customer screens (staff screens stay Arabic). */
 export const ERROR_MESSAGES_EN: Record<string, string> = {
   PAYMENT_NOT_READY: "Online payments are not enabled yet",
+  COUPON_EXISTS: "This code already exists. Choose another code or edit the existing coupon",
   COUPON_INVALID: "This coupon is invalid or unavailable",
   COUPON_LIMIT: "You have reached this coupon's usage limit",
   COUPON_MINIMUM: "The coupon's minimum order has not been reached",

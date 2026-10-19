@@ -73,7 +73,6 @@ export function CheckoutBenefits(props: Props) {
           <output aria-live="polite">{selectedGifts}</output>
           <button type="button" className="btn btn--secondary" aria-label={tr("زيادة الأكواب", "More cups")} disabled={selectedGifts >= giftLimit} onClick={() => props.onGiftsChange(Math.min(giftLimit, selectedGifts + 1))}>+</button>
         </div>
-        <p className="muted">{tr("نختار الأغلى تلقائياً · بدون تاريخ انتهاء", "The most expensive cups are selected automatically · No expiry")}</p>
       </Dialog>
     </>
   );

@@ -213,13 +213,40 @@ export function AdminTeamPage() {
 
 /** العروض والتقييمات: offer notifications and what customers said. */
 export function AdminEngagePage() {
+  const [tab, setTab] = useState<"coupons" | "offers" | "ratings">("coupons");
   return (
-    <StaffLayout title="العروض والتقييمات" wide>
-      <div className="staff-cols">
-        <AdminCoupons />
-        <OffersPanel />
-        <RatingsPanel />
+    <StaffLayout title="الكوبونات والعروض" wide>
+      <div className="admin-section-nav" role="tablist" aria-label="إدارة تواصل العملاء">
+        {([
+          ["coupons", "الكوبونات والضيافة"],
+          ["offers", "إشعارات العروض"],
+          ["ratings", "تقييمات العملاء"],
+        ] as const).map(([key, label]) => (
+          <button key={key} id={`engage-tab-${key}`} role="tab" type="button"
+            aria-selected={tab === key} aria-controls={`engage-panel-${key}`} tabIndex={tab === key ? 0 : -1}
+            onKeyDown={(e) => {
+              const keys = ["coupons", "offers", "ratings"] as const;
+              const index = keys.indexOf(key);
+              const rtl = document.documentElement.dir !== "ltr";
+              let next: number;
+              if (e.key === "Home") next = 0;
+              else if (e.key === "End") next = keys.length - 1;
+              else if (e.key === "ArrowRight") next = (index + (rtl ? 2 : 1)) % keys.length;
+              else if (e.key === "ArrowLeft") next = (index + (rtl ? 1 : 2)) % keys.length;
+              else return;
+              e.preventDefault();
+              setTab(keys[next]!);
+              document.getElementById(`engage-tab-${keys[next]}`)?.focus();
+            }}
+            onClick={() => setTab(key)}>{label}</button>
+        ))}
       </div>
+      {(["coupons", "offers", "ratings"] as const).map((key) => (
+        <div key={key} id={`engage-panel-${key}`} role="tabpanel"
+          aria-labelledby={`engage-tab-${key}`} hidden={tab !== key}>
+          {key === "coupons" ? <AdminCoupons /> : key === "offers" ? <OffersPanel /> : <RatingsPanel />}
+        </div>
+      ))}
     </StaffLayout>
   );
 }
