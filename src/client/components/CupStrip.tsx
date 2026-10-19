@@ -8,7 +8,7 @@ const HALF_WIDTH = 0.08;
 
 /** The inside of a cup, in pixels of the 750 x 288 strip artwork: where the coffee rises. */
 const ART = { width: 750, height: 288 };
-const INSIDE = { top: 112, bottom: 215, topHalf: 34, bottomHalf: 27 };
+const INSIDE = { top: 111, bottom: 213, topHalf: 40, bottomHalf: 28 };
 const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
 /** The coffee's top edge when the cup is empty (low enough to hide its ripple too), and when it is full (% of the strip's height). */
 const EMPTY = pct(INSIDE.bottom + 10, ART.height);
@@ -52,9 +52,9 @@ function writeSeen(memberId: string, count: number) {
 
 /**
  * The Wallet strip with the customer's cups. Each filled cup is drawn as its
- * lid and its body (cut from a plain five-cup strip), over a stream and a
- * coffee level, so coffee can pour into it before the lid goes on; a full
- * card then glows gold as the reward strip fades in. Every time the strip
+ * rim and its body (cut from a plain five-cup strip), over a stream and a
+ * coffee level, so coffee can pour into it before the cup shows; a full
+ * card then lights its tent gold as the reward strip fades in. Every time the strip
  * shows (My card, the menu band), its cups fill.
  */
 export function CupStrip({ count, memberId, className }: { count: number; memberId: string; className: string }) {
@@ -83,10 +83,10 @@ export function CupStrip({ count, memberId, className }: { count: number; member
             </span>
           </span>
           <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__body" style={{ clipPath: cut(center, 37.6, 16) }} />
-          <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__lid" style={{ clipPath: cut(center, 22, 61.5) }} />
+          <img src="/wallet-preview/strip-5-plain.png" alt="" className="cup-strip__rim" style={{ clipPath: cut(center, 22, 61.5) }} />
         </Fragment>
       ))}
-      {/* Free drink: the full reward strip (gold glow, sparkles) over the filled cups. */}
+      {/* Free drink: the full reward strip (gold tent, a star on its peak) over the filled cups. */}
       {cups === MAX_STAMPS && <img src={`/wallet-preview/strip-${MAX_STAMPS}.png`} alt="" className="cup-strip__reward" />}
       {cups === MAX_STAMPS && <span className="cup-strip__sheen" aria-hidden="true" />}
     </div>

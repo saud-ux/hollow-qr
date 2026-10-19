@@ -62,51 +62,59 @@ async function size(buf) {
   return { width: m.width, height: m.height };
 }
 
+/** The cup's body and its rolled rim, in the 60x80 box cupSvg() draws in. */
+const CUP_BODY = "M7 16 L53 16 L47 72.5 Q46.7 75.5 43.5 75.5 L16.5 75.5 Q13.3 75.5 13 72.5 Z";
+const CUP_RIM = `x="5" y="12.5" width="50" height="4.6" rx="2.3"`;
+/** Where the cream sleeve ends and the cup's white base shows. */
+const CUP_BASE_Y = 67.5;
+
 /**
- * One HOLLOW paper cup, inspired by the real cup: cream paper body, white lid,
- * HOLLOW wordmark and tent line-art printed in brown. Drawn in a 60x80 box.
- * `open` leaves the lid off, shows the coffee and is a little shorter (the
- * app's "ready" cup).
+ * One HOLLOW paper cup, drawn like the real one: short and wide, no lid, a
+ * cream sleeve printed in brown with the wordmark, hills and the tent (cut by
+ * the cup's edges) over a white base. Drawn in a 60x80 box. `open` shows the
+ * coffee from just above (the app's "ready" cup).
  */
 function cupSvg({ state, wordmark, tent, open = false }) {
-  const body = open
-    ? "M9 15 L51 15 L47.2 65 Q46.9 68 43.7 68 L16.3 68 Q13.1 68 12.8 65 Z"
-    : "M9 15 L51 15 L46.5 74 Q46.2 77 43 77 L17 77 Q13.8 77 13.5 74 Z";
   const id = Math.random().toString(36).slice(2, 8);
   if (state === "empty") {
     return `
       <g opacity="0.55">
-        <path d="${body}" fill="${rgb(COLORS.espresso, 0.85)}" stroke="${rgb(COLORS.cream, 0.7)}" stroke-width="1.4" stroke-dasharray="3 2.4" stroke-linejoin="round"/>
-        <rect x="6" y="8" width="48" height="8" rx="3" fill="none" stroke="${rgb(COLORS.cream, 0.7)}" stroke-width="1.4" stroke-dasharray="3 2.4"/>
+        <path d="${CUP_BODY}" fill="${rgb(COLORS.espresso, 0.85)}" stroke="${rgb(COLORS.cream, 0.7)}" stroke-width="1.4" stroke-dasharray="3 2.4" stroke-linejoin="round"/>
+        <rect ${CUP_RIM} fill="none" stroke="${rgb(COLORS.cream, 0.7)}" stroke-width="1.4" stroke-dasharray="3 2.4"/>
       </g>`;
   }
   const muted = state === "cancelled";
-  const paper = muted ? rgb(COLORS.grey, 0.55) : rgb(COLORS.paper);
-  const lid = muted ? rgb(COLORS.grey, 0.7) : "#ffffff";
+  const sleeve = muted ? rgb(COLORS.grey, 0.55) : rgb(COLORS.cream);
+  const rim = muted ? rgb(COLORS.grey, 0.7) : "#ffffff";
   const ink = muted ? 0.35 : 1;
+  // The tent is printed wider than the cup, so its edges cut off the ropes like on the real cup.
+  const tentW = 64;
+  const tentH = (tentW * tent.h) / tent.w;
   return `
-    <defs><clipPath id="c${id}"><path d="${body}"/></clipPath></defs>
-    <path d="${body}" fill="${paper}" stroke="${rgb(COLORS.cupInk, 0.55 * ink)}" stroke-width="0.8" stroke-linejoin="round"/>
+    <defs><clipPath id="c${id}"><path d="${CUP_BODY}"/></clipPath></defs>
+    <path d="${CUP_BODY}" fill="${sleeve}"/>
     <g clip-path="url(#c${id})" opacity="${ink}">
-      <rect x="0" y="${open ? 60 : 66}" width="60" height="12" fill="${rgb(COLORS.beige, 0.65)}"/>
-      <image href="${wordmark.uri}" x="15" y="24" width="30" height="${(30 * wordmark.h) / wordmark.w}" preserveAspectRatio="xMidYMid meet"/>
-      <image href="${tent.uri}" x="11" y="38" width="38" height="${(38 * tent.h) / tent.w}" preserveAspectRatio="xMidYMid meet"/>
+      <rect x="0" y="${CUP_BASE_Y}" width="60" height="10" fill="${rgb(COLORS.paper)}"/>
+      <line x1="0" y1="${CUP_BASE_Y}" x2="60" y2="${CUP_BASE_Y}" stroke="${rgb(COLORS.cupInk, 0.35)}" stroke-width="0.5"/>
+      <image href="${wordmark.uri}" x="12.5" y="22.5" width="35" height="${(35 * wordmark.h) / wordmark.w}" preserveAspectRatio="xMidYMid meet"/>
+      <path d="M6 45 Q11 39 17 41 Q22 36.5 28 39.5 M35 39 Q41 35 47 37.5 Q51 36 55 39" fill="none" stroke="${rgb(COLORS.cupInk, 0.55)}" stroke-width="0.45" stroke-linecap="round"/>
+      <image href="${tent.uri}" x="${(60 - tentW) / 2}" y="${CUP_BASE_Y - tentH + 0.6}" width="${tentW}" height="${tentH}" preserveAspectRatio="xMidYMid meet"/>
     </g>
+    <path d="${CUP_BODY}" fill="none" stroke="${rgb(COLORS.cupInk, 0.55 * ink)}" stroke-width="0.8" stroke-linejoin="round"/>
     ${
       open
-        ? `<ellipse cx="30" cy="15.4" rx="21.4" ry="3.6" fill="${paper}" stroke="${rgb(COLORS.cupInk, 0.55 * ink)}" stroke-width="0.8"/>
-    <ellipse cx="30" cy="15.7" rx="19" ry="2.6" fill="${rgb(COLORS.coffee)}"/>
-    <ellipse cx="27" cy="15.2" rx="9" ry="0.9" fill="${rgb(COLORS.crema, 0.55)}"/>`
-        : `<rect x="6" y="8" width="48" height="8" rx="3" fill="${lid}" stroke="${rgb(COLORS.cupInk, 0.45 * ink)}" stroke-width="0.8"/>
-    <rect x="8.5" y="5" width="43" height="4.5" rx="2" fill="${lid}" stroke="${rgb(COLORS.cupInk, 0.35 * ink)}" stroke-width="0.6"/>`
+        ? `<ellipse cx="30" cy="16" rx="24" ry="4" fill="${rim}" stroke="${rgb(COLORS.cupInk, 0.5 * ink)}" stroke-width="0.7"/>
+    <ellipse cx="30" cy="16.3" rx="21.6" ry="2.9" fill="${rgb(COLORS.coffee)}"/>
+    <ellipse cx="30" cy="16.5" rx="16" ry="1.9" fill="${rgb(COLORS.crema, 0.55)}"/>`
+        : `<rect ${CUP_RIM} fill="${rim}" stroke="${rgb(COLORS.cupInk, 0.45 * ink)}" stroke-width="0.7"/>`
     }`;
 }
 
 /** An empty cup for a light or dark widget: a dashed outline in `color`. */
 function outlineCupSvg(color) {
   return `
-    <path d="M9 15 L51 15 L46.5 74 Q46.2 77 43 77 L17 77 Q13.8 77 13.5 74 Z" fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="3 2.4" stroke-linejoin="round"/>
-    <rect x="6" y="8" width="48" height="8" rx="3" fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="3 2.4"/>`;
+    <path d="${CUP_BODY}" fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="3 2.4" stroke-linejoin="round"/>
+    <rect ${CUP_RIM} fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="3 2.4"/>`;
 }
 
 /**
@@ -345,7 +353,7 @@ async function main() {
   // The in-app card draws its own text, so it gets the same cups without the words.
   for (const [name, buf] of Object.entries(previewStrips)) await writeFile(join(PUBLIC_WALLET, name), buf);
   // The app cuts each cup out of a strip and stamps it in. They come from this
-  // plain strip (five cups, no reward glow) so no glow is cut out with the cup;
+  // plain strip (five cups, no gold tent) so no gold is cut out with the cup;
   // the full reward strip then fades in over them.
   await writeFile(
     join(PUBLIC_WALLET, "strip-5-plain.png"),
@@ -361,11 +369,11 @@ async function main() {
   }
   await writeWidgetAssets({ cupWordmark, cupTent });
 
-  // The open cup (no lid) that steams on a ready order, drawn larger for the order screen.
+  // The open cup that steams on a ready order, drawn larger for the order screen.
   await writeFile(
     join(PUBLIC_WALLET, "cup-open.png"),
     await png(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="284" viewBox="0 0 60 71">${cupSvg({ state: "filled", wordmark: cupWordmark, tent: cupTent, open: true })}</svg>`,
+      `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="284" viewBox="-3 2 66 78">${cupSvg({ state: "filled", wordmark: cupWordmark, tent: cupTent, open: true })}</svg>`,
     ),
   );
 

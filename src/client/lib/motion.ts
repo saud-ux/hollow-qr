@@ -291,15 +291,16 @@ export function serveCup(root: Element | null): void {
 }
 
 // ---------------------------------------------------------------------------
-// Loyalty cups: coffee pours into each cup and rises, then the lid drops on and
-// it becomes the HOLLOW cup. A full card then gets a gold sheen and a success
-// haptic. (CupStrip draws the stream, the coffee, the body and the lid.)
+// Loyalty cups: coffee pours into each cup and rises, then the rim and the
+// printed body fade in over it and it becomes the HOLLOW cup. A full card then
+// gets a gold sheen and a success haptic. (CupStrip draws the stream, the
+// coffee, the body and the rim.)
 // ---------------------------------------------------------------------------
 
 /** The next cup starts pouring while this one is still filling. */
 const POUR_STEP = 620;
-/** One cup: the stream (0–1120ms), the coffee rising (140–960), the lid (1020–1320), the body over the coffee (1110–1370). */
-const POUR = { stream: 1120, rise: [140, 820], lid: 1020, body: 1110 } as const;
+/** One cup: the stream (0–1120ms), the coffee rising (140–960), the rim (1020–1280), the body over the coffee (1110–1370). */
+const POUR = { stream: 1120, rise: [140, 820], rim: 1020, body: 1110 } as const;
 const POUR_DONE = 1400;
 
 /** `celebrate`: buzz when the card is full, only when that's new to this phone. */
@@ -307,7 +308,7 @@ export function pourCups(root: Element | null, from: number, to: number, celebra
   if (!root || !motionOn() || to <= from) return;
   const pours = root.querySelectorAll(".cup-strip__pour");
   const bodies = root.querySelectorAll(".cup-strip__body");
-  const lids = root.querySelectorAll(".cup-strip__lid");
+  const rims = root.querySelectorAll(".cup-strip__rim");
   for (let i = from; i < to; i++) {
     const delay = 250 + (i - from) * POUR_STEP;
     const pour = pours[i];
@@ -331,13 +332,13 @@ export function pourCups(root: Element | null, from: number, to: number, celebra
       fill: "both",
     });
     pour?.classList.add("is-pouring");
-    void play(lids[i], [{ opacity: 0, transform: "translateY(-9%)" }, { opacity: 1, transform: "none" }], { duration: 300, delay: delay + POUR.lid, easing: "cubic-bezier(.3,1.35,.6,1)" });
+    void play(rims[i], [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: delay + POUR.rim, easing: "ease-out" });
     void play(bodies[i], [{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: delay + POUR.body, easing: "ease-out" }).then(() => {
       rising?.cancel();
       pour?.classList.remove("is-pouring");
     });
   }
-  // A full card: once the last lid is on, the gold glow fades in and light sweeps across.
+  // A full card: once the last cup shows, the gold tent fades in and light sweeps across.
   const reward = root.querySelector(".cup-strip__reward");
   if (reward) {
     const after = 250 + (to - from - 1) * POUR_STEP + POUR_DONE;
