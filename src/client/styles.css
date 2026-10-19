@@ -2909,6 +2909,29 @@ html[lang="ar"] .shop__cups-label {
 .settings__row--danger {
   color: var(--danger);
 }
+/* Under a switch that needs one more permission: what's missing, and the button that fixes it. */
+.nearby-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--warning-soft);
+}
+.nearby-step p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.nearby-step .btn {
+  flex: none;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] .nearby-step {
+  background: rgb(201 162 39 / 14%);
+}
 
 /* An order in progress, pinned on top of the menu. */
 .live-order {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { MenuResponse } from "../../shared/ordering";
 import { apiGet, errorText } from "./api";
+import { syncShopHours } from "./geofence";
 import { currentLang } from "./i18n";
 
 /** Loads the public menu and refreshes it while the page is visible. */
@@ -14,6 +15,7 @@ export function useMenu(refreshMs = 60_000) {
         .then((m) => {
           setMenu(m);
           setError(null);
+          syncShopHours(m.shop.settings.weeklyHours);
         })
         .catch((err: unknown) => setError(errorText(err))),
     [],

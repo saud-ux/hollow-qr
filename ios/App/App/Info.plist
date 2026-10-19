@@ -74,9 +74,9 @@
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>نستخدم موقعك لتحديد عنوان التوصيل، وعند تفعيل اختبار القرب لتنبيهك عند دخول نطاق هولو أو مغادرته.</string>
+	<string>نستخدم موقعك لتحديد عنوان التوصيل، وإذا فعّلت تنبيهات القرب لننبهك لما تكون قريب من هولو.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>عند تفعيل اختبار القرب، نستخدم موقعك في الخلفية لتنبيهك عند دخول نطاق هولو أو مغادرته. يمكنك إيقاف الاختبار في أي وقت.</string>
+	<string>إذا فعّلت تنبيهات القرب، يعرف جوالك في الخلفية متى تكون قريب من هولو وهو فاتح، وننبهك مرة كل ١٢ ساعة بالكثير. موقعك يبقى على جوالك، وتقدر توقفها من الإشعارات.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIStatusBarStyle</key>

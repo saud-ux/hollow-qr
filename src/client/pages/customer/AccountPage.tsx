@@ -6,7 +6,6 @@ import { MAX_PLACES } from "../../../shared/types";
 import { AccountIcon, type AccountIconName } from "../../components/AccountIcons";
 import { CustomerLayout } from "../../components/CustomerLayout";
 import { ConfirmDialog, Dialog } from "../../components/Dialog";
-import { GeofenceTestSettings } from "../../components/GeofenceTestSettings";
 import { HomeScreenHint } from "../../components/HomeScreenHint";
 import { Alert } from "../../components/Field";
 import { TabBar } from "../../components/Shop";
@@ -297,8 +296,6 @@ export function AccountPage() {
           </div>
         </div>
       </Section>
-
-      <GeofenceTestSettings />
 
       {!isNative && <InstallRow />}
 
