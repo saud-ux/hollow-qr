@@ -130,38 +130,38 @@ function SettingsPanel() {
   return (
     <form className="ordering-settings" onSubmit={save} noValidate onChangeCapture={() => setOk(null)}>
       <section className="panel ordering-status">
-        <div className="ordering-section-title"><span className="ordering-icon"><StaffIcon name="orders" /></span><div><h2>استقبال الطلبات</h2><p>تحكّم في استقبال الطلبات من الموقع والتطبيق</p></div></div>
+        <div className="ordering-section-title"><span className="ordering-icon"><StaffIcon name="orders" /></span><div><h2>استقبال الطلبات</h2></div></div>
         <p className={`shop-state ${isOpen ? "shop-state--open" : ""}`}>
           <span className="shop-state__dot" aria-hidden="true" />
           {isOpen ? "نستقبل الطلبات الآن" : storedPaused ? "الطلبات متوقفة مؤقتًا" : "خارج أوقات الدوام"}
         </p>
         <label className="ordering-option ordering-option--pause">
-          <span><strong>إيقاف الطلبات مؤقتًا</strong><small>إيقاف الاستقبال حتى تلغي هذا الخيار وتحفظ</small></span>
+          <span><strong>إيقاف الطلبات مؤقتًا</strong></span>
           <input className="switch" type="checkbox" role="switch" aria-label="إيقاف الطلبات مؤقتًا" checked={settings.orderingPaused} disabled={busy} onChange={(e) => setSettings({ ...settings, orderingPaused: e.target.checked })} />
         </label>
       </section>
 
       <section className="panel">
-        <div className="ordering-section-title"><span className="ordering-icon"><StaffIcon name="stock" /></span><div><h2>الاستلام والتوصيل</h2><p>فعّل الطرق المتاحة لعملائك</p></div></div>
+        <div className="ordering-section-title"><span className="ordering-icon"><StaffIcon name="stock" /></span><div><h2>الاستلام والتوصيل</h2></div></div>
         <div className="ordering-methods">
           {([
-            ["pickupEnabled", "استلام من الكاشير", "العميل يستلم طلبه داخل هولو"],
-            ["curbsideEnabled", "استلام من السيارة", "نوصل الطلب للعميل عند السيارة"],
-            ["deliveryEnabled", "التوصيل", "توصيل الطلب إلى عنوان العميل"],
-          ] as const).map(([key, title, hint]) => (
+            ["pickupEnabled", "استلام من الكاشير"],
+            ["curbsideEnabled", "استلام من السيارة"],
+            ["deliveryEnabled", "التوصيل"],
+          ] as const).map(([key, title]) => (
             <label className="ordering-option" key={key}>
-              <span><strong>{title}</strong><small>{hint}</small></span>
+              <span><strong>{title}</strong></span>
               <input className="switch" type="checkbox" role="switch" aria-label={title} checked={settings[key]} disabled={busy} onChange={(e) => setSettings({ ...settings, [key]: e.target.checked })} />
             </label>
           ))}
         </div>
         <div className="ordering-fee">
-          <Field label="رسوم التوصيل بالريال" inputMode="decimal" dir="ltr" value={fee} disabled={busy} onChange={(e) => setFee(e.target.value)} hint="تُطبّق عند تفعيل التوصيل · اكتب 0 للتوصيل المجاني" />
+          <Field label="رسوم التوصيل بالريال" inputMode="decimal" dir="ltr" value={fee} disabled={busy} onChange={(e) => setFee(e.target.value)} />
         </div>
       </section>
 
       <section className="panel">
-        <div className="ordering-section-title"><span className="ordering-icon"><StaffIcon name="settings" /></span><div><h2>جدول استقبال الطلبات</h2><p>بتوقيت السعودية · اضغط على اليوم لتعديل أوقاته</p></div></div>
+        <div className="ordering-section-title"><span className="ordering-icon"><StaffIcon name="settings" /></span><div><h2>جدول استقبال الطلبات</h2></div></div>
         <div className="ordering-copy">
           <label className="field">نسخ وقت يوم للأيام المفتوحة
             <select value={copyDay} disabled={busy} onChange={(e) => setCopyDay(Number(e.target.value))}>
@@ -172,9 +172,8 @@ function SettingsPanel() {
             const source = settings.weeklyHours[copyDay]!;
             setSettings({ ...settings, weeklyHours: settings.weeklyHours.map((day) => day.closed ? day : { ...day, open: source.open, close: source.close }) });
             setOk(null);
-            showToast("تم نسخ الأوقات للأيام المفتوحة. احفظ لتطبيق التغيير.");
+            showToast("تم نسخ الأوقات");
           }}>نسخ الأوقات</button>
-          <small>الأيام المغلقة تبقى مغلقة.</small>
         </div>
         <div className="ordering-week">
           {settings.weeklyHours.map((d, i) => (
@@ -190,12 +189,11 @@ function SettingsPanel() {
                 }} />
               </div>
               <div id={`day-times-${i}`} hidden={expandedDay !== i} className="ordering-day__details">
-                {d.closed ? <p className="muted">الطلبات مغلقة هذا اليوم. فعّل اليوم لتحديد الوقت.</p> : <>
+                {!d.closed && <>
                   <div className="ordering-time-grid">
                     <Field label="من" type="time" dir="ltr" value={d.open} disabled={busy} onChange={(e) => setDay(i, { open: e.target.value })} aria-label={`وقت فتح ${WEEKDAY_LABELS_AR[i]}`} />
                     <Field label="إلى" type="time" dir="ltr" value={d.close} disabled={busy} onChange={(e) => setDay(i, { close: e.target.value })} aria-label={`وقت إغلاق ${WEEKDAY_LABELS_AR[i]}`} />
                   </div>
-                  {d.open && d.close && <p className="ordering-day__note">{d.open === d.close ? "نفس وقت الفتح والإغلاق يعني استقبال الطلبات 24 ساعة." : d.close < d.open ? "وقت الإغلاق في اليوم التالي." : "الفتح والإغلاق في نفس اليوم."}</p>}
                 </>}
               </div>
             </div>
