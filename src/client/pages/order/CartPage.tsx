@@ -99,7 +99,7 @@ export function CartPage() {
     if (previousStep.current === step) return;
     previousStep.current = step;
     stepHeading.current?.focus({ preventScroll: true });
-    stepProgress.current?.scrollIntoView({ block: "start", behavior: motionOn() ? "smooth" : "instant" });
+    stepHeading.current?.scrollIntoView({ block: "start", behavior: motionOn() ? "smooth" : "instant" });
     if (!motionOn()) return;
 
     // The whole step fades together; forms remain mounted to retain every choice.
@@ -443,6 +443,7 @@ export function CartPage() {
 
   return (
     <ShopLayout>
+      <h1 ref={stepHeading} tabIndex={-1} className="page-title checkout-step-title">{step === 1 ? tr("سلتك", "Your cart") : step === 2 ? tr("الاستلام والتواصل", "Fulfillment and contact") : tr("راجع طلبك", "Review your order")}</h1>
       <nav ref={stepProgress} className="checkout-progress" aria-label={tr("خطوات الطلب", "Checkout steps")}>
         <span className="checkout-progress__focus" aria-hidden="true" style={{ insetInlineStart: `calc(${(step - .5) * 100 / 3}% + ${(step - 2) * 10 / 3 - 22}px)` }} />
         <span className="checkout-progress__track" aria-hidden="true"><i style={{ transform: `scaleX(${(step - 1) / 2})` }} /></span>
@@ -452,7 +453,6 @@ export function CartPage() {
           </button>
         ))}
       </nav>
-      <h1 ref={stepHeading} tabIndex={-1} className="page-title checkout-step-title">{step === 1 ? tr("سلتك", "Your cart") : step === 2 ? tr("الاستلام والتواصل", "Fulfillment and contact") : tr("راجع طلبك", "Review your order")}</h1>
       {!menu.shop.isOpen && (
         <div className="shop-closed" role="status">
           <strong>{tr("لا نستقبل طلبات الآن", "We're not taking orders right now")}</strong>
