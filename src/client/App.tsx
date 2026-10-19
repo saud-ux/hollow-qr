@@ -5,6 +5,7 @@ import { NativeBridge } from "./components/NativeBridge";
 import { WebBridge } from "./components/WebBridge";
 import { RouteTransitions } from "./components/RouteTransitions";
 import { StaffGuard } from "./components/StaffGuard";
+import { NearbyIntro } from "./components/NearbyIntro";
 import { Toaster } from "./components/Toast";
 import { LangProvider } from "./lib/i18n";
 import { isNative } from "./lib/native";
@@ -44,6 +45,7 @@ export function App() {
         <NativeBridge />
         <WebBridge />
         <Toaster />
+        <NearbyIntro />
         <Suspense fallback={<Spinner />}>
           {isNative ? <CustomerRoutes /> : <WebRoutes />}
         </Suspense>

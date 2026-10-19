@@ -135,7 +135,15 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if manager.authorizationStatus == .authorizedAlways { restore() }
+        switch manager.authorizationStatus {
+        case .authorizedAlways:
+            restore()
+        case .authorizedWhenInUse where enabled:
+            // Right after "While Using" is allowed, ask for "Always" too (iOS shows it once).
+            manager.requestAlwaysAuthorization()
+        default:
+            break
+        }
     }
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
