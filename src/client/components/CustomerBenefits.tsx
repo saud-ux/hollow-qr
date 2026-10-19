@@ -5,7 +5,7 @@ import { newIdempotencyKey } from "../lib/hooks";
 import { useBenefits } from "../lib/benefits";
 import { riyals } from "../lib/menu";
 import { currentLang, tr } from "../lib/i18n";
-import { countUp, riseInTurn } from "../lib/motion";
+import { countUp, play, riseInTurn } from "../lib/motion";
 import { Dialog } from "./Dialog";
 import { Alert } from "./Field";
 
@@ -80,28 +80,56 @@ export function CustomerBenefits() {
   const [amount, setAmount] = useState("50");
   const balanceRef = useRef<HTMLHeadingElement>(null);
   const cupsRef = useRef<HTMLSpanElement>(null);
-  const risen = useRef(false);
-  // When they arrive, the cards rise in (once) and the balance and the cups count up from 0.
+  const cardRef = useRef<HTMLElement>(null);
+  const giftRef = useRef<HTMLElement>(null);
+  // Kept from earlier, the cards are there as the page opens and rise in with it.
+  // Arriving later, the card fades in over its placeholder and the gift card rises in.
+  const arrived = useRef(account !== null);
+  const loaded = account !== null;
   useLayoutEffect(() => {
-    if (!account) return;
-    if (!risen.current) {
-      risen.current = true;
-      riseInTurn([...document.querySelectorAll(".benefits-account, .benefits-gift")]);
-    }
-    const total = account.balance_halalas;
+    if (!loaded || arrived.current) return;
+    arrived.current = true;
+    void play(cardRef.current, [{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" });
+    if (giftRef.current) riseInTurn([giftRef.current]);
+  }, [loaded]);
+  // The balance and the cups count up from 0, then from what they showed when they change.
+  const shown = useRef({ balance: 0, cups: 0 });
+  const balance = account?.balance_halalas;
+  const giftCups = account?.gift_cups;
+  useLayoutEffect(() => {
+    if (balance === undefined || giftCups === undefined) return;
+    const from = shown.current;
+    shown.current = { balance, cups: giftCups };
     // Whole riyals while counting, the exact amount at the end.
     const stops = [
-      countUp(balanceRef.current, total, (h) => riyals(h === total ? h : Math.floor(h / 100) * 100), { delay: 120 }),
-      countUp(cupsRef.current, account.gift_cups, String, { duration: 700, delay: 220 }),
+      countUp(balanceRef.current, from.balance, balance, (h) => riyals(h === balance ? h : Math.floor(h / 100) * 100), { delay: 120 }),
+      countUp(cupsRef.current, from.cups, giftCups, String, { duration: 700, delay: 220 }),
     ];
-    return () => stops.forEach((stop) => stop());
-  }, [account]);
+    return () => {
+      stops.forEach((stop) => stop());
+      shown.current = from;
+    };
+  }, [balance, giftCups]);
   if (error) return <Alert tone="error">{error}</Alert>;
-  if (!account) return null;
+  if (!account) {
+    // Holds the card's place while the balance loads, so nothing under it jumps.
+    return (
+      <section className="sheet benefits-account benefits-account--loading" aria-busy="true" aria-label={tr("جارٍ تحميل رصيدك", "Loading your balance")}>
+        <div className="benefits-row">
+          <div>
+            <span className="skeleton benefits-skeleton__label" />
+            <span className="skeleton benefits-skeleton__amount" />
+          </div>
+          <span className="skeleton benefits-skeleton__button" />
+        </div>
+        <span className="skeleton benefits-skeleton__wide" />
+      </section>
+    );
+  }
   const cups = <span ref={cupsRef}>{account.gift_cups}</span>;
   return (
     <>
-      <section className="sheet benefits-account">
+      <section ref={cardRef} className="sheet benefits-account">
         <div className="benefits-row">
           <div>
             <span className="pass-label">{tr("رصيدي", "My balance")}</span>
@@ -116,7 +144,7 @@ export function CustomerBenefits() {
         </button>
       </section>
       {account.gift_cups > 0 && (
-        <section className="sheet benefits-gift">
+        <section ref={giftRef} className="sheet benefits-gift">
           <div className="benefits-row">
             <div>
               <h2>{tr("لك أكواب ضيافة من هولو", "Coffee on HOLLOW")}</h2>

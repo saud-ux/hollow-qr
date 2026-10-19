@@ -4,6 +4,7 @@ import { MAX_STAMPS } from "../../shared/constants";
 import type { MenuItem } from "../../shared/ordering";
 import type { CustomerCard } from "../../shared/types";
 import { useAuth } from "../lib/auth";
+import { prefetchOwnBenefits } from "../lib/benefits";
 import { useCart } from "../lib/cart";
 import { CALM, fadeInPhoto, play } from "../lib/motion";
 import { Wordmark } from "./Brand";
@@ -63,6 +64,12 @@ function tabIndex(pathname: string): number {
 
 export function TabBar() {
   const { count } = useCart();
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  // The balance on Account is ready before the tab is opened.
+  useEffect(() => {
+    if (userId) prefetchOwnBenefits(userId);
+  }, [userId]);
   const { pathname } = useLocation();
   const index = tabIndex(pathname);
   const navRef = useRef<HTMLElement>(null);

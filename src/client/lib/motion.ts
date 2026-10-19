@@ -577,7 +577,7 @@ export function enterAccount(hero: Element | null): void {
   void play(hero.querySelector(".acct-hero__name"), [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 380, easing: CALM.easing, delay: 250 });
   void play(hero.querySelector(".acct-hero__meta"), [{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: CALM.easing, delay: 330 });
   const siblings = hero.parentElement ? [...hero.parentElement.children] : [];
-  riseInTurn(siblings.slice(siblings.indexOf(hero) + 1).filter((el) => el.matches(".acct-sec")), 200);
+  riseInTurn(siblings.slice(siblings.indexOf(hero) + 1).filter((el) => el.matches(".benefits-account, .benefits-gift, .acct-sec")), 200);
 }
 
 /** Rises in `els` one after another, the first after `delay`. */
@@ -588,20 +588,24 @@ export function riseInTurn(els: Element[], delay = 0): void {
 }
 
 /**
- * Counts the text of `el` up from 0 to `to`, written by `format`, easing out
+ * Counts the text of `el` from `from` to `to`, written by `format`, easing out
  * as it nears the end. Returns a function that stops counting (the page then
  * shows whatever it renders next).
  */
-export function countUp(el: Element | null, to: number, format: (n: number) => string, { duration = 900, delay = 0 } = {}): () => void {
-  if (!el || !motionOn() || to <= 0) return done;
+export function countUp(el: Element | null, from: number, to: number, format: (n: number) => string, { duration = 900, delay = 0 } = {}): () => void {
+  if (!el) return done;
+  if (!motionOn() || from === to) {
+    el.textContent = format(to);
+    return done;
+  }
   const start = performance.now() + delay;
   let frame = 0;
   const tick = (now: number) => {
     const t = Math.min(1, Math.max(0, (now - start) / duration));
-    el.textContent = format(t < 1 ? Math.round(to * (1 - (1 - t) ** 3)) : to);
+    el.textContent = format(t < 1 ? Math.round(from + (to - from) * (1 - (1 - t) ** 3)) : to);
     if (t < 1) frame = requestAnimationFrame(tick);
   };
-  el.textContent = format(0);
+  el.textContent = format(from);
   frame = requestAnimationFrame(tick);
   return () => cancelAnimationFrame(frame);
 }
