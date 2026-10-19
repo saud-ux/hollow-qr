@@ -115,6 +115,7 @@ export function CustomerBenefits() {
       )}
       <Dialog
         open={history}
+        dismissible
         title={tr("سجل الرصيد والأكواب", "Balance and gift history")}
         onClose={() => setHistory(false)}
       >
@@ -151,44 +152,47 @@ export function CustomerBenefits() {
         title={tr("إضافة رصيد", "Add balance")}
         onClose={() => setTopup(false)}
       >
-        <div className="benefits-presets">
-          {[20, 50, 100].map((n) => (
-            <button
-              key={n}
-              className={`btn ${amount === String(n) ? "btn--primary" : "btn--secondary"}`}
-              onClick={() => setAmount(String(n))}
-            >
-              {riyals(n * 100)}
+        <div className="form">
+          <div className="benefits-presets">
+            {[20, 50, 100].map((n) => (
+              <button
+                key={n}
+                className={`btn ${amount === String(n) ? "btn--primary" : "btn--secondary"}`}
+                onClick={() => setAmount(String(n))}
+              >
+                {riyals(n * 100)}
+              </button>
+            ))}
+            <button className="btn btn--ghost" onClick={() => setAmount("")}>
+              {tr("مبلغ آخر", "Other amount")}
             </button>
-          ))}
-          <button className="btn btn--ghost" onClick={() => setAmount("")}>
-            {tr("مبلغ آخر", "Other amount")}
+          </div>
+          <label className="field">
+            {tr("المبلغ بالريال", "Amount in SAR")}
+            <input
+              type="number"
+              inputMode="decimal"
+              min="1"
+              max="10000"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </label>
+          {ready && <p className="muted">{tr("تُضاف القيمة بعد تأكيد الدفع عبر ميسر.", "Balance is added after Moyasar confirms payment.")}</p>}
+          {payError && <Alert tone="error">{payError}</Alert>}
+          <button
+            className="btn btn--primary"
+            disabled={
+              !ready || payBusy || Number(amount) < 1 || Number(amount) > 10000
+            }
+            onClick={() => void pay()}
+          >
+            {ready
+              ? tr("الدفع عبر ميسر", "Pay with Moyasar")
+              : tr("الدفع الإلكتروني قريبًا", "Online payment coming soon")}
           </button>
         </div>
-        <label className="field">
-          {tr("المبلغ بالريال", "Amount in SAR")}
-          <input
-            type="number"
-            min="1"
-            max="10000"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        </label>
-        {ready && <p className="muted">{tr("تُضاف القيمة بعد تأكيد الدفع عبر ميسر.", "Balance is added after Moyasar confirms payment.")}</p>}
-        {payError && <Alert tone="error">{payError}</Alert>}
-        <button
-          className="btn btn--primary"
-          disabled={
-            !ready || payBusy || Number(amount) < 1 || Number(amount) > 10000
-          }
-          onClick={() => void pay()}
-        >
-          {ready
-            ? tr("الدفع عبر ميسر", "Pay with Moyasar")
-            : tr("الدفع الإلكتروني قريبًا", "Online payment coming soon")}
-        </button>
       </Dialog>
     </>
   );
