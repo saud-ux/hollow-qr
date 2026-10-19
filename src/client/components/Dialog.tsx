@@ -11,6 +11,9 @@ export function Dialog({
   children,
   onClose,
   actions,
+  lead,
+  className,
+  focusDialog = false,
   tone = "default",
   dismissible = false,
 }: {
@@ -19,6 +22,11 @@ export function Dialog({
   children?: ReactNode;
   onClose: () => void;
   actions?: ReactNode;
+  /** Shown above the title, e.g. an illustration. */
+  lead?: ReactNode;
+  className?: string;
+  /** Opens with focus on the dialog itself, so no button shows a focus ring before anyone picks one. */
+  focusDialog?: boolean;
   tone?: "default" | "danger" | "warning" | "success";
   dismissible?: boolean;
 }) {
@@ -27,15 +35,18 @@ export function Dialog({
   const backdropPress = useRef(false);
   // While it fades out, it keeps showing what it showed when open (pages often
   // clear what a dialog shows in the same step that closes it).
-  const [shown, setShown] = useState({ title, children, actions });
-  if (open && (shown.title !== title || shown.children !== children || shown.actions !== actions)) setShown({ title, children, actions });
-  const view = open ? { title, children, actions } : shown;
+  const [shown, setShown] = useState({ title, children, actions, lead });
+  if (open && (shown.title !== title || shown.children !== children || shown.actions !== actions || shown.lead !== lead)) setShown({ title, children, actions, lead });
+  const view = open ? { title, children, actions, lead } : shown;
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (open && !el.open) el.showModal();
+    if (open && !el.open) {
+      el.showModal();
+      if (focusDialog) el.focus();
+    }
     if (!open && el.open) el.close();
-  }, [open]);
+  }, [open, focusDialog]);
   useEffect(() => {
     if (!open || !dismissible) return;
     // Fixed positioning also prevents background scrolling in iOS Safari.
@@ -58,8 +69,9 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className={`dialog dialog--${tone}`}
+      className={`dialog dialog--${tone}${className ? ` ${className}` : ""}`}
       aria-labelledby={titleId}
+      tabIndex={focusDialog ? -1 : undefined}
       onPointerDown={e => { backdropPress.current = e.target === e.currentTarget && outside(e.currentTarget, e.clientX, e.clientY); }}
       onClick={e => {
         if (dismissible && backdropPress.current && e.target === e.currentTarget && outside(e.currentTarget, e.clientX, e.clientY)) onClose();
@@ -70,6 +82,7 @@ export function Dialog({
         onClose();
       }}
     >
+      {view.lead}
       {dismissible ? <div className="dialog__heading">
         <h2 id={titleId} className="dialog__title">{view.title}</h2>
         <button type="button" className="dialog__close" aria-label={tr("إغلاق", "Close")} onClick={onClose}>×</button>

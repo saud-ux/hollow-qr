@@ -601,6 +601,9 @@ select {
   color: var(--espresso);
   box-shadow: 0 30px 80px rgb(0 0 0 / 35%);
 }
+.dialog:focus {
+  outline: none;
+}
 .dialog::backdrop {
   background: rgb(43 30 22 / 55%);
 }
@@ -2931,6 +2934,82 @@ html[lang="ar"] .shop__cups-label {
 }
 :is(html.themed, html.staff-ui)[data-theme="dark"] .nearby-step {
   background: rgb(201 162 39 / 14%);
+}
+
+/* The first-open message about nearby alerts: a little map round HOLLOW and the alert it sends. */
+.nearby-intro {
+  padding: 16px 16px 12px;
+  border-radius: 28px;
+  text-align: center;
+}
+.nearby-intro .dialog__title {
+  margin: 16px 0 8px;
+  font-size: 1.35rem;
+}
+.nearby-intro .dialog__body p {
+  margin: 0;
+  color: #5d4c3f;
+  line-height: 1.7;
+}
+.nearby-intro .dialog__actions {
+  flex-direction: column;
+  gap: 4px;
+}
+.nearby-intro__later {
+  border-color: transparent;
+  color: var(--label);
+}
+.nearby-preview {
+  position: relative;
+  height: 190px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #efe5d3;
+}
+.nearby-preview svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.nearby-preview__alert {
+  position: absolute;
+  inset-inline: 14px;
+  bottom: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 92%);
+  color: #2b1e16;
+  box-shadow: 0 8px 20px rgb(43 30 22 / 18%);
+  line-height: 1.4;
+  text-align: start;
+}
+.nearby-preview__alert img {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+.nearby-preview__alert b {
+  display: block;
+  font-size: 0.85rem;
+}
+.nearby-preview__alert span {
+  font-size: 0.8rem;
+  color: #4a3b30;
+}
+.nearby-preview__alert small {
+  position: absolute;
+  inset-inline-end: 12px;
+  top: 9px;
+  font-size: 0.7rem;
+  color: #8a7868;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] .nearby-intro .dialog__body p {
+  color: #b3a190;
 }
 
 /* An order in progress, pinned on top of the menu. */
