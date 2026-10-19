@@ -6576,6 +6576,12 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 /* Customer credit/coupons inherit the existing light and dark theme tokens. */
 .benefits-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .benefits-row>input:not([type=checkbox]){flex:1;min-width:140px}
+/* The balance card's placeholder while it loads: the same shapes and height. */
+.benefits-account--loading .benefits-row { min-height: 68px; }
+.benefits-skeleton__label { display: block; width: 52px; height: 14px; }
+.benefits-skeleton__amount { display: block; width: 96px; height: 30px; margin-top: 10px; }
+.benefits-skeleton__button { width: 128px; height: 48px; border-radius: 999px; }
+.benefits-skeleton__wide { display: block; height: 48px; border-radius: 999px; }
 .benefits-gift{border:1px solid var(--label);border-radius:var(--radius);padding:14px;margin-top:14px}
 .benefits-gift h2{font-size:1rem;margin:0}.benefits-gift p{font-size:.85rem;margin:6px 0}
 .benefits-presets{display:flex;flex-wrap:wrap;gap:8px;margin-block:12px}
