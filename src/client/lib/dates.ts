@@ -54,6 +54,12 @@ const dateTimeShortEn = new Intl.DateTimeFormat("en-GB", {
 });
 
 const yearOf = new Intl.DateTimeFormat("en-GB", { timeZone: BUSINESS_TIME_ZONE, year: "numeric" });
+const dayOf = new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TIME_ZONE });
+
+const timeAr = new Intl.DateTimeFormat("ar-SA-u-nu-latn-ca-gregory", { timeZone: BUSINESS_TIME_ZONE, hour: "numeric", minute: "2-digit" });
+const timeEn = new Intl.DateTimeFormat("en-GB", { timeZone: BUSINESS_TIME_ZONE, hour: "numeric", minute: "2-digit", hour12: true });
+const dayMonthAr = new Intl.DateTimeFormat("ar-SA-u-nu-latn-ca-gregory", { timeZone: BUSINESS_TIME_ZONE, month: "long", day: "numeric" });
+const dayMonthEn = new Intl.DateTimeFormat("en-GB", { timeZone: BUSINESS_TIME_ZONE, month: "long", day: "numeric" });
 
 const none = () => tr("لا يوجد", "None");
 
@@ -71,6 +77,17 @@ export function formatDateTimeShort(iso: string | null | undefined): string {
   if (Number.isNaN(d.getTime())) return none();
   if (yearOf.format(d) !== yearOf.format(new Date())) return formatDateTime(iso);
   return (currentLang() === "en" ? dateTimeShortEn : dateTimeShortAr).format(d);
+}
+
+/** For tight spaces: today's time ("اليوم 7:36 م"), or just the day of another date. */
+export function formatWhen(iso: string | null | undefined): string {
+  if (!iso) return none();
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return none();
+  const en = currentLang() === "en";
+  if (dayOf.format(d) === dayOf.format(new Date())) return en ? `Today ${timeEn.format(d)}` : `اليوم ${timeAr.format(d)}`;
+  if (yearOf.format(d) !== yearOf.format(new Date())) return formatDate(iso);
+  return (en ? dayMonthEn : dayMonthAr).format(d);
 }
 
 export function formatDate(iso: string | null | undefined): string {
