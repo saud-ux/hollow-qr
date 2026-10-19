@@ -6680,3 +6680,57 @@ html.staff-ui[data-theme="dark"] .avail__status:not(.is-out) { color: #8fc69d; }
   .catalog-tabs button { padding-inline: 6px; font-size: .82rem; }
   .catalog-photo-editor { flex-wrap: wrap; }
 }
+
+/* Orders concept 1: calm, readable tickets and a compact sound control. */
+.orders-workspace { display: grid; gap: 16px; }
+.orders-toolbar { display: grid; gap: 14px; }
+.orders-toolbar__status { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.orders-toolbar .shop-state { margin: 0; font-size: .93rem; }
+.orders-sound { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 9px 12px; border: 1px solid var(--staff-line); border-radius: 12px; background: var(--paper); color: var(--espresso); font: inherit; font-size: .83rem; font-weight: 700; cursor: pointer; }
+.orders-sound:not(.is-on) { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, var(--paper)); }
+.orders-sound.is-on { color: #447653; opacity: 1; cursor: default; }
+.orders-toolbar__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.staff-shell .orders-toolbar__actions .btn { min-height: 46px; padding: 10px 12px; border-width: 1px; border-radius: 12px; font-size: .88rem; }
+.orders-workspace .board-tabs { gap: 4px; border: 1px solid var(--staff-line); border-radius: 16px; padding: 5px; }
+.orders-workspace .board-tab { padding: 9px 6px; gap: 6px; min-width: 0; font-size: .85rem; border-radius: 11px; }
+.orders-workspace .board-tab.is-on { background: #352419; color: #f4ede0; }
+.orders-workspace .board-tab__count { display: grid; place-items: center; min-width: 23px; height: 23px; font-size: .75rem; border-radius: 8px; animation: none; }
+.orders-workspace .ticket-card { padding: 16px; gap: 14px; border: 1px solid var(--staff-line); border-radius: 16px; box-shadow: none; min-width: 0; }
+.orders-workspace .ticket-card--new { border: 2px solid var(--gold); animation: none; }
+.orders-workspace .ticket-card--preparing { border-top: 3px solid var(--label); }
+.orders-workspace :is(.ticket-card--ready, .ticket-card--out_for_delivery) { border-top: 3px solid #447653; }
+.orders-workspace .ticket-card--arrived { box-shadow: 0 0 0 3px rgb(201 162 39 / 25%); }
+.orders-workspace .ticket-card__head { justify-content: space-between; }
+.orders-workspace .ticket-card__num { font-size: 1.4rem; line-height: 1.2; }
+.orders-workspace .ticket-card__time { color: var(--staff-muted); font-size: .8rem; font-weight: 400; }
+.ticket-card__identity { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.ticket-card__customer { display: inline-flex; align-items: center; gap: 7px; min-width: 0; overflow-wrap: anywhere; font-size: 1rem; }
+.orders-workspace .ticket-card__kind { margin: 0; font-size: .76rem; padding: 6px 10px; }
+.orders-workspace .ticket-card__items { padding-top: 14px; border-top: 1px solid var(--staff-line); gap: 10px; font-size: .96rem; line-height: 1.7; }
+.orders-workspace .ticket-card__items li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.orders-workspace .ticket-card__qty { width: 27px; height: 27px; min-width: 27px; border-radius: 7px; font-size: .88rem; background: var(--staff-bg); color: var(--espresso); }
+.orders-workspace .ticket-card__meta { padding-top: 12px; border-top: 1px solid var(--staff-line); gap: 8px; font-size: .84rem; }
+.orders-workspace .ticket-card__meta > div { align-items: baseline; }
+.orders-workspace .ticket-card__meta dd { min-width: 0; overflow-wrap: anywhere; }
+.ticket-card__total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.ticket-card__total > span { color: var(--staff-muted); font-size: .82rem; }
+.ticket-card__total > strong { font-size: 1.35rem; }
+.ticket-card__benefits { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.ticket-card__benefits:empty { display: none; }
+.orders-workspace .ticket-card__actions { align-items: stretch; gap: 10px; }
+.staff-shell .orders-workspace .ticket-card__actions .btn { min-height: 48px; padding: 11px 14px; border-radius: 12px; font-size: .91rem; }
+.orders-workspace .ticket-card__actions .btn--ghost { border: 1px solid var(--staff-line); background: transparent; }
+.orders-workspace .board__empty { margin: 0; padding: 48px 12px; background: var(--paper); border: 1px dashed var(--staff-line); border-radius: 16px; font-size: .95rem; }
+html.staff-ui[data-theme="dark"] .orders-workspace .ticket-card--new { border-color: #a88b30; }
+html.staff-ui[data-theme="dark"] .orders-sound.is-on { color: #8fc69d; }
+@media (min-width: 900px) {
+  .orders-toolbar { grid-template-columns: 1fr auto; align-items: center; }
+  .orders-toolbar__status { justify-content: flex-start; gap: 18px; }
+  .orders-workspace .board__col { padding: 12px; border: 1px solid var(--staff-line); border-radius: 18px; gap: 14px; }
+  .orders-workspace .board__title { display: flex; align-items: center; justify-content: space-between; font-size: .98rem; padding: 3px 2px 8px; }
+}
+@media (max-width: 380px) {
+  .orders-workspace .board-tab { font-size: .78rem; gap: 4px; }
+  .orders-workspace .ticket-card { padding: 12px; }
+  .staff-shell .orders-workspace .ticket-card__actions .btn { padding-inline: 10px; font-size: .82rem; }
+}

@@ -173,29 +173,25 @@ export function StaffOrdersPage() {
 
   return (
     <StaffLayout title="الطلبات" wide>
-      <div className="board-bar">
-        <div className={`shop-state ${board?.shop.isOpen ? "shop-state--open" : ""}`}>
-          <span className="shop-state__dot" aria-hidden="true" />
-          {board ? (board.shop.isOpen ? "نستقبل الطلبات" : board.shop.settings.orderingPaused ? "الطلبات متوقفة" : "خارج أوقات الدوام") : "…"}
-        </div>
-        {board && (
-          <div className="board-bar__actions">
-            <button type="button" className="btn btn--small btn--secondary" onClick={() => setStockOpen(true)}>
-              المتوفر والكميات
-            </button>
-            <button type="button" className={`btn btn--small ${board.shop.settings.orderingPaused ? "btn--primary" : "btn--secondary"}`} onClick={() => void togglePause()}>
-              {board.shop.settings.orderingPaused ? "استئناف الطلبات" : "إيقاف مؤقت"}
-            </button>
+      <div className="orders-workspace">
+      <div className="orders-toolbar">
+        <div className="orders-toolbar__status">
+          <div className={`shop-state ${board?.shop.isOpen ? "shop-state--open" : ""}`}>
+            <span className="shop-state__dot" aria-hidden="true" />
+            {board ? (board.shop.isOpen ? "نستقبل الطلبات" : board.shop.settings.orderingPaused ? "الطلبات متوقفة" : "خارج أوقات الدوام") : "…"}
           </div>
-        )}
+          <button type="button" className={`orders-sound ${soundOn ? "is-on" : ""}`} onClick={enableSound} disabled={soundOn} aria-label={soundOn ? "صوت تنبيه الطلبات مفعّل" : "تفعيل صوت تنبيه الطلبات"}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" /></svg>
+            {soundOn ? "الصوت مفعّل" : "تفعيل الصوت"}
+          </button>
+        </div>
+        {board && <div className="orders-toolbar__actions">
+          <button type="button" className="btn btn--secondary" onClick={() => setStockOpen(true)}>المتوفر والكميات</button>
+          <button type="button" className={`btn ${board.shop.settings.orderingPaused ? "btn--primary" : "btn--secondary"}`} onClick={() => void togglePause()}>
+            {board.shop.settings.orderingPaused ? "استئناف الطلبات" : "إيقاف مؤقت"}
+          </button>
+        </div>}
       </div>
-
-      {!soundOn && (
-        <button type="button" className="sound-gate" onClick={enableSound}>
-          <strong>اضغط لتشغيل تنبيه الطلبات</strong>
-          <span>يرن الجهاز مع كل طلب جديد</span>
-        </button>
-      )}
 
       {error && <Alert tone="error">{error}</Alert>}
       {toast && (
@@ -207,11 +203,25 @@ export function StaffOrdersPage() {
 
       {board && (
         <>
-          <div className="board-tabs" role="tablist">
+          <div className="board-tabs" role="tablist" aria-label="حالة الطلبات">
             {COLUMNS.map((c) => {
               const n = active.filter((o) => c.statuses.includes(o.status)).length;
               return (
-                <button key={c.key} type="button" role="tab" aria-selected={tab === c.key} className={`board-tab ${tab === c.key ? "is-on" : ""}`} onClick={() => setTab(c.key)}>
+                <button key={c.key} id={`orders-tab-${c.key}`} type="button" role="tab" aria-selected={tab === c.key} aria-controls={`orders-panel-${c.key}`} tabIndex={tab === c.key ? 0 : -1} className={`board-tab ${tab === c.key ? "is-on" : ""}`} onClick={() => setTab(c.key)}
+                  onKeyDown={(e) => {
+                    const index = COLUMNS.indexOf(c);
+                    let next: number;
+                    const rtl = document.documentElement.dir !== "ltr";
+                    if (e.key === "Home") next = 0;
+                    else if (e.key === "End") next = COLUMNS.length - 1;
+                    else if (e.key === "ArrowLeft") next = (index + (rtl ? 1 : 2)) % COLUMNS.length;
+                    else if (e.key === "ArrowRight") next = (index + (rtl ? 2 : 1)) % COLUMNS.length;
+                    else return;
+                    e.preventDefault();
+                    const key = COLUMNS[next]!.key;
+                    setTab(key);
+                    document.getElementById(`orders-tab-${key}`)?.focus();
+                  }}>
                   {c.title}
                   <span className={`board-tab__count ${c.key === "new" && n > 0 ? "is-hot" : ""}`}>{n}</span>
                 </button>
@@ -222,7 +232,7 @@ export function StaffOrdersPage() {
             {COLUMNS.map((c) => {
               const list = active.filter((o) => c.statuses.includes(o.status));
               return (
-                <section key={c.key} className={`board__col ${tab === c.key ? "is-on" : ""}`} aria-label={c.title}>
+                <section key={c.key} id={`orders-panel-${c.key}`} role="tabpanel" aria-labelledby={`orders-tab-${c.key}`} className={`board__col ${tab === c.key ? "is-on" : ""}`}>
                   <h2 className="board__title">
                     {c.title} <span>{list.length}</span>
                   </h2>
@@ -263,6 +273,7 @@ export function StaffOrdersPage() {
         </>
       )}
 
+      </div>
       {stockOpen && <StockDialog onClose={() => setStockOpen(false)} />}
 
       <Dialog
@@ -304,6 +315,7 @@ function StockDialog({ onClose }: { onClose: () => void }) {
     <Dialog
       open
       title="المتوفر والكميات"
+      dismissible
       onClose={onClose}
       actions={
         <button type="button" className="btn btn--primary" onClick={onClose}>
@@ -340,11 +352,14 @@ function OrderTicket({
           #{o.orderNumber}
         </span>
         <span className="ticket-card__time">{minutesAgo(o.createdAt, now)}</span>
+      </header>
+      <div className="ticket-card__identity">
+        <strong className="ticket-card__customer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="7" r="4" /><path d="M4 22v-3a8 8 0 0 1 16 0v3" /></svg><bdi>{o.customerName}</bdi></strong>
         <span className={`ticket-card__kind ticket-card__kind--${o.fulfillment}`}>
           <Icon />
           {FULFILLMENT_LABELS_AR[o.fulfillment]}
         </span>
-      </header>
+      </div>
 
       {arrived && <div className="ticket-card__arrived">العميل وصل عند الكوفي!</div>}
 
@@ -364,9 +379,9 @@ function OrderTicket({
 
       <dl className="ticket-card__meta">
         <div>
-          <dt>العميل</dt>
+          <dt>التواصل</dt>
           <dd>
-            {o.customerName} · <a href={`tel:${o.customerPhone}`} dir="ltr">{o.customerPhone}</a>
+            <a href={`tel:${o.customerPhone}`} dir="ltr">{o.customerPhone}</a>
           </dd>
         </div>
         {o.fulfillment === "curbside" && (
@@ -388,18 +403,18 @@ function OrderTicket({
             </dd>
           </div>
         )}
-        <div>
-          <dt>المبلغ</dt>
-          <dd>
-            <strong>{riyals(o.totalHalalas-(o.walletHalalas??0))}</strong> · المتبقي عند الاستلام
+      </dl>
+      <div className="ticket-card__total">
+        <span>المتبقي عند الاستلام</span>
+        <strong>{riyals(o.totalHalalas-(o.walletHalalas??0))}</strong>
+      </div>
+      <div className="ticket-card__benefits">
             {(o.walletHalalas??0)>0 && <span className="badge badge--gold">مدفوع بالرصيد {riyals(o.walletHalalas!)}</span>}
             {(o.giftCups??0)>0 && <span className="badge badge--gold">ضيافة {o.giftCups} كوب</span>}
             {(o.couponHalalas??0)>0 && <span className="badge badge--gold">كوبون −{riyals(o.couponHalalas!)}</span>}
             {o.useReward && <span className="badge badge--gold">مشروب مجاني −{riyals(o.discountHalalas)}</span>}
             {o.promoPercent !== null && <span className="badge badge--gold">خصم {o.promoPercent}%</span>}
-          </dd>
-        </div>
-      </dl>
+      </div>
 
       <div className="ticket-card__actions">
         {next && (
