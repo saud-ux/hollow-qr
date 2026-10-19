@@ -4854,7 +4854,22 @@ html.sheet-open .search-pill-row {
   color: #2b1e16;
   background: linear-gradient(145deg, #e3c25c, #b08a1f);
   border: 4px solid var(--cream);
-  box-shadow: 0 0 0 2px var(--gold);
+}
+/* The gold ring round the avatar (drawn in as the page opens). */
+.acct-hero__ring {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 84px;
+  height: 84px;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.acct-hero__ring circle {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2;
+  stroke-dasharray: 100;
 }
 .acct-hero__guest {
   width: 38px;

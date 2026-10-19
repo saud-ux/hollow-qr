@@ -1,5 +1,5 @@
 import { CustomerBenefits } from "../../components/CustomerBenefits";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { DISPLAY_NAME_MAX_LENGTH, MAX_STAMPS } from "../../../shared/constants";
 import { MAX_PLACES } from "../../../shared/types";
@@ -14,6 +14,7 @@ import { SocialLinks } from "../../components/SocialLinks";
 import { apiPost, apiSend, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { tr, useLang, type LangChoice } from "../../lib/i18n";
+import { enterAccount } from "../../lib/motion";
 import { isNative } from "../../lib/native";
 import { placeIcon, placeName, usePlaces } from "../../lib/places";
 import { canPromptInstall, needsHomeScreen, onInstallChange, promptInstall } from "../../lib/pwa";
@@ -94,6 +95,13 @@ export function AccountPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const entered = useRef(false);
+  useLayoutEffect(() => {
+    if (entered.current) return;
+    entered.current = true;
+    enterAccount(heroRef.current);
+  }, []);
 
   const user = me?.user ?? null;
   const card = me?.card ?? null;
@@ -137,8 +145,11 @@ export function AccountPage() {
     <CustomerLayout dock={<TabBar />} onRefresh={signedIn ? refreshMe : undefined}>
       <h1 className="page-title">{tr("حسابي", "Account")}</h1>
 
-      <section className="acct-hero">
+      <section ref={heroRef} className="acct-hero">
         <div className="acct-hero__avatar" aria-hidden="true">
+          <svg className="acct-hero__ring" viewBox="0 0 84 84">
+            <circle cx="42" cy="42" r="41" pathLength="100" />
+          </svg>
           {signedIn && displayName ? Array.from(displayName.trim())[0] : <AccountIcon name="staff" className="acct-hero__guest" />}
         </div>
         {signedIn ? (

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { apiGet, apiPost, errorText } from "../lib/api";
 import { newIdempotencyKey } from "../lib/hooks";
 import { useBenefits } from "../lib/benefits";
 import { riyals } from "../lib/menu";
-import { tr } from "../lib/i18n";
+import { currentLang, tr } from "../lib/i18n";
+import { countUp, riseInTurn } from "../lib/motion";
 import { Dialog } from "./Dialog";
 import { Alert } from "./Field";
 
@@ -77,15 +78,34 @@ export function CustomerBenefits() {
   const [history, setHistory] = useState(false);
   const [topup, setTopup] = useState(false);
   const [amount, setAmount] = useState("50");
+  const balanceRef = useRef<HTMLHeadingElement>(null);
+  const cupsRef = useRef<HTMLSpanElement>(null);
+  const risen = useRef(false);
+  // When they arrive, the cards rise in (once) and the balance and the cups count up from 0.
+  useLayoutEffect(() => {
+    if (!account) return;
+    if (!risen.current) {
+      risen.current = true;
+      riseInTurn([...document.querySelectorAll(".benefits-account, .benefits-gift")]);
+    }
+    const total = account.balance_halalas;
+    // Whole riyals while counting, the exact amount at the end.
+    const stops = [
+      countUp(balanceRef.current, total, (h) => riyals(h === total ? h : Math.floor(h / 100) * 100), { delay: 120 }),
+      countUp(cupsRef.current, account.gift_cups, String, { duration: 700, delay: 220 }),
+    ];
+    return () => stops.forEach((stop) => stop());
+  }, [account]);
   if (error) return <Alert tone="error">{error}</Alert>;
   if (!account) return null;
+  const cups = <span ref={cupsRef}>{account.gift_cups}</span>;
   return (
     <>
       <section className="sheet benefits-account">
         <div className="benefits-row">
           <div>
             <span className="pass-label">{tr("رصيدي", "My balance")}</span>
-            <h2>{riyals(account.balance_halalas)}</h2>
+            <h2 ref={balanceRef}>{riyals(account.balance_halalas)}</h2>
           </div>
           <button className="btn btn--secondary" onClick={() => setTopup(true)}>
             {tr("إضافة رصيد", "Add balance")}
@@ -101,9 +121,10 @@ export function CustomerBenefits() {
             <div>
               <h2>{tr("لك أكواب ضيافة من هولو", "Coffee on HOLLOW")}</h2>
               <p>
-                {tr(
-                  `المتبقي ${account.gift_cups} كوب · قهوة اليوم أو المقطرة، حارة أو باردة`,
-                  `${account.gift_cups} cups left · Daily coffee or V60, hot or iced`,
+                {currentLang() === "en" ? (
+                  <>{cups} cups left · Daily coffee or V60, hot or iced</>
+                ) : (
+                  <>المتبقي {cups} كوب · قهوة اليوم أو المقطرة، حارة أو باردة</>
                 )}
               </p>
             </div>

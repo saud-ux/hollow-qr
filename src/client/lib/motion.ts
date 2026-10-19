@@ -561,6 +561,52 @@ export function openOrdersFromPhotos(rows: Iterable<Element>): void {
 }
 
 // ---------------------------------------------------------------------------
+// Account: the avatar grows out of a point while its gold ring draws round
+// it, the name and email follow, and the sections under it rise in. The
+// balance and the hospitality cups count up from 0 (countUp).
+// ---------------------------------------------------------------------------
+
+/** `hero` is the account's top card; the sections after it rise in too. */
+export function enterAccount(hero: Element | null): void {
+  if (!hero || !motionOn()) return;
+  void play(hero.querySelector(".acct-hero__avatar"), [{ opacity: 0, transform: "translateX(-50%) scale(0.3)" }, { opacity: 1, transform: "translateX(-50%)" }], {
+    duration: 480,
+    easing: STAMP_EASE,
+  });
+  void play(hero.querySelector(".acct-hero__ring circle"), [{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: 800, easing: CALM.easing, delay: 150 });
+  void play(hero.querySelector(".acct-hero__name"), [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 380, easing: CALM.easing, delay: 250 });
+  void play(hero.querySelector(".acct-hero__meta"), [{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: CALM.easing, delay: 330 });
+  const siblings = hero.parentElement ? [...hero.parentElement.children] : [];
+  riseInTurn(siblings.slice(siblings.indexOf(hero) + 1).filter((el) => el.matches(".acct-sec")), 200);
+}
+
+/** Rises in `els` one after another, the first after `delay`. */
+export function riseInTurn(els: Element[], delay = 0): void {
+  els.slice(0, 6).forEach((el, i) => {
+    void play(el, [{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }], { duration: 400, easing: CALM.easing, delay: delay + i * 80 });
+  });
+}
+
+/**
+ * Counts the text of `el` up from 0 to `to`, written by `format`, easing out
+ * as it nears the end. Returns a function that stops counting (the page then
+ * shows whatever it renders next).
+ */
+export function countUp(el: Element | null, to: number, format: (n: number) => string, { duration = 900, delay = 0 } = {}): () => void {
+  if (!el || !motionOn() || to <= 0) return done;
+  const start = performance.now() + delay;
+  let frame = 0;
+  const tick = (now: number) => {
+    const t = Math.min(1, Math.max(0, (now - start) / duration));
+    el.textContent = format(t < 1 ? Math.round(to * (1 - (1 - t) ** 3)) : to);
+    if (t < 1) frame = requestAnimationFrame(tick);
+  };
+  el.textContent = format(0);
+  frame = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(frame);
+}
+
+// ---------------------------------------------------------------------------
 // My card tilts a few degrees with the phone (or under a finger), with a soft
 // gloss that follows the light. It drifts back to flat when the phone rests.
 // ---------------------------------------------------------------------------
