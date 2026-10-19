@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Navigate } from "react-router";
 import { flowStep, isActiveStatus, orderFlow, type MenuItem, type Order } from "../../../shared/ordering";
 import { Alert } from "../../components/Field";
@@ -7,6 +7,7 @@ import { ItemImage, ShopLayout } from "../../components/Shop";
 import { apiGet, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { formatDateTimeShort } from "../../lib/dates";
+import { openOrdersFromPhotos } from "../../lib/motion";
 import { riyals, useMenu } from "../../lib/menu";
 import { lineName, lineOptionName, statusLabel } from "../../lib/menuText";
 import { tr } from "../../lib/i18n";
@@ -57,6 +58,8 @@ export function OrdersPage() {
       .join(tr("، ", ", "));
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pastRef = useRef<HTMLUListElement>(null);
+  const opened = useRef(false);
 
   const load = useCallback(
     () =>
@@ -72,6 +75,14 @@ export function OrdersPage() {
   useEffect(() => {
     if (session) void load();
   }, [session, load]);
+
+  // The past orders open out of their photos when the list first arrives, not after a refresh.
+  const loaded = orders !== null;
+  useLayoutEffect(() => {
+    if (!loaded || opened.current) return;
+    opened.current = true;
+    if (pastRef.current) openOrdersFromPhotos(pastRef.current.querySelectorAll(".order-row"));
+  }, [loaded]);
 
   if (loading) {
     return (
@@ -132,11 +143,11 @@ export function OrdersPage() {
         </section>
       )}
       {orders && orders.some((o) => !isActiveStatus(o.status)) && (
-        <section className="orders-group" aria-labelledby="orders-past">
+        <section className="orders-group" aria-labelledby="orders-past" data-own-entrance>
           <h2 id="orders-past" className="orders-group__title">
             {tr("السابقة", "Past")}
           </h2>
-          <ul className="order-list">
+          <ul ref={pastRef} className="order-list">
             {orders
               .filter((o) => !isActiveStatus(o.status))
               .map((o) => (

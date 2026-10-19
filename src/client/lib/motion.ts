@@ -511,13 +511,53 @@ export function fadeInPhoto(img: HTMLImageElement, shownAt: number): void {
   void play(img, [{ opacity: 0 }, { opacity: 1 }], { duration: 420, easing: "ease-out" });
 }
 
-/** Rises in the children of `parent` that weren't there `before` (the first few, one after another). */
+/**
+ * Rises in the children of `parent` that weren't there `before` (the first few, one after another).
+ * A child marked `data-own-entrance` plays its own entrance instead.
+ */
 export function riseInNew(parent: Element, before: ReadonlySet<Element>): void {
   if (!parent.isConnected) return;
   [...parent.children]
-    .filter((el) => !before.has(el))
+    .filter((el) => !before.has(el) && !(el instanceof HTMLElement && "ownEntrance" in el.dataset))
     .slice(0, 6)
     .forEach((el, i) => void play(el, [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 360, easing: CALM.easing, delay: i * 60 }));
+}
+
+// ---------------------------------------------------------------------------
+// My orders: each past order opens out of its photo. The photo pops in, the
+// card opens from it across the row, then the words and the status follow,
+// one order after another.
+// ---------------------------------------------------------------------------
+
+export function openOrdersFromPhotos(rows: Iterable<Element>): void {
+  if (!motionOn()) return;
+  const rtl = pushSide() === -1;
+  [...rows].slice(0, 8).forEach((row, i) => {
+    const thumbs = row.querySelector(".order-thumbs");
+    if (!thumbs) return;
+    const r = row.getBoundingClientRect();
+    const t = thumbs.getBoundingClientRect();
+    // At first only the photo shows: everything past it is cut away.
+    const rest = Math.max(0, rtl ? t.left - r.left - 6 : r.right - t.right - 6);
+    const photoOnly = rtl ? `inset(0 0 0 ${rest}px round 14px)` : `inset(0 ${rest}px 0 0 round 14px)`;
+    const delay = i * 80;
+    void play(row, [{ clipPath: photoOnly, opacity: 0 }, { clipPath: photoOnly, opacity: 1, offset: 0.25 }, { clipPath: "inset(0 0 0 0 round 14px)", opacity: 1 }], {
+      duration: 640,
+      easing: CALM.easing,
+      delay,
+    });
+    void play(thumbs, [{ transform: "scale(0.6)" }, { transform: "none" }], { duration: 360, easing: STAMP_EASE, delay });
+    void play(row.querySelector(".order-row__main"), [{ opacity: 0, transform: `translateX(${rtl ? 12 : -12}px)` }, { opacity: 1, transform: "none" }], {
+      duration: 380,
+      easing: CALM.easing,
+      delay: delay + 200,
+    });
+    void play(row.querySelector(".order-row__side"), [{ opacity: 0, transform: "scale(0.7)" }, { opacity: 1, transform: "none" }], {
+      duration: 320,
+      easing: STAMP_EASE,
+      delay: delay + 420,
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
