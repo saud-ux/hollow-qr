@@ -22,7 +22,7 @@ Browser ──► Supabase Auth (anon key): sign-up / login / reset, Turnstile t
 - **ADMIN_ADJUSTMENT**, **CANCEL_MEMBERSHIP** and **REACTIVATE_MEMBERSHIP** are admin only.
   A cancelled membership rejects all other operations. QR scans show it as inactive, and the pass becomes `voided`.
 - **Duplicate protection**:
-  - If the account changed less than `DUPLICATE_WINDOW_SECONDS` (60) ago, the RPC returns `RECENT_ACTIVITY` without changing anything. The dashboard asks *تم تحديث هذا العميل قبل أقل من دقيقة* and resends with `confirmRecent`.
+  - If the account changed less than `DUPLICATE_WINDOW_SECONDS` ago, the RPC returns `RECENT_ACTIVITY` without changing anything. The dashboard asks *تم تحديث هذا العميل قبل أقل من دقيقة* and resends with `confirmRecent`. Production sets it to 0, which turns this warning off.
   - A single "+5" is one operation and is never blocked. UNDO is exempt, because it is how staff fix an accidental duplicate.
   - Every submission carries an `idempotencyKey` (UUID). A retry or double-tap replays the stored result instead of applying twice. Buttons are also disabled while a request is pending.
 - `loyalty_transactions` is append-only. Triggers reject DELETE and TRUNCATE, and any UPDATE other than setting the reversal link once.

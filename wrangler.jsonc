@@ -36,7 +36,8 @@
     "APPLE_WALLET_MODE": "production",
     "APPLE_TEAM_IDENTIFIER": "N2KXQ7MVY3",
     "APPLE_PASS_TYPE_IDENTIFIER": "pass.com.hollowzulfi.rewards",
-    "DUPLICATE_WINDOW_SECONDS": "60"
+    // 0: no "updated less than a minute ago" warning; double taps are still caught by the idempotency key.
+    "DUPLICATE_WINDOW_SECONDS": "0"
   },
 
   // Hourly: sends the end-of-day summary to admins once the shop has closed
