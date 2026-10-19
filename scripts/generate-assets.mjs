@@ -223,12 +223,13 @@ function captionSvg({ caption, text, W, x0, muted }) {
 
 /**
  * Store-card strip: five cups showing progress (375x144 pt).
- * The tent sits in the middle, behind the cups. With `text` (the Wallet pass)
+ * The tent sits in the middle, behind the cups; on a full card it lights up
+ * gold, with a star on its peak. With `text` (the Wallet pass)
  * the cups are bigger and higher and the progress line is drawn under them;
  * without it (the in-app card, which cuts its cups out of these strips and
  * draws its own text) the cups stay centred.
  */
-function stripSvg({ filled, variant, wordmark, tent, tentBg, scale, text }) {
+function stripSvg({ filled, variant, wordmark, tent, tentBg, tentGold, scale, text }) {
   const W = 375;
   const H = 144;
   // The Wallet strip uses bigger cups, closer together, to fill its fixed height.
@@ -246,32 +247,25 @@ function stripSvg({ filled, variant, wordmark, tent, tentBg, scale, text }) {
     const x = x0 + i * (cupW + gap);
     cups += `<g transform="translate(${x} ${y0}) scale(${cupW / 60} ${cupH / 80})">${cupSvg({ state, wordmark, tent })}</g>`;
   }
+  const bg = cancelled ? rgb([60, 56, 52]) : rgb(COLORS.espresso);
+  const tentArt = reward ? tentGold : tentBg;
+  const tentW = 300;
+  const tentH = (tentW * tentArt.h) / tentArt.w;
+  const tentY = (H - tentH) / 2;
+  // On the Wallet pass the gold tent stays dimmer so the words over it read clearly.
+  const tentOpacity = reward ? (text ? 0.32 : 0.55) : text ? 0.08 : 0.07;
   const glow = reward
-    ? `<radialGradient id="g" cx="50%" cy="${text ? 35 : 55}%" r="65%"><stop offset="0" stop-color="${rgb(COLORS.gold, 0.45)}"/><stop offset="1" stop-color="${rgb(COLORS.gold, 0)}"/></radialGradient>
+    ? `<radialGradient id="g" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="${rgb(COLORS.gold, 0.22)}"/><stop offset="1" stop-color="${rgb(COLORS.gold, 0)}"/></radialGradient>
        <rect width="${W}" height="${H}" fill="url(#g)"/>`
     : "";
-  const sparkles = reward
-    ? (text
-        ? [
-            [x0 - 12, 22],
-            [W - x0 + 10, 30],
-          ]
-        : [
-            [x0 - 4, 26],
-            [W - x0 + 2, 30],
-            [W / 2, 18],
-          ]
-      )
-        .map(([x, y]) => `<path transform="translate(${x} ${y})" d="M0 -6 L1.6 -1.6 L6 0 L1.6 1.6 L0 6 L-1.6 1.6 L-6 0 L-1.6 -1.6 Z" fill="${rgb(COLORS.gold)}"/>`)
-        .join("")
+  // The Wallet pass's cups cover the peak, so only the in-app card gets the star.
+  const sparkles = reward && !text
+    ? `<path transform="translate(${W / 2} ${tentY + 2}) scale(0.9)" d="M0 -6 L1.6 -1.6 L6 0 L1.6 1.6 L0 6 L-1.6 1.6 L-6 0 L-1.6 -1.6 Z" fill="${rgb(COLORS.gold)}"/>`
     : "";
-  const bg = cancelled ? rgb([60, 56, 52]) : rgb(COLORS.espresso);
-  const tentW = 300;
-  const tentH = (tentW * tentBg.h) / tentBg.w;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W * scale}" height="${H * scale}" viewBox="0 0 ${W} ${H}">
     <rect width="${W}" height="${H}" fill="${bg}"/>
-    <image href="${tentBg.uri}" x="${(W - tentW) / 2}" y="${(H - tentH) / 2}" width="${tentW}" height="${tentH}" opacity="${text ? 0.08 : 0.07}"/>
     ${glow}
+    <image href="${tentArt.uri}" x="${(W - tentW) / 2}" y="${tentY}" width="${tentW}" height="${tentH}" opacity="${tentOpacity}"/>
     ${cups}
     ${sparkles}
     ${text ? captionSvg({ caption: stripCaption(filled, variant), text, W, x0, muted: cancelled }) : ""}
@@ -305,6 +299,7 @@ async function main() {
   const cupWordmark = await asset("hollow-wallet-logo.png", COLORS.cupInk, 600);
   const cupTent = await asset("hollow-tent-art.png", COLORS.cupInk, 700);
   const tentCream = await asset("hollow-tent-art.png", COLORS.cream, 900);
+  const tentGold = await asset("hollow-tent-art.png", [217, 181, 74], 900);
 
   // ---- Web brand derivatives (aspect ratio preserved, never distorted) ----
   const web = {
@@ -338,7 +333,7 @@ async function main() {
 
     for (let filled = 0; filled <= 5; filled++) {
       const variant = filled === 5 ? "reward" : "progress";
-      const strip = { filled, variant, wordmark: cupWordmark, tent: cupTent, tentBg: tentCream, scale };
+      const strip = { filled, variant, wordmark: cupWordmark, tent: cupTent, tentBg: tentCream, tentGold, scale };
       passImages[`strip-${filled}${suffix}.png`] = await png(stripSvg({ ...strip, text }));
       if (scale === 2) previewStrips[`strip-${filled}.png`] = await png(stripSvg(strip));
     }
