@@ -19,7 +19,7 @@ import { CartSkeleton } from "../../components/Skeletons";
 import { CarIcon, CardIcon, CashIcon, ItemImage, PhonePayIcon, QtyStepper, ScooterIcon, ShopLayout, StoreIcon } from "../../components/Shop";
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { enablePush, successFeedback } from "../../lib/native";
-import { CALM, motionOn, play } from "../../lib/motion";
+import { CALM, motionOn, play, pushSide } from "../../lib/motion";
 import { OriginSwitch } from "../../components/OriginSwitch";
 import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
@@ -80,13 +80,44 @@ export function CartPage() {
   const { menu, error: menuError, reload } = useMenu();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const stepHeading = useRef<HTMLHeadingElement>(null);
+  const stepProgress = useRef<HTMLElement>(null);
+  const checkoutForm = useRef<HTMLFormElement>(null);
   const previousStep = useRef(step);
   const submitting = useRef(false);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (previousStep.current === step) return;
+    const direction = step > previousStep.current ? 1 : -1;
     previousStep.current = step;
     stepHeading.current?.focus({ preventScroll: true });
-    stepHeading.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    stepProgress.current?.scrollIntoView({ block: "start", behavior: motionOn() ? "smooth" : "instant" });
+    if (!motionOn()) return;
+
+    // Keep every pane mounted so navigating never clears a customer's choices.
+    // Only animate the visible pane; cancel on fast back/forward navigation.
+    const animations: Animation[] = [];
+    const animate = (element: Element | null | undefined, frames: Keyframe[], delay = 0) => {
+      if (typeof element?.animate !== "function") return;
+      animations.push(element.animate(frames, { ...CALM, duration: 380, delay, fill: "backwards" }));
+    };
+    const shift = pushSide() * direction * 22;
+    animate(stepHeading.current, [{ opacity: 0, transform: `translateX(${shift / 2}px)` }, { opacity: 1, transform: "none" }]);
+    const pane = checkoutForm.current?.querySelector(".checkout-pane:not([hidden])");
+    Array.from(pane?.children ?? []).slice(0, 6).forEach((card, index) => {
+      animate(card, [{ opacity: 0, transform: `translate(${shift}px, 8px)` }, { opacity: 1, transform: "none" }], index * 45);
+    });
+    animate(checkoutForm.current?.querySelector(".checkout-step-actions"), [{ opacity: .4, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], 80);
+    animate(stepProgress.current?.querySelector(".is-current > span"), [{ transform: "scale(.88)" }, { transform: "scale(1.08)", offset: .6 }, { transform: "scale(1)" }]);
+    if (direction > 0) {
+      animate(stepProgress.current?.querySelector(`.checkout-progress__step:nth-of-type(${step - 1}) > span`), [{ transform: "scale(.8)" }, { transform: "scale(1)" }]);
+    }
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const cancel = () => animations.forEach((animation) => animation.cancel());
+    const onPreferenceChange = () => { if (preference.matches) cancel(); };
+    preference.addEventListener("change", onPreferenceChange);
+    return () => {
+      cancel();
+      preference.removeEventListener("change", onPreferenceChange);
+    };
   }, [step]);
   const [chosen, setFulfillment] = useState<FulfillmentType>("pickup");
   // Online methods show as «قريبًا» until they're connected; paying on pickup always works.
@@ -379,7 +410,8 @@ export function CartPage() {
 
   return (
     <ShopLayout>
-      <nav className="checkout-progress" aria-label={tr("خطوات الطلب", "Checkout steps")}>
+      <nav ref={stepProgress} className="checkout-progress" aria-label={tr("خطوات الطلب", "Checkout steps")}>
+        <span className="checkout-progress__track" aria-hidden="true"><i style={{ transform: `scaleX(${(step - 1) / 2})` }} /></span>
         {([tr("السلة", "Cart"), tr("الاستلام", "Fulfillment"), tr("التأكيد", "Review")] as const).map((label, i) => (
           <button key={i} type="button" className={`checkout-progress__step ${step === i + 1 ? "is-current" : step > i + 1 ? "is-complete" : ""}`} aria-current={step === i + 1 ? "step" : undefined} disabled={i + 1 >= step || busy || placed} onClick={() => { setStep((i + 1) as 1 | 2 | 3); setFormError(null); }}>
             <span>{step > i + 1 ? "✓" : i + 1}</span><strong>{label}</strong>
@@ -394,7 +426,7 @@ export function CartPage() {
         </div>
       )}
 
-      <form className="checkout checkout-flow" onSubmit={submit} noValidate>
+      <form ref={checkoutForm} className="checkout checkout-flow" onSubmit={submit} noValidate>
         <div className="checkout-pane" hidden={step !== 1}>
         <section className="sheet" aria-labelledby="cart-items">
           <h2 id="cart-items" className="pass-label">

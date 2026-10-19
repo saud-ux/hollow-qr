@@ -6805,3 +6805,29 @@ html.staff-ui[data-theme="dark"] .orders-sound.is-on { color: #8fc69d; }
   .checkout-wallet--compact .checkout-perk__copy { grid-template-columns: 1fr; gap: 2px; }
   .checkout-step-actions > .btn--primary { font-size: .9rem; padding-inline: 12px; }
 }
+
+/* Checkout motion: short, directional steps and tactile selection feedback. */
+.checkout-progress { position: relative; isolation: isolate; scroll-margin-top: calc(90px + env(safe-area-inset-top)); }
+.checkout-progress__track { position: absolute; z-index: 0; top: 24px; inset-inline: calc((100% - 20px) / 6); height: 2px; background: var(--sand); pointer-events: none; }
+.checkout-progress__track > i { display: block; width: 100%; height: 100%; background: var(--gold); transform-origin: right center; }
+[dir="ltr"] .checkout-progress__track > i { transform-origin: left center; }
+.checkout-progress__step { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .checkout-progress__track > i { transition: transform 420ms cubic-bezier(.2,.8,.2,1); }
+  .checkout-progress__step, .checkout-progress__step > span { transition: color 220ms ease, background-color 220ms ease, border-color 220ms ease; }
+  .checkout-flow :is(.choice, .payment-option) { transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, box-shadow 220ms ease, transform 160ms ease; }
+  .checkout-flow .choice--on { box-shadow: 0 4px 12px rgb(43 30 22 / 12%); }
+  .checkout-flow .choice--on > svg { animation: checkout-choice-in 320ms cubic-bezier(.2,.8,.2,1); }
+  .checkout-flow :is(.choice:not(.choice--off), .payment-option:not(:has(input:disabled))):active { transform: scale(.975); }
+  .checkout-step-actions .btn { transition: transform 140ms ease, box-shadow 180ms ease; }
+  .checkout-step-actions .btn:not(:disabled):active { transform: scale(.98); }
+  .checkout-flow .delivery-fields { animation: checkout-fields-in 260ms ease-out; }
+}
+@keyframes checkout-choice-in {
+  from { transform: translateY(3px) scale(.9); }
+  to { transform: none; }
+}
+@keyframes checkout-fields-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
