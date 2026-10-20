@@ -39,9 +39,12 @@ export function ForgotPasswordPage() {
         redirectTo: emailRedirectUrl(config.appUrl, "/reset-password", isNative),
         ...captcha.options,
       });
-      // Do not reveal whether the email exists; only surface rate limits etc.
+      // Do not reveal whether the email exists; only surface rate limits and a failure to send
+      // (the server or the connection, never an answer about the address).
       if (authError && authError.status === 429) setError(authErrorAr(authError));
-      else setSent(true);
+      else if (authError && (!authError.status || authError.status >= 500)) {
+        setError(tr("تعذّر إرسال الرسالة الآن، حاول بعد قليل أو تواصل معنا", "We couldn't send the email right now. Try again shortly or contact us"));
+      } else setSent(true);
     } finally {
       setBusy(false);
       captcha.reset();

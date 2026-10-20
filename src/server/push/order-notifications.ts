@@ -1,4 +1,4 @@
-import { flowStep, FULFILLMENT_LABELS_AR, formatSar, orderFlow, type Order } from "../../shared/ordering";
+import { amountDue, flowStep, FULFILLMENT_LABELS_AR, formatSar, orderFlow, type Order } from "../../shared/ordering";
 import type { PushDevice, PushLang, Repository } from "../data/repository";
 import type { Logger } from "../lib/logger";
 import type { AppPushMessage, AppPushSender, LiveActivityUpdate } from "./app-push";
@@ -14,11 +14,26 @@ export function orderStatusMessage(order: Order, lang: PushLang = "ar"): AppPush
 
 type PushText = { title: string; body: string };
 
+const paidFromBalance = (order: Order) => (order.walletHalalas ?? 0) > 0;
+
+/** What is left to pay and where: the balance already paid part of it, and delivery is paid on delivery. */
+function amountAr(order: Order): string {
+  const due = amountDue(order);
+  if (due === 0) return paidFromBalance(order) ? "مدفوع بالكامل من رصيدك" : "لا يوجد مبلغ للدفع";
+  return `${paidFromBalance(order) ? "المتبقي" : "الإجمالي"} ${formatSar(due)} ر.س - دفع عند ${order.fulfillment === "delivery" ? "التوصيل" : "الاستلام"}`;
+}
+
+function amountEn(order: Order): string {
+  const due = amountDue(order);
+  if (due === 0) return paidFromBalance(order) ? "Paid in full from your balance" : "Nothing to pay";
+  return `${paidFromBalance(order) ? "Left to pay" : "Total"} SAR ${formatSar(due)}, pay on ${order.fulfillment === "delivery" ? "delivery" : "pickup"}`;
+}
+
 function arabicText(order: Order): PushText | null {
   const n = order.orderNumber;
   switch (order.status) {
     case "new":
-      return { title: "استلمنا طلبك! 🤩", body: `طلبك رقم ${n} (الإجمالي ${formatSar(order.totalHalalas)} ر.س - دفع عند الاستلام). ثواني ونبدأ!` };
+      return { title: "استلمنا طلبك! 🤩", body: `طلبك رقم ${n} (${amountAr(order)}). ثواني ونبدأ!` };
     case "preparing":
       return { title: "شغّالين على طلبك! ☕", body: `طلبك رقم ${n} قيد التحضير، جهّز نفسك!` };
     case "ready":
@@ -43,7 +58,7 @@ function englishText(order: Order): PushText | null {
   const n = order.orderNumber;
   switch (order.status) {
     case "new":
-      return { title: `Got your order #${n}! 🤩`, body: `Total SAR ${formatSar(order.totalHalalas)}, pay on pickup. Loading up...` };
+      return { title: `Got your order #${n}! 🤩`, body: `${amountEn(order)}. Loading up...` };
     case "preparing":
       return { title: "We're on it! ☕", body: `Your order #${n} is being prepared. Ready soon!` };
     case "ready":
@@ -153,7 +168,7 @@ export function newOrderStaffMessage(order: Order): AppPushMessage {
   const shown = lines.slice(0, 3).join("، ") + (lines.length > 3 ? ` +${lines.length - 3}` : "");
   return {
     title: `طلب جديد #${order.orderNumber}`,
-    body: `${order.customerName} · ${shown} · ${formatSar(order.totalHalalas)} ر.س · ${FULFILLMENT_LABELS_AR[order.fulfillment]}`,
+    body: `${order.customerName} · ${shown} · ${paidFromBalance(order) ? "المتبقي " : ""}${formatSar(amountDue(order))} ر.س · ${FULFILLMENT_LABELS_AR[order.fulfillment]}`,
     collapseId: `staff-${order.id}`,
     data: { link: "staff-orders" },
   };

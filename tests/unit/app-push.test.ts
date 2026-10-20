@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { silentLogger } from "../../src/server/lib/logger";
 import { ApnsTokenSender, AppPushKeyError, apnsKeyDer } from "../../src/server/push/app-push";
-import { orderStatusMessage } from "../../src/server/push/order-notifications";
+import { newOrderStaffMessage, orderStatusMessage } from "../../src/server/push/order-notifications";
 import { base64ToBytes, bytesToBase64 } from "../../src/server/security/encoding";
 import type { Order } from "../../src/shared/ordering";
 
@@ -115,5 +115,31 @@ describe("orderStatusMessage", () => {
     expect(orderStatusMessage({ ...base, status: "completed", loyaltyResult: oneCup })!.body).toContain("1 كوب");
     expect(orderStatusMessage({ ...base, status: "cancelled", cancelledBy: "customer" })).toBeNull();
     expect(orderStatusMessage({ ...base, status: "cancelled", cancelledBy: "staff" })!.data).toEqual({ orderId: "o1" });
+  });
+
+  it("asks only for what is left after the balance, paid on delivery for delivery orders", () => {
+    const placed = { ...base, status: "new", totalHalalas: 2500 } as Order;
+    expect(orderStatusMessage({ ...placed, fulfillment: "delivery" })!.body).toBe("طلبك رقم 12 (الإجمالي 25 ر.س - دفع عند التوصيل). ثواني ونبدأ!");
+    expect(orderStatusMessage({ ...placed, fulfillment: "delivery", walletHalalas: 1500 })!.body).toBe("طلبك رقم 12 (المتبقي 10 ر.س - دفع عند التوصيل). ثواني ونبدأ!");
+    expect(orderStatusMessage({ ...placed, walletHalalas: 2500 })!.body).toBe("طلبك رقم 12 (مدفوع بالكامل من رصيدك). ثواني ونبدأ!");
+    expect(orderStatusMessage({ ...placed, totalHalalas: 0 })!.body).toBe("طلبك رقم 12 (لا يوجد مبلغ للدفع). ثواني ونبدأ!");
+    expect(orderStatusMessage({ ...placed, fulfillment: "delivery", walletHalalas: 1500 }, "en")!.body).toBe("Left to pay SAR 10, pay on delivery. Loading up...");
+    expect(orderStatusMessage({ ...placed, walletHalalas: 2500 }, "en")!.body).toBe("Paid in full from your balance. Loading up...");
+  });
+});
+
+describe("newOrderStaffMessage", () => {
+  const order = {
+    id: "o1",
+    orderNumber: 12,
+    customerName: "سارة",
+    fulfillment: "pickup",
+    totalHalalas: 2500,
+    items: [{ quantity: 1, nameAr: "قهوة اليوم", optionNameAr: null }],
+  } as unknown as Order;
+
+  it("shows the amount staff collect, after the balance", () => {
+    expect(newOrderStaffMessage(order).body).toBe("سارة · قهوة اليوم · 25 ر.س · استلام من الكاشير");
+    expect(newOrderStaffMessage({ ...order, walletHalalas: 1500 }).body).toBe("سارة · قهوة اليوم · المتبقي 10 ر.س · استلام من الكاشير");
   });
 });
