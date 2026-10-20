@@ -259,7 +259,7 @@ export const meRoutes = new Hono<HonoEnv>()
     c.get("deps").logger.info("account.deleted", { userId: user.id });
     // A pass still in Wallet refreshes into its cancelled state.
     if (account) runInBackground(c, walletOf(c).passChanged(account.passSerial));
-    return c.json({ ok: true });
+    return c.json({ ok: true, pending: result.pending ?? false });
   })
 
   // Development aid: inspect the pass.json that WOULD be signed. Disabled in

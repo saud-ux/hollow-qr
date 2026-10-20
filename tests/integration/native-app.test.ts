@@ -11,6 +11,7 @@ const ALL_DAY = Array.from({ length: 7 }, () => ({ closed: false, open: "00:00",
 
 let db: PGlite;
 let app: ReturnType<typeof buildTestApp>["app"];
+let repo: ReturnType<typeof buildTestApp>["repo"];
 let appPush: MockAppPushSender;
 let staffId: string;
 let adminId: string;
@@ -53,6 +54,7 @@ beforeAll(async () => {
   db = await createTestDb();
   const built = buildTestApp(db);
   app = built.app;
+  repo = built.repo;
   appPush = built.appPush as MockAppPushSender;
   staffId = (await createAuthUser(db, { email: "staff@native.test", name: "Staff", role: "staff" })).id;
   adminId = (await createAuthUser(db, { email: "admin@native.test", name: "Admin", role: "admin" })).id;
@@ -199,6 +201,36 @@ describe("order status notifications", () => {
 });
 
 describe("account deletion", () => {
+  it("queues deletion durably, preserves funds and retries Auth cleanup idempotently", async () => {
+    const customer = await newCustomer();
+    await db.query("insert into public.benefit_accounts(customer_id,balance_halalas,gift_cups) values($1,10000,3)", [customer.id]);
+    const order = await placeOrder(customer.id, { useBalance: true });
+    expect(order.totalHalalas).toBeGreaterThan(0);
+    const before = await db.query<{ balance_halalas: number }>("select balance_halalas from public.benefit_accounts where customer_id=$1", [customer.id]);
+    expect(before.rows[0]!.balance_halalas).toBeLessThan(10000);
+
+    // The SQL transaction commits even if the external Auth service is offline.
+    const requested = await db.query<{ result: { ok: boolean } }>("select public.delete_customer_account($1) result", [customer.id]);
+    expect(requested.rows[0]!.result).toEqual({ ok: true });
+    expect((await app.request("/api/me", { headers: bearer(customer.id) })).status).toBe(401);
+    expect((await db.query("select 1 from auth.users where id=$1", [customer.id])).rows).toHaveLength(1);
+    expect((await db.query("select 1 from public.account_deletion_requests where user_id=$1 and completed_at is null", [customer.id])).rows).toHaveLength(1);
+    const balances = await db.query("select balance_halalas,gift_cups from public.benefit_accounts where customer_id=$1", [customer.id]);
+    expect(balances.rows[0]).toEqual({ balance_halalas: 10000, gift_cups: 3 });
+
+    expect(await repo.completeAccountDeletions()).toEqual({ completed: 1, pending: 0 });
+    expect(await repo.completeAccountDeletions()).toEqual({ completed: 0, pending: 0 });
+    expect((await db.query("select 1 from auth.users where id=$1", [customer.id])).rows).toHaveLength(0);
+    expect((await db.query("select auth_user_id from public.profiles where id=$1", [customer.id])).rows[0]).toEqual({ auth_user_id: null });
+    expect((await db.query("select balance_halalas,gift_cups from public.benefit_accounts where customer_id=$1", [customer.id])).rows).toEqual(balances.rows);
+  });
+
+  it("does not detach a normal active profile from its Auth identity", async () => {
+    const customer = await newCustomer();
+    await expect(db.query("delete from auth.users where id=$1", [customer.id])).rejects.toThrow();
+    expect((await app.request("/api/me", { headers: bearer(customer.id) })).status).toBe(200);
+  });
+
   it("anonymizes the customer, voids the card and blocks the account", async () => {
     const customer = await newCustomer();
     await post("/api/me/push-devices", { token: token(9) }, bearer(customer.id));
@@ -224,7 +256,7 @@ describe("account deletion", () => {
     expect(profile.rows[0]!.disabled_at).not.toBeNull();
 
     const auth = await db.query<{ email: string }>("select email from auth.users where id = $1", [customer.id]);
-    expect(auth.rows[0]!.email).toBe(`deleted-${customer.id}@deleted.invalid`);
+    expect(auth.rows).toHaveLength(0);
 
     const orders = await db.query<{ id: string; status: string; customer_name: string; customer_phone: string; car_description: string; note: string | null }>(
       "select id, status, customer_name, customer_phone, car_description, note from public.orders where customer_id = $1",

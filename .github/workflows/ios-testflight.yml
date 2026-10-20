@@ -38,6 +38,15 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Check App Store SDK requirements
+        run: |
+          set -euo pipefail
+          XCODE_MAJOR="$(xcodebuild -version | awk '/Xcode/{split($2,v,"."); print v[1]}')"
+          SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
+          test "$XCODE_MAJOR" -ge 26
+          test "${SDK_VERSION%%.*}" -ge 26
+          plutil -lint ios/App/App/PrivacyInfo.xcprivacy
+
       - name: Build the web app and copy it into the iOS project
         run: |
           pnpm build
@@ -86,9 +95,17 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            > "$RUNNER_TEMP/xcodebuild.log" 2>&1 || true
+            > "$RUNNER_TEMP/xcodebuild.log" 2>&1 || { tail -200 "$RUNNER_TEMP/xcodebuild.log"; exit 1; }
           grep -E 'error:|\*\* ARCHIVE' "$RUNNER_TEMP/xcodebuild.log" || true
           test -d "$RUNNER_TEMP/App.xcarchive" || { tail -200 "$RUNNER_TEMP/xcodebuild.log"; exit 1; }
+
+      - name: Verify archived privacy manifest
+        run: |
+          set -euo pipefail
+          MANIFEST="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app/PrivacyInfo.xcprivacy"
+          test -f "$MANIFEST"
+          plutil -lint "$MANIFEST"
+          plutil -extract NSPrivacyAccessedAPITypes xml1 -o - "$MANIFEST" | grep -q CA92.1
 
       - name: Upload to TestFlight
         env:

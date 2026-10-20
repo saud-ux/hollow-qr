@@ -116,6 +116,10 @@ export default {
     const deps = buildDeps(env);
     const { repo, appPush, webPush } = deps;
     if (!repo) return;
+    ctx.waitUntil(repo.completeAccountDeletions().then(({ completed, pending }) => {
+      if (completed || pending) logger.info("account.deletions", { completed, pending });
+      if (pending) logger.error("account.deletions_pending", { pending });
+    }).catch(() => logger.error("account.deletions_failed", {})));
     ctx.waitUntil(
       runDailySummary({ repo, appPush, webPush, logger }, new Date(), BUSINESS_TIME_ZONE).catch((err: unknown) => {
         logger.error("daily_summary.failed", { error: err instanceof Error ? err.message : "unknown" });

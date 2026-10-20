@@ -424,9 +424,18 @@ export class PgliteRepository implements Repository {
     const r = await this.one("select public.delete_customer_account($1) as result", [userId]);
     const result = r!.result as { ok: boolean; code?: string };
     if (!result.ok) return { ok: false, code: deleteAccountCode(result.code) };
-    await this.db.query("update public.orders set rating_comment = null where customer_id = $1", [userId]);
-    await this.db.query("update auth.users set email = $2 where id = $1", [userId, `deleted-${userId}@deleted.invalid`]);
-    return { ok: true };
+    await this.completeAccountDeletions();
+    return { ok: true, pending: false };
+  }
+  async completeAccountDeletions(limit = 20) {
+    const rows = await this.db.query<{ user_id: string }>(
+      "select user_id from public.account_deletion_requests where completed_at is null order by last_attempt_at nulls first limit $1", [limit],
+    );
+    for (const row of rows.rows) {
+      await this.db.query("delete from auth.users where id = $1", [row.user_id]);
+      await this.db.query("update public.account_deletion_requests set completed_at = now(), last_attempt_at = now() where user_id = $1", [row.user_id]);
+    }
+    return { completed: rows.rows.length, pending: 0 };
   }
   async listPlaces(userId: string) {
     return (await this.one("select public.places_list($1) as r", [userId]))!.r as SavedPlace[];

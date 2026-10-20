@@ -578,19 +578,39 @@ export class SupabaseRepository implements Repository {
   async deleteCustomerAccount(userId: string): Promise<DeleteAccountResult> {
     const result = (await this.rpc("delete_customer_account", { p_user_id: userId })) as { ok: boolean; code?: string };
     if (!result.ok) return { ok: false, code: deleteAccountCode(result.code) };
-    // Rating comments are free text: drop them with the rest of the personal data.
-    const comments = (await this.db.from("orders").update({ rating_comment: null }).eq("customer_id", userId)) as DbResult;
-    if (comments.error) throw new RepositoryError("deleteCustomerAccount:ratings", comments.error);
-    // Free the email for a future sign-up and block sign-in for good. The
-    // profile is already disabled, so the API refuses this user either way.
-    const { error } = await this.db.auth.admin.updateUserById(userId, {
-      email: `deleted-${userId}@deleted.invalid`,
-      email_confirm: true,
-      ban_duration: "876000h",
-      user_metadata: { display_name: "deleted", name: null, full_name: null },
-    });
-    if (error) throw new RepositoryError("deleteCustomerAccount:auth", { code: (error as { code?: string }).code });
-    return { ok: true };
+    return { ok: true, pending: !(await this.finishAccountDeletion(userId)) };
+  }
+
+  /** Hard-delete Auth (identities/sessions included), retaining anonymous sales.
+   * A committed queue entry survives a transient API failure or Worker restart.
+   */
+  private async finishAccountDeletion(userId: string): Promise<boolean> {
+    try {
+      const attempt = await this.db.from("account_deletion_requests")
+        .update({ last_attempt_at: new Date().toISOString() }).eq("user_id", userId).is("completed_at", null);
+      if (attempt.error) return false;
+      const { error } = await this.db.auth.admin.deleteUser(userId);
+      if (error && error.code !== "user_not_found" && error.status !== 404) return false;
+      const done = await this.db.from("account_deletion_requests")
+        .update({ completed_at: new Date().toISOString() }).eq("user_id", userId);
+      return !done.error;
+    } catch {
+      // Report the pending count to the scheduled job, never swallow the request.
+      return false;
+    }
+  }
+
+  async completeAccountDeletions(limit = 20): Promise<{ completed: number; pending: number }> {
+    const { data, error } = await this.db.from("account_deletion_requests")
+      .select("user_id").is("completed_at", null)
+      .order("last_attempt_at", { ascending: true, nullsFirst: true })
+      .limit(Math.min(Math.max(limit, 1), 100));
+    if (error) throw new RepositoryError("completeAccountDeletions", error);
+    let completed = 0;
+    for (const row of (data ?? []) as { user_id: string }[]) {
+      if (await this.finishAccountDeletion(row.user_id)) completed += 1;
+    }
+    return { completed, pending: (data?.length ?? 0) - completed };
   }
 
   async walletRegisterDevice(device: string, pushToken: string, passTypeIdentifier: string, serial: string) {

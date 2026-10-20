@@ -141,7 +141,7 @@ export interface CreateStaffParams {
 
 export type CreateStaffResult = { ok: true; userId: string } | { ok: false; code: "EMAIL_EXISTS" | "WEAK_PASSWORD" };
 export type RemoveStaffResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_STAFF" | "ALREADY_REMOVED" };
-export type DeleteAccountResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_A_CUSTOMER" | "ACTIVE_ORDER" };
+export type DeleteAccountResult = { ok: true; pending?: boolean } | { ok: false; code: "NOT_FOUND" | "NOT_A_CUSTOMER" | "ACTIVE_ORDER" };
 
 export interface PlaceInput {
   kind: PlaceKind;
@@ -361,9 +361,10 @@ export interface Repository {
 
   /**
    * App Store account deletion: anonymizes the customer's data
-   * (delete_customer_account), then frees the email and blocks sign-in.
+   * (delete_customer_account), then deletes Auth; transient failures are queued.
    */
   deleteCustomerAccount(userId: string): Promise<DeleteAccountResult>;
+  completeAccountDeletions(limit?: number): Promise<{ completed: number; pending: number }>;
 
   /** The customer's saved delivery places: home, work, then named ones. */
   listPlaces(userId: string): Promise<SavedPlace[]>;

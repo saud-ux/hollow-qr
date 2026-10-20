@@ -30,24 +30,6 @@ class HollowBridgeViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(HollowWalletPlugin())
         bridge?.registerPluginInstance(HollowWidgetPlugin())
         bridge?.registerPluginInstance(HollowGeofencePlugin())
-        hideKeyboardAccessoryBar()
-    }
-
-    /// Takes away the bar of arrows and ✓ that iOS puts above the keyboard in
-    /// web pages: the app's forms don't need it, and over the menu search it
-    /// only hid the results. It is the accessory view of the web view's
-    /// private content view, so that view is given none. Unlike the Keyboard
-    /// plugin, this leaves WebKit's own keyboard handling as it is.
-    private func hideKeyboardAccessoryBar() {
-        let selector = #selector(getter: UIResponder.inputAccessoryView)
-        guard let contentView = NSClassFromString(["WK", "Content", "View"].joined()),
-              let method = class_getInstanceMethod(contentView, selector) else { return }
-        let none: @convention(block) (AnyObject) -> UIView? = { _ in nil }
-        let implementation = imp_implementationWithBlock(none)
-        // Override it on that view only, never on UIResponder itself.
-        if !class_addMethod(contentView, selector, implementation, method_getTypeEncoding(method)) {
-            method_setImplementation(method, implementation)
-        }
     }
 }
 

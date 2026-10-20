@@ -7,7 +7,6 @@ import { enableNotifications } from "../lib/notify";
 import { prepareWebPush, turnOffWebPush, turnOnWebPush, webPushState, type WebPushState } from "../lib/webpush";
 import { tr } from "../lib/i18n";
 import { HomeScreenHint } from "./HomeScreenHint";
-import { NearbyAlerts } from "./NearbyAlerts";
 
 type Key = keyof NotificationPrefs;
 
@@ -88,7 +87,6 @@ export function NotificationSettings({ role }: { role: AppRole }) {
           </label>
         ))}
       </div>
-      <NearbyAlerts />
       {blocked && <p className="muted small">
           {tr("الإشعارات مقفلة لتطبيق HOLLOW. فعّلها من الإعدادات ← HOLLOW ← الإشعارات.", "Notifications are off for HOLLOW. Turn them on in Settings → HOLLOW → Notifications.")}
         </p>}

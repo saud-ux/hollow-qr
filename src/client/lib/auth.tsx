@@ -86,9 +86,22 @@ export function AuthProvider({ supabase, children }: { supabase: SupabaseClient;
       await apiPost("/api/me/push-devices/remove", { token: pushToken }).catch(() => undefined);
     }
     // Website: the same for this browser.
-    if (sessionRef.current) await forgetWebPushOnServer();
-    await supabase.auth.signOut();
-    setMe(null);
+    if (sessionRef.current) await forgetWebPushOnServer().catch(() => undefined);
+    // A network error (or deletion of Auth before sign-out) must not leave
+    // this device displaying a stale signed-in session.
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } finally {
+        sessionRef.current = null;
+        setSession(null);
+        setMe(null);
+        setMeError(null);
+        setRecovery(false);
+      }
+    }
   }, [supabase]);
 
   const value = useMemo(

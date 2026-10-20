@@ -10,12 +10,20 @@ export const benefitCall = <T>(
 /** The signed-in customer's own account, kept between pages so Account and the cart show it at once. */
 let own: { userId: string; account: BenefitAccount } | null = null;
 let inflight: { userId: string; promise: Promise<BenefitAccount> } | null = null;
+let generation = 0;
+
+export function forgetOwnBenefits(): void {
+  generation += 1;
+  own = null;
+  inflight = null;
+}
 
 /** Loads the customer's own account; `fresh` skips a request already on its way. */
 function loadOwn(userId: string, fresh: boolean): Promise<BenefitAccount> {
   if (!fresh && inflight?.userId === userId) return inflight.promise;
+  const requestedGeneration = generation;
   const promise = benefitCall<BenefitAccount>("account").then((account) => {
-    own = { userId, account };
+    if (generation === requestedGeneration) own = { userId, account };
     return account;
   });
   inflight = { userId, promise };

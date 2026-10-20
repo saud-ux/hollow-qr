@@ -13,6 +13,13 @@ import { SocialLinks } from "../../components/SocialLinks";
 import { apiPost, apiSend, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { tr, useLang, type LangChoice } from "../../lib/i18n";
+import { clearCustomerDeviceData } from "../../lib/account-privacy";
+import { useCart } from "../../lib/cart";
+import { forgetOwnBenefits, useBenefits } from "../../lib/benefits";
+import { riyals } from "../../lib/menu";
+import { Nearby, nearbyAvailable } from "../../lib/geofence";
+import { clearWidget } from "../../lib/widget";
+import { showToast } from "../../components/Toast";
 import { enterAccount } from "../../lib/motion";
 import { isNative } from "../../lib/native";
 import { placeIcon, placeName, usePlaces } from "../../lib/places";
@@ -84,6 +91,8 @@ export function AccountPage() {
   const { session, loading, me, refreshMe, signOut } = useAuth();
   const navigate = useNavigate();
   const signedIn = !!session;
+  const cart = useCart();
+  const { account: benefits } = useBenefits(signedIn);
   const places = usePlaces(signedIn);
   const [theme, setTheme] = useState<ThemeChoice>(getThemeChoice);
   const { choice: langChoice, setChoice: setLangChoice } = useLang();
@@ -124,9 +133,18 @@ export function AccountPage() {
     setDeleteBusy(true);
     setDeleteError(null);
     try {
-      await apiPost("/api/me/delete", { confirm: "DELETE" });
+      const result = await apiPost<{ ok: true; pending: boolean }>("/api/me/delete", { confirm: "DELETE" });
       setDeleteOpen(false);
+      // Stop local alerts and remove the widget too: they can run without Auth.
+      if (nearbyAvailable) await Nearby.stop().catch(() => undefined);
+      await clearWidget();
       await signOut().catch(() => undefined);
+      cart.clear();
+      forgetOwnBenefits();
+      try { clearCustomerDeviceData(localStorage, me?.card?.memberId); } catch { /* Storage may be unavailable. */ }
+      showToast(result.pending
+        ? tr("تم استلام طلب الحذف، ونستكمل إزالة تسجيل الدخول تلقائيًا.", "Deletion requested. We are finishing removal of your sign-in automatically.")
+        : tr("تم حذف حسابك.", "Your account has been deleted."));
       void navigate("/menu", { replace: true });
     } catch (err) {
       setDeleteError(errorText(err));
@@ -255,6 +273,11 @@ export function AccountPage() {
       )}
 
       <Section title={tr("الإعدادات", "Settings")}>
+        {!signedIn && isNative && (
+          <Row icon="bell" to="/account/notifications">
+            {tr("الإشعارات", "Notifications")}
+          </Row>
+        )}
         <div className="acct-row acct-row--control">
           <AccountIcon name="moon" />
           <span className="acct-row__text">{tr("المظهر", "Appearance")}</span>
@@ -341,12 +364,24 @@ export function AccountPage() {
         open={deleteOpen}
         title={tr("حذف حسابك نهائيًا؟", "Delete your account for good?")}
         message={
+          <>
           <p>
             {tr(
               "نحذف اسمك وبريدك وأرقامك وعناوينك، وتُلغى بطاقة الولاء وما فيها من أكواب ومكافآت. لا يمكن التراجع عن هذا.",
               "We delete your name, email, numbers and addresses, and cancel your loyalty card with its cups and rewards. This can't be undone.",
             )}
           </p>
+          <p className="muted small">{tr(
+            "تُحذف بياناتك الشخصية ويُحذف تسجيل الدخول نهائيًا. إذا تعذّر الاتصال، نستكمل الحذف تلقائيًا، عادةً خلال ٢٤ ساعة. نحتفظ بسجلات محاسبية دون اسمك أو بيانات التواصل.",
+            "Personal data and sign-in are permanently removed. If the connection fails, deletion is retried automatically, normally within 24 hours. Accounting records are retained without your name or contact details.",
+          )}</p>
+          {benefits && (benefits.balance_halalas > 0 || benefits.gift_cups > 0) && (
+            <p>{tr(
+              `لديك رصيد ${riyals(benefits.balance_halalas)} و${benefits.gift_cups} كوب هدية. لن تتمكن من استخدامها داخل التطبيق بعد الحذف. تبقى السجلات المالية محفوظة لمعالجة أي حقوق مالية، ويمكنك التواصل مع الدعم بشأنها.`,
+              `You have ${riyals(benefits.balance_halalas)} in credit and ${benefits.gift_cups} gifted cups. You cannot use them in the app after deletion. Financial records remain available to resolve any financial claims; contact support about these.`,
+            )}</p>
+          )}
+          </>
         }
         confirmLabel={tr("احذف حسابي", "Delete my account")}
         tone="danger"
