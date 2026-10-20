@@ -7,6 +7,7 @@ import { itemName, itemSubName, subNameDir } from "../lib/menuText";
 import { growSearch } from "../lib/motion";
 import { tapFeedback } from "../lib/native";
 import { AddControl } from "./AddControl";
+import { TemperatureSwitch, type TemperatureChoice } from "./DrinkTemperature";
 import { choosesOrigin, OriginSheet } from "./OriginSheet";
 import { ProductSheet } from "./ProductSheet";
 import { SalePrice } from "./SalePrice";
@@ -36,9 +37,10 @@ const SETTLE_MS = 450;
 /**
  * The floating «بحث / Search» button above the tab bar. It steps out of the
  * way while the menu is moving and comes back once it stops. The search page
- * grows out of it.
+ * grows out of it. Given a drinks `filter`, it comes back as a dark dock:
+ * search, then all / hot / cold.
  */
-export function SearchPill({ onOpen }: { onOpen: (from: DOMRect) => void }) {
+export function SearchPill({ onOpen, filter }: { onOpen: (from: DOMRect) => void; filter?: { value: TemperatureChoice; onChange: (value: TemperatureChoice) => void } }) {
   const [moving, setMoving] = useState(false);
 
   useEffect(() => {
@@ -55,20 +57,26 @@ export function SearchPill({ onOpen }: { onOpen: (from: DOMRect) => void }) {
     };
   }, []);
 
+  const open = (e: { currentTarget: HTMLElement }) => {
+    tapFeedback();
+    onOpen(e.currentTarget.getBoundingClientRect());
+  };
   return (
     <div className="search-pill-row">
-      <button
-        type="button"
-        className={`search-pill ${moving ? "is-away" : ""}`}
-        onClick={(e) => {
-          tapFeedback();
-          onOpen(e.currentTarget.getBoundingClientRect());
-        }}
-        tabIndex={moving ? -1 : 0}
-      >
-        <SearchIcon />
-        {tr("بحث", "Search")}
-      </button>
+      {filter ? (
+        <div className={`temp-dock ${moving ? "is-away" : ""}`} role="group" aria-label={tr("بحث ونوع المشروبات", "Search and drink temperature")}>
+          <button type="button" className="temp-dock__search" aria-label={tr("بحث", "Search")} onClick={open} tabIndex={moving ? -1 : 0}>
+            <SearchIcon />
+          </button>
+          <span className="temp-dock__divider" aria-hidden="true" />
+          <TemperatureSwitch value={filter.value} onChange={filter.onChange} tabbable={!moving} />
+        </div>
+      ) : (
+        <button type="button" className={`search-pill ${moving ? "is-away" : ""}`} onClick={open} tabIndex={moving ? -1 : 0}>
+          <SearchIcon />
+          {tr("بحث", "Search")}
+        </button>
+      )}
     </div>
   );
 }
