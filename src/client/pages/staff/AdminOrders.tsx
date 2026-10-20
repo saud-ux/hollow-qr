@@ -12,7 +12,7 @@ import { Alert, Spinner } from "../../components/Field";
 import { CarIcon, ScooterIcon, StoreIcon } from "../../components/Shop";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiDownload, apiGet, errorText } from "../../lib/api";
-import { formatDateTime, shopDay } from "../../lib/dates";
+import { formatDate, formatDateTime, shopDay } from "../../lib/dates";
 import { riyals } from "../../lib/menu";
 
 const PAGE_SIZE = 30;
@@ -25,25 +25,28 @@ const STATES: { value: OrderHistoryFilter; label: string }[] = [
   { value: "ended", label: "المنتهية" },
 ];
 
-type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
+type Period = "today" | "yesterday" | "day" | "7d" | "30d" | "all" | "custom";
 
 const PERIODS: { value: Period; label: string }[] = [
   { value: "today", label: "اليوم" },
   { value: "yesterday", label: "أمس" },
+  { value: "day", label: "يوم محدد" },
   { value: "7d", label: "7 أيام" },
   { value: "30d", label: "30 يوم" },
   { value: "all", label: "كل الوقت" },
-  { value: "custom", label: "تاريخ محدد" },
+  { value: "custom", label: "فترة محددة" },
 ];
 
 const localDay = shopDay;
 
-function periodRange(period: Period, from: string, to: string): { from?: string; to?: string } {
+function periodRange(period: Period, from: string, to: string, day: string): { from?: string; to?: string } {
   switch (period) {
     case "today":
       return { from: localDay(), to: localDay() };
     case "yesterday":
       return { from: localDay(1), to: localDay(1) };
+    case "day":
+      return day ? { from: day, to: day } : {};
     case "7d":
       return { from: localDay(6), to: localDay() };
     case "30d":
@@ -69,6 +72,13 @@ function elapsed(fromIso: string, toIso: string): string {
   return `${Math.floor(h / 24)} يوم`;
 }
 
+/** What the export button says when the page shows one day: «ملخص مبيعات اليوم» / «… 19 أكتوبر». */
+function daySummaryLabel(day: string): string {
+  if (day === localDay()) return "ملخص مبيعات اليوم";
+  if (day === localDay(1)) return "ملخص مبيعات أمس";
+  return `ملخص مبيعات ${formatDate(`${day}T12:00:00+03:00`)}`;
+}
+
 const itemCount = (o: AdminOrder) => o.items.reduce((n, l) => n + l.quantity, 0);
 const itemsLine = (o: AdminOrder) => o.items.map((l) => `${l.quantity}× ${l.nameAr}${l.optionNameAr ? ` (${l.optionNameAr})` : ""}`).join("، ");
 
@@ -87,6 +97,7 @@ export function AdminOrdersPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [from, setFrom] = useState(() => localDay(6));
   const [to, setTo] = useState(() => localDay());
+  const [day, setDay] = useState(() => localDay());
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [data, setData] = useState<Loaded | null>(null);
@@ -101,7 +112,9 @@ export function AdminOrdersPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const range = periodRange(period, from, to);
+  const range = periodRange(period, from, to, day);
+  // One day on screen (today, yesterday, a chosen day): the export is that day's sales summary.
+  const singleDay = range.from && range.from === range.to ? range.from : null;
   const params = new URLSearchParams({ status: state });
   if (range.from) params.set("from", range.from);
   if (range.to) params.set("to", range.to);
@@ -140,7 +153,7 @@ export function AdminOrdersPage() {
   async function exportExcel() {
     setExporting(true);
     try {
-      await apiDownload(`/api/admin/export/sales.xlsx?${key}`, `hollow-sales-${localDay()}.xlsx`);
+      await apiDownload(`/api/admin/export/sales.xlsx?${key}`, `hollow-sales-${singleDay ?? localDay()}.xlsx`);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -191,6 +204,14 @@ export function AdminOrdersPage() {
             maxLength={80}
           />
         </div>
+        {period === "day" && (
+          <div className="ohist__dates">
+            <label>
+              اليوم
+              <input type="date" value={day} max={localDay()} onChange={(e) => setDay(e.target.value)} />
+            </label>
+          </div>
+        )}
         {period === "custom" && (
           <div className="ohist__dates">
             <label>
@@ -220,8 +241,13 @@ export function AdminOrdersPage() {
               )}
             </p>
             {shown.total > 0 && (
-              <button type="button" className="btn btn--small btn--secondary" onClick={() => void exportExcel()} disabled={exporting}>
-                {exporting ? "جارٍ التصدير…" : "تصدير Excel"}
+              <button
+                type="button"
+                className={`btn btn--small ${singleDay ? "btn--primary" : "btn--secondary"}`}
+                onClick={() => void exportExcel()}
+                disabled={exporting}
+              >
+                {exporting ? "جارٍ التجهيز…" : singleDay ? `${daySummaryLabel(singleDay)} · Excel` : "تصدير Excel"}
               </button>
             )}
           </div>

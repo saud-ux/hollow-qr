@@ -99,6 +99,15 @@ describe("sales workbook", () => {
     expect(orders).toContain("ملغي");
   });
 
+  it("names the day for a one-day summary, without a best day", () => {
+    const summary = parts(salesWorkbook({ orders: [order(1, "completed", 1200)], from: "2026-10-11", to: "2026-10-11", now: new Date("2026-10-20T12:00:00Z") }))[
+      "xl/worksheets/sheet1.xml"
+    ]!;
+    expect(summary).toContain("الفترة: يوم الأحد 2026-10-11");
+    expect(summary).not.toContain("أفضل يوم مبيعات");
+    expect(summary).toContain(`<f>COUNTIF('الطلبات'!$J:$J,&quot;مكتمل&quot;)</f><v>1</v>`);
+  });
+
   it("still opens with no orders", () => {
     const file = parts(salesWorkbook({ orders: [], from: null, to: null, now: new Date("2026-10-20T12:00:00Z") }));
     expect(file["xl/worksheets/sheet3.xml"]).toContain("لا توجد مبيعات مكتملة في هذه الفترة");

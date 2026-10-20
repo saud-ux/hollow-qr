@@ -511,15 +511,14 @@ function summarySheet(input: { orders: AdminOrder[]; done: AdminOrder[]; days: D
   line("المدفوع من رصيد العملاء", c(riyals(halalas((o) => o.walletHalalas ?? 0)), "kpiMoney", sumDone("balance")));
   line("متوسط قيمة الطلب", c(done.length ? riyals(sales) / done.length : 0, "kpiMoney", `IF(B${completedRow}=0,0,B${salesRow}/B${completedRow})`));
   line("رسوم التوصيل", c(riyals(halalas((o) => o.deliveryFeeHalalas)), "kpiMoney", sumDone("fee")));
-  if (days.length > 0) {
+  // A one-day report has no best day to name.
+  if (days.length > 1) {
     const range = (col: string) => `${quoted(DAILY)}!$${col}$${FIRST}:$${col}$${FIRST + days.length - 1}`;
     const best = days.reduce((a, b) => (b.sales > a.sales ? b : a));
     line(
       "أفضل يوم مبيعات",
       c(best.sales > 0 ? serialOf(best.day) : "-", "kpiDate", `IF(MAX(${range("D")})=0,"-",INDEX(${range("A")},MATCH(MAX(${range("D")}),${range("D")},0)))`),
     );
-  } else {
-    line("أفضل يوم مبيعات", c("-", "kpiText"));
   }
   const top = items[0];
   const topCell = (col: string) => `${quoted(ITEMS)}!$${col}$${FIRST}`;
@@ -609,7 +608,7 @@ function summarySheet(input: { orders: AdminOrder[]; done: AdminOrder[]; days: D
 }
 
 function periodText(from: string | null, to: string | null): string {
-  if (from && to) return from === to ? `يوم ${from}` : `من ${from} إلى ${to}`;
+  if (from && to) return from === to ? `يوم ${WEEKDAY_LABELS_AR[new Date(`${from}T12:00:00Z`).getUTCDay()]} ${from}` : `من ${from} إلى ${to}`;
   if (from) return `من ${from}`;
   if (to) return `حتى ${to}`;
   return "كل الفترات";
