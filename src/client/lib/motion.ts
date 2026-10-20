@@ -73,7 +73,7 @@ export type TransitionKind = "push" | "pop" | "tab";
 
 export const GROW = { duration: 560, easing: "cubic-bezier(.3,.7,.1,1)" } as const;
 /** Unhurried: eases in and out so the page glides rather than snaps across. */
-const SLIDE = { duration: 600, easing: "cubic-bezier(.4,0,.2,1)" } as const;
+const SLIDE = { duration: 510, easing: "cubic-bezier(.4,0,.2,1)" } as const;
 
 let inAppBackAt = -Infinity;
 
@@ -89,7 +89,7 @@ export function wasInAppBack(): boolean {
 /** The new page's first blocks rise in while it opens. */
 function riseIn(page: Element, delay: number): void {
   [...page.querySelectorAll(".shop__main > *, .customer__main > *")].slice(0, 6).forEach((row, i) =>
-    void play(row, [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 440, easing: CALM.easing, delay: delay + i * 45 }),
+    void play(row, [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 375, easing: CALM.easing, delay: delay + i * 38 }),
   );
 }
 
