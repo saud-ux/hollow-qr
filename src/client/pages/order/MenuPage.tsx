@@ -177,23 +177,49 @@ function CategoryChips({ sections, active, onActiveChange }: {
       .split(",")
       .map((k) => document.getElementById(`section-${k}`))
       .filter((el): el is HTMLElement => el !== null);
+    const keyOf = (el: Element) => el.id.replace("section-", "") as Section["key"];
+    // The band below misses the ends of the page: at the top the first section is the one in view, and at
+    // the bottom the last (a short one, like the boxes, never reaches the band).
+    const atEnd = () => {
+      const edge = scrollY < 4 ? elements[0] : innerHeight + scrollY >= document.documentElement.scrollHeight - 4 ? elements.at(-1) : undefined;
+      if (!edge) return false;
+      onActiveChange(keyOf(edge));
+      return true;
+    };
     const observer = new IntersectionObserver(
       (entries) => {
+        if (atEnd()) return;
         const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) onActiveChange(visible.target.id.replace("section-", "") as Section["key"]);
+        if (visible) onActiveChange(keyOf(visible.target));
       },
       { rootMargin: "-130px 0px -55% 0px" },
     );
     elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    addEventListener("scroll", atEnd, { passive: true });
+    return () => {
+      observer.disconnect();
+      removeEventListener("scroll", atEnd);
+    };
   }, [keys, onActiveChange]);
   function jump(key: Section["key"]) {
     onActiveChange(key);
     requestAnimationFrame(() => document.getElementById(`section-${key}`)?.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" }));
   }
+  // The section in view keeps its chip in sight: the row scrolls sideways, never the page.
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const bar = row.current;
+    const chip = bar?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!bar || !chip) return;
+    const b = bar.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    const edge = 16;
+    const shift = c.left < b.left + edge ? c.left - b.left - edge : c.right > b.right - edge ? c.right - b.right + edge : 0;
+    if (shift) bar.scrollBy({ left: shift, behavior: motionOn() ? "smooth" : "auto" });
+  }, [active]);
   return (
     <nav className="menu-chips menu-chips--nested" aria-label={tr("أقسام المنيو", "Menu sections")}>
-      <div className="menu-chips__categories">
+      <div ref={row} className="menu-chips__categories">
       {sections.map((s) => (
         <button
           key={s.key}
