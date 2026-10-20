@@ -10,6 +10,7 @@ import { HomeScreenHint } from "../../components/HomeScreenHint";
 import { Alert } from "../../components/Field";
 import { TabBar } from "../../components/Shop";
 import { SocialLinks } from "../../components/SocialLinks";
+import { SignOutDialog } from "../../components/SignOutDialog";
 import { apiPost, apiSend, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { tr, useLang, type LangChoice } from "../../lib/i18n";
@@ -101,6 +102,7 @@ export function AccountPage() {
   const [nameBusy, setNameBusy] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const heroRef = useRef<HTMLElement>(null);
@@ -324,7 +326,7 @@ export function AccountPage() {
 
       {signedIn && (
         <Section>
-          <Row icon="signOut" onClick={() => void signOut()}>
+          <Row icon="signOut" onClick={() => setSignOutOpen(true)}>
             {tr("تسجيل الخروج", "Sign out")}
           </Row>
           {user?.role === "customer" && (
@@ -389,6 +391,7 @@ export function AccountPage() {
         onConfirm={() => void deleteAccount()}
         onCancel={() => setDeleteOpen(false)}
       />
+      <SignOutDialog open={signOutOpen} onClose={() => setSignOutOpen(false)} />
     </CustomerLayout>
   );
 }

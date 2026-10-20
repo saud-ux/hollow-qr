@@ -292,14 +292,15 @@ export function StaffOrdersPage() {
                 void move(cancelling, "cancelled", reason.trim() || undefined).then(() => setCancelling(null));
               }}
             >
-              إلغاء الطلب
+              نعم، إلغاء الطلب
             </button>
             <button type="button" className="btn btn--ghost" onClick={() => setCancelling(null)}>
-              رجوع
+              الاحتفاظ بالطلب
             </button>
           </>
         }
       >
+        <p>هل أنت متأكد أنك تريد إلغاء هذا الطلب؟</p>
         <div className="field">
           <label htmlFor="cancel-reason">السبب (يظهر للعميل)</label>
           <input id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} placeholder="مثال: الصنف نفد" />

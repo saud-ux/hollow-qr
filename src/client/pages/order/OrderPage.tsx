@@ -322,8 +322,9 @@ export function OrderPage() {
         open={confirmCancel}
         tone="danger"
         title={tr("إلغاء الطلب؟", "Cancel this order?")}
-        message={<p>{tr("تقدر تلغي الطلب قبل ما نبدأ تحضيره فقط.", "You can cancel only before we start preparing it.")}</p>}
+        message={<p>{tr("هل أنت متأكد أنك تريد إلغاء طلبك؟ تقدر تلغيه قبل ما نبدأ تحضيره فقط.", "Are you sure you want to cancel your order? You can cancel only before we start preparing it.")}</p>}
         confirmLabel={tr("نعم، ألغِ الطلب", "Yes, cancel it")}
+        cancelLabel={tr("الاحتفاظ بالطلب", "Keep order")}
         busy={busy}
         onConfirm={() => void action("cancel")}
         onCancel={() => setConfirmCancel(false)}

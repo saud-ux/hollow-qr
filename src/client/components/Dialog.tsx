@@ -98,6 +98,7 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
   busy,
@@ -107,6 +108,7 @@ export function ConfirmDialog({
   title: string;
   message?: ReactNode;
   confirmLabel: string;
+  cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
   busy?: boolean;
@@ -124,7 +126,7 @@ export function ConfirmDialog({
             {busy ? tr("جارٍ التنفيذ…", "Working…") : confirmLabel}
           </button>
           <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={busy}>
-            {tr("إلغاء", "Cancel")}
+            {cancelLabel ?? tr("إلغاء", "Cancel")}
           </button>
         </>
       }

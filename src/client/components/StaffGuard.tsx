@@ -1,11 +1,13 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Navigate } from "react-router";
 import { useAuth } from "../lib/auth";
 import { Alert, Spinner } from "./Field";
+import { SignOutDialog } from "./SignOutDialog";
 
 /** Client-side gate for UX only — every API call is authorized server-side. */
 export function StaffGuard({ children, adminOnly = false }: { children: ReactNode; adminOnly?: boolean }) {
-  const { session, loading, me, meError, signOut } = useAuth();
+  const { session, loading, me, meError } = useAuth();
+  const [signOutOpen, setSignOutOpen] = useState(false);
   if (loading) return <Spinner />;
   if (!session) return <Navigate to="/staff/login" replace />;
   if (!me && !meError) return <Spinner />;
@@ -15,9 +17,10 @@ export function StaffGuard({ children, adminOnly = false }: { children: ReactNod
     return (
       <div className="staff-denied">
         <Alert tone="error">ليس لديك صلاحية للوصول إلى هذه الصفحة.</Alert>
-        <button type="button" className="btn btn--secondary" onClick={() => void signOut()}>
+        <button type="button" className="btn btn--secondary" onClick={() => setSignOutOpen(true)}>
           تسجيل الخروج
         </button>
+        <SignOutDialog open={signOutOpen} onClose={() => setSignOutOpen(false)} />
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { ROLE_LABELS_AR } from "../../shared/messages";
 import { useAuth } from "../lib/auth";
 import { enterStaffTheme, staffTheme, toggleStaffTheme } from "../lib/staffTheme";
 import { Wordmark } from "./Brand";
+import { SignOutDialog } from "./SignOutDialog";
 
 const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.9, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
@@ -144,9 +145,10 @@ const ADMIN: { title: string; items: NavItem[] }[] = [
  * light / dark switch.
  */
 export function StaffLayout({ title, actions, wide, children }: { title?: string; actions?: ReactNode; wide?: boolean; children: ReactNode }) {
-  const { me, signOut } = useAuth();
+  const { me } = useAuth();
   const isAdmin = me?.user.role === "admin";
   const [open, setOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const [theme, setTheme] = useState(staffTheme);
 
   useEffect(() => enterStaffTheme(setTheme), []);
@@ -192,7 +194,7 @@ export function StaffLayout({ title, actions, wide, children }: { title?: string
               <StaffIcon name={theme === "dark" ? "sun" : "moon"} size={20} />
               {theme === "dark" ? "فاتح" : "داكن"}
             </button>
-            <button type="button" className="staff-side__tool" onClick={() => void signOut()}>
+            <button type="button" className="staff-side__tool" onClick={() => setSignOutOpen(true)}>
               <StaffIcon name="signOut" size={20} />
               خروج
             </button>
@@ -217,6 +219,7 @@ export function StaffLayout({ title, actions, wide, children }: { title?: string
         </header>
         <main className={`staff__main ${wide ? "staff__main--wide" : ""}`}>{children}</main>
       </div>
+      <SignOutDialog open={signOutOpen} onClose={() => setSignOutOpen(false)} />
     </div>
   );
 }
