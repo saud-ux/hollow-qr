@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CATEGORY_LABELS_AR, isOrderable, type MenuItem } from "../../shared/ordering";
+import { CATEGORY_LABELS_AR, isOrderable, MENU_CATEGORIES, type MenuCategory, type MenuItem } from "../../shared/ordering";
 import { normalizeSearch } from "../../shared/menu-search";
 import { apiGet, apiPost, errorText } from "../lib/api";
 import { Alert, Field, Spinner } from "./Field";
@@ -12,7 +12,7 @@ export function AvailabilityList({ scroll = false }: { scroll?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<"all" | "drink" | "dessert">("all");
+  const [category, setCategory] = useState<"all" | MenuCategory>("all");
   const [status, setStatus] = useState<"all" | "available" | "out">("all");
 
   useEffect(() => {
@@ -63,9 +63,9 @@ export function AvailabilityList({ scroll = false }: { scroll?: boolean }) {
           </label>
         </div>
         <div className="avail__filters" role="group" aria-label="نوع الأصناف">
-          {([ ["all", "الكل"], ["drink", "المشروبات"], ["dessert", "الحلويات"] ] as const).map(([key, label]) => (
+          {(["all", ...MENU_CATEGORIES] as const).map((key) => (
             <button key={key} type="button" aria-pressed={category === key} onClick={() => setCategory(key)}>
-              {label}<span>{key === "all" ? items.length : items.filter((i) => i.category === key).length}</span>
+              {key === "all" ? "الكل" : CATEGORY_LABELS_AR[key]}<span>{key === "all" ? items.length : items.filter((i) => i.category === key).length}</span>
             </button>
           ))}
         </div>
@@ -75,7 +75,7 @@ export function AvailabilityList({ scroll = false }: { scroll?: boolean }) {
           <button type="button" className="btn btn--secondary" onClick={() => { setQuery(""); setCategory("all"); setStatus("all"); }}>عرض الكل</button>
         </div>}
         <div className={`avail__groups ${scroll ? "avail__groups--scroll" : ""}`}>
-          {(["drink", "dessert"] as const).map((group) => {
+          {MENU_CATEGORIES.map((group) => {
             const list = items.filter((i) => i.category === group);
             if (list.length === 0) return null;
             return (

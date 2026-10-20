@@ -35,6 +35,7 @@ const SYNONYMS: string[][] = [
   ["بارد", "ايس", "مثلج", "ice", "iced", "cold"],
   ["حار", "ساخن", "hot"],
   ["حلويات", "حلا", "حلى", "حلو", "dessert", "desserts", "sweet", "sweets"],
+  ["بوكسات", "بوكس", "box", "boxes"],
   ["مشروبات", "مشروب", "drink", "drinks"],
   ["قهوه", "كوفي", "coffee"],
   ["مقطره", "فلتر", "v60", "filter", "drip", "pour"],

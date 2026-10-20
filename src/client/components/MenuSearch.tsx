@@ -121,7 +121,7 @@ function writeRecent(list: string[]) {
 
 /** Ideas for an empty search: the words people search with, then what sells most. Each one finds something. */
 function searchIdeas(items: MenuItem[]): string[] {
-  const words = [tr("بارد", "Iced"), tr("حار", "Hot"), tr("حلويات", "Desserts")];
+  const words = [tr("بارد", "Iced"), tr("حار", "Hot"), tr("حلويات", "Desserts"), tr("بوكسات", "Boxes")];
   const names = [...items.filter((i) => i.isBestSeller), ...items.filter((i) => !i.isBestSeller)].filter(isOrderable).map(itemName);
   const ideas = words.filter((w) => findInMenu(items, w).items.length > 0);
   for (const name of names) if (ideas.length < 6 && !ideas.includes(name)) ideas.push(name);

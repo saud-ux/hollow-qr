@@ -7,6 +7,7 @@ import {
   type DayHours,
   type MenuCategory,
   MAX_MENU_OPTIONS,
+  MENU_CATEGORIES,
   type MenuItem,
   type MenuOption,
   type ShopSettings,
@@ -457,7 +458,9 @@ function MenuPanel() {
         <h2>الأصناف</h2>
         <button type="button" className="btn btn--primary" disabled={updating} onClick={() => {
           setDraftError(null); setConfirmingDelete(false);
-          setDraft(emptyDraft(category === "dessert" ? "dessert" : "drink", nextPosition(items, category === "dessert" ? "dessert" : "drink")));
+          // A new item goes in the section on screen (drinks when all are shown).
+          const section = category === "all" ? "drink" : category;
+          setDraft(emptyDraft(section, nextPosition(items, section)));
         }}>+ صنف جديد</button>
       </div>
       {error && <Alert tone="error">{error}</Alert>}
@@ -465,12 +468,12 @@ function MenuPanel() {
       {items && <>
         <div className="catalog-search"><Field label="بحث الأصناف" type="search" placeholder="ابحث عن صنف" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
         <div className="catalog-tabs" role="group" aria-label="أقسام المنيو">
-          {([["all", "الكل"], ["drink", "المشروبات"], ["dessert", "الحلويات"]] as const).map(([key, label]) => (
-            <button key={key} type="button" aria-pressed={category === key} onClick={() => setCategory(key)}>{label}</button>
+          {(["all", ...MENU_CATEGORIES] as const).map((key) => (
+            <button key={key} type="button" aria-pressed={category === key} onClick={() => setCategory(key)}>{key === "all" ? "الكل" : CATEGORY_LABELS_AR[key]}</button>
           ))}
         </div>
         {visibleItems.length === 0 && <p className="empty">لا توجد أصناف مطابقة</p>}
-        {(["drink", "dessert"] as const).map((cat) => {
+        {MENU_CATEGORIES.map((cat) => {
           const list = visibleItems.filter((item) => item.category === cat);
           if (!list.length) return null;
           return <div key={cat} className="admin-menu catalog-section">
@@ -536,6 +539,7 @@ function MenuPanel() {
                 >
                   <option value="drink">مشروب (يحسب كوب في الولاء)</option>
                   <option value="dessert">حلا</option>
+                  <option value="box">بوكس</option>
                 </select>
               </div>
               <Field label="السعر (⃁)" inputMode="decimal" dir="ltr" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />

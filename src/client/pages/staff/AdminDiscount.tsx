@@ -5,6 +5,7 @@ import {
   BROADCAST_TITLE_MAX,
   CATEGORY_LABELS_AR,
   MAX_DISCOUNT_PERCENT,
+  MENU_CATEGORIES,
   discountedPrice,
   type Broadcast,
   type Discount,
@@ -257,7 +258,7 @@ export function AdminDiscountPage() {
             </div>
             {scope === "items" && (
               <div className="disc-items">
-                {(["drink", "dessert"] as const).map((category) => {
+                {MENU_CATEGORIES.map((category) => {
                   const list = items.filter((i) => i.category === category);
                   if (list.length === 0) return null;
                   const all = list.every((i) => chosen.has(i.id));

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { isActiveStatus, isOrderable, priceOf, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
+import { isActiveStatus, isOrderable, MENU_CATEGORIES, priceOf, type MenuCategory, type MenuItem, type MenuResponse, type Order } from "../../../shared/ordering";
 import { categoryLabel, itemDescription, itemName, itemSubName, optionLabel, statusLabel, subNameDir } from "../../lib/menuText";
 import { AddControl } from "../../components/AddControl";
 import { Alert } from "../../components/Field";
@@ -22,15 +22,13 @@ import { tr } from "../../lib/i18n";
 import { drinkTemperature } from "../../../shared/drink-temperature";
 import type { TemperatureChoice } from "../../components/DrinkTemperature";
 
-const CATEGORIES: MenuCategory[] = ["drink", "dessert"];
-
 /** A block of the menu: «الأفضل مبيعًا» (the owner's picks), then each category. */
 type Section = { key: "best" | MenuCategory; title: string; items: MenuItem[] };
 
 function menuSections(items: MenuItem[]): Section[] {
   const best = items.filter((i) => i.isBestSeller);
   const sections: Section[] = best.length > 0 ? [{ key: "best", title: tr("الأفضل مبيعًا", "Best sellers"), items: best }] : [];
-  for (const c of CATEGORIES) {
+  for (const c of MENU_CATEGORIES) {
     const list = items.filter((i) => i.category === c);
     if (list.length > 0) sections.push({ key: c, title: categoryLabel(c), items: list });
   }
@@ -61,7 +59,7 @@ export function MenuPage() {
   const [active, setActive] = useState<Section["key"] | null>(null);
   const currentCategory = active ?? sections[0]?.key ?? null;
   // Hot or cold drinks only (null: all), chosen in the search dock at the bottom
-  // (not offered among the desserts).
+  // (offered with the drinks and best sellers, not among desserts or boxes).
   const [temperature, setTemperature] = useState<TemperatureChoice>(null);
   const chooseTemperature = useCallback((value: TemperatureChoice) => {
     setTemperature(value);
@@ -75,7 +73,7 @@ export function MenuPage() {
     <ShopLayout
       bottom={
         <>
-          {menu && <SearchPill onOpen={(from) => setSearch({ from })} filter={canChoose && currentCategory !== "dessert" ? { value: temperature, onChange: chooseTemperature } : undefined} />}
+          {menu && <SearchPill onOpen={(from) => setSearch({ from })} filter={canChoose && (currentCategory === "drink" || currentCategory === "best") ? { value: temperature, onChange: chooseTemperature } : undefined} />}
           <CartBar menu={menu} />
         </>
       }
