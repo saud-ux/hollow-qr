@@ -24,17 +24,20 @@ export function TemperatureIcon({ value, size = 20 }: { value: DrinkTemperature;
 /**
  * The HOLLOW cup from the card (and drinks without a photo), with steam rising
  * from a hot one and ice floating in a cold one. The overlay is drawn in the
- * picture's own pixels (240 x 284; the coffee is the ellipse at 120, 51).
+ * picture's own pixels (240 x 284; the coffee is the ellipse at 120, 51). It
+ * paints over the lighter crema in the middle so the coffee is one dark colour.
  */
 function CupArt({ value }: { value: DrinkTemperature }) {
   return (
     <span className="temp-tile__cup" aria-hidden="true">
       <img src="/wallet-preview/cup-open.png" alt="" width={240} height={284} />
       <svg viewBox="0 0 240 284">
+        <ellipse cx="119.5" cy="52" rx="61" ry="8.6" fill="#5c3a22" />
         {value === "hot" ? (
           <g fill="none" stroke="#bdb0a3" strokeWidth="5" strokeLinecap="round" opacity="0.85">
-            <path d="M100 34c-9-9 9-15 0-24s9-15 0-24" />
-            <path d="M138 34c-9-9 9-15 0-24s9-15 0-24" />
+            <path d="M94 34c-9-9 9-15 0-24s9-15 0-24" />
+            <path d="M120 28c-9-9 9-15 0-24s9-15 0-24" />
+            <path d="M146 34c-9-9 9-15 0-24s9-15 0-24" />
           </g>
         ) : (
           <g fill="#fbf7f0" stroke="#e6d9c3" strokeWidth="1.5" opacity="0.85">
