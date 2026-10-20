@@ -57,7 +57,11 @@ export function MenuPage() {
     setRefreshes((n) => n + 1);
     return Promise.all([reload(), session ? refreshMe() : null]);
   }, [reload, refreshMe, session]);
-  // Hot or cold drinks only (null: all), chosen in the search dock at the bottom.
+  // The section in view (its chip is highlighted): the first one until the menu scrolls.
+  const [active, setActive] = useState<Section["key"] | null>(null);
+  const currentCategory = active ?? sections[0]?.key ?? null;
+  // Hot or cold drinks only (null: all), chosen in the search dock at the bottom
+  // (not offered among the desserts).
   const [temperature, setTemperature] = useState<TemperatureChoice>(null);
   const chooseTemperature = useCallback((value: TemperatureChoice) => {
     setTemperature(value);
@@ -71,14 +75,14 @@ export function MenuPage() {
     <ShopLayout
       bottom={
         <>
-          {menu && <SearchPill onOpen={(from) => setSearch({ from })} filter={canChoose ? { value: temperature, onChange: chooseTemperature } : undefined} />}
+          {menu && <SearchPill onOpen={(from) => setSearch({ from })} filter={canChoose && currentCategory !== "dessert" ? { value: temperature, onChange: chooseTemperature } : undefined} />}
           <CartBar menu={menu} />
         </>
       }
       onRefresh={refresh}
     >
       {search && menu && <SearchScreen menu={menu} from={search.from} onClose={closeSearch} />}
-      <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} temperature={temperature} />
+      <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} temperature={temperature} currentCategory={currentCategory} onActiveChange={setActive} />
     </ShopLayout>
   );
 }
@@ -90,6 +94,8 @@ function FullMenu({
   refreshes,
   card,
   temperature,
+  currentCategory,
+  onActiveChange,
 }: {
   menu: MenuResponse | null;
   error: string | null;
@@ -97,9 +103,9 @@ function FullMenu({
   refreshes: number;
   card: Parameters<typeof LoyaltyBand>[0]["card"];
   temperature: TemperatureChoice;
+  currentCategory: Section["key"] | null;
+  onActiveChange: (key: Section["key"]) => void;
 }) {
-  const [active, setActive] = useState<Section["key"] | null>(null);
-  const currentCategory = active ?? sections[0]?.key ?? null;
   const temperatureLabel = temperature === null ? categoryLabel("drink") : temperature === "hot" ? tr("المشروبات الحارة", "Hot drinks") : tr("المشروبات الباردة", "Cold drinks");
   return (
     <>
@@ -113,7 +119,7 @@ function FullMenu({
           <span>{closedNote(menu.shop.settings)}</span>
         </div>
       )}
-      {sections.length > 0 && <CategoryChips sections={sections} active={currentCategory} onActiveChange={setActive} />}
+      {sections.length > 0 && <CategoryChips sections={sections} active={currentCategory} onActiveChange={onActiveChange} />}
       {menu &&
         sections.map((section) => (
           <section key={section.key} id={`section-${section.key}`} className="menu-section" aria-labelledby={`cat-${section.key}`}>
