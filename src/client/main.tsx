@@ -5,6 +5,7 @@ import { AuthProvider } from "./lib/auth";
 import { CartProvider } from "./lib/cart";
 import { ConfigContext, fetchPublicConfig } from "./lib/config";
 import { getSupabase } from "./lib/supabase";
+import { captureEmailCallback } from "./lib/email-callback";
 import { initLang, tr } from "./lib/i18n";
 import { initTheme } from "./lib/theme";
 import "./styles.css";
@@ -28,7 +29,8 @@ fetchPublicConfig()
       renderMessage(tr("الخدمة غير مهيأة بعد.", "The service isn't set up yet."));
       return;
     }
-    const supabase = getSupabase(config);
+    const emailCallback = captureEmailCallback(config.appUrl);
+    const supabase = getSupabase(config, !emailCallback);
     root.render(
       <StrictMode>
         <ConfigContext.Provider value={config}>

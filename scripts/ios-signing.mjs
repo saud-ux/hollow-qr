@@ -23,7 +23,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 // Profile names match PROVISIONING_PROFILE_SPECIFIER in project.pbxproj.
-const APP = { bundleId: "com.hollowzulfi.coffee", name: "HOLLOW Coffee", profile: "HOLLOW Coffee App Store", push: true };
+const APP = { bundleId: "com.hollowzulfi.coffee", name: "HOLLOW Coffee", profile: "HOLLOW Coffee App Store", push: true, associatedDomains: true };
 const WIDGETS = { bundleId: "com.hollowzulfi.coffee.widgets", name: "HOLLOW Coffee Widgets", profile: "HOLLOW Coffee Widgets App Store", push: false };
 const API = "https://api.appstoreconnect.apple.com";
 
@@ -81,20 +81,21 @@ async function ensureBundleId(target = APP) {
     ).data;
     console.log(`Registered App ID ${target.bundleId}`);
   } else console.log(`App ID ${target.bundleId} already registered`);
-  if (!target.push) return bundle;
-
-  try {
-    await api("POST", "/v1/bundleIdCapabilities", {
-      data: {
-        type: "bundleIdCapabilities",
-        attributes: { capabilityType: "PUSH_NOTIFICATIONS" },
-        relationships: { bundleId: { data: { type: "bundleIds", id: bundle.id } } },
-      },
-    });
-    console.log("Enabled Push Notifications");
-  } catch (err) {
-    if (err.status !== 409) throw err;
-    console.log("Push Notifications already enabled");
+  const capabilities = [target.push ? "PUSH_NOTIFICATIONS" : null, target.associatedDomains ? "ASSOCIATED_DOMAINS" : null].filter(Boolean);
+  // Read first: a 409 could mean something other than "already enabled".
+  if (capabilities.length) {
+    const enabled = await api("GET", `/v1/bundleIds/${bundle.id}/bundleIdCapabilities?limit=200`);
+    for (const capabilityType of capabilities) {
+      if (enabled.data.some((c) => c.attributes.capabilityType === capabilityType)) continue;
+      await api("POST", "/v1/bundleIdCapabilities", {
+        data: {
+          type: "bundleIdCapabilities",
+          attributes: { capabilityType },
+          relationships: { bundleId: { data: { type: "bundleIds", id: bundle.id } } },
+        },
+      });
+      console.log(`Enabled ${capabilityType}`);
+    }
   }
   return bundle;
 }
@@ -159,6 +160,14 @@ async function profileFor(target, cert, file) {
   const bundle = await ensureBundleId(target);
   const found = await api("GET", `/v1/profiles?filter[name]=${encodeURIComponent(target.profile)}&filter[profileState]=ACTIVE&include=certificates&limit=20`);
   let current = found.data.find((p) => (p.relationships?.certificates?.data ?? []).some((c) => c.id === cert.id));
+  if (current && target.associatedDomains) {
+    // An existing profile predates Universal Links. Regenerate only this app's
+    // profile if its entitlements do not include Associated Domains.
+    const decoded = execFileSync("security", ["cms", "-D"], {
+      input: Buffer.from(current.attributes.profileContent, "base64"), encoding: "utf8",
+    });
+    if (!/<key>com\.apple\.developer\.associated-domains<\/key>\s*<array>/.test(decoded)) current = null;
+  }
   if (!current) current = await createProfile(bundle.id, cert.id, target.profile);
   writeFileSync(file, Buffer.from(current.attributes.profileContent, "base64"));
   console.log(`Profile "${target.profile}" saved (expires ${current.attributes.expirationDate})`);

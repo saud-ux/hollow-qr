@@ -14,6 +14,7 @@ import { LoginPage } from "./pages/customer/LoginPage";
 import { QrLandingPage } from "./pages/customer/QrLandingPage";
 import { RegisterPage } from "./pages/customer/RegisterPage";
 import { ResetPasswordPage } from "./pages/customer/ResetPasswordPage";
+import { EmailCallbackPage } from "./pages/customer/EmailCallbackPage";
 import { AccountPage } from "./pages/customer/AccountPage";
 import { NotificationsPage } from "./pages/customer/NotificationsPage";
 import { PlacePage } from "./pages/customer/PlacePage";
@@ -68,6 +69,7 @@ function CustomerRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/auth/callback" element={<EmailCallbackPage />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/account/notifications" element={<NotificationsPage />} />

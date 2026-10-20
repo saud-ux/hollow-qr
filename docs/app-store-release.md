@@ -25,6 +25,9 @@ Apple Pay and other online order-payment methods marked **قريبًا** remain 
 
 ## Device acceptance tests
 
+Email-to-app links additionally require the Supabase redirect allowlist and
+Associated Domains activation in [email-app-links.md](email-app-links.md).
+
 - Guest menu/cart; signup, email confirmation, login, password reset and logout.
 - Complete pickup, curbside and delivery orders, including permission-denied/manual
   address entry, maps, offline/retry and duplicate submission. Verify staff receives

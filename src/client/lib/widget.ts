@@ -9,6 +9,7 @@ import { isActiveStatus, type Order, type WidgetData } from "../../shared/orderi
 import { apiGet, apiPost } from "./api";
 import { currentLang } from "./i18n";
 import { apiUrl, isNative } from "./native";
+import { PrivateWidgetSync } from "../../shared/private-widget-sync";
 
 interface HollowWidgetPlugin {
   sync(options: { json: string }): Promise<void>;
@@ -23,7 +24,16 @@ const HollowWidget = registerPlugin<HollowWidgetPlugin>("HollowWidget");
 /** The widget reads the API at this address; "" on the website. */
 const API_BASE = apiUrl("/").replace(/\/$/, "");
 
-let lastSync = 0;
+const widgetSync = new PrivateWidgetSync(
+  () => apiGet<{ token: string; data: WidgetData }>("/api/me/widget"),
+  ({ token, data }) => HollowWidget.sync({ json: JSON.stringify({ ...data, lang: currentLang(), token, apiBase: API_BASE }) }),
+  () => HollowWidget.clear().catch(() => undefined),
+);
+
+/** An account switch clears the previous snapshot before fetching the next one. */
+export async function syncWidgetAccount(userId: string | null): Promise<void> {
+  if (isNative) await widgetSync.setAccount(userId);
+}
 
 /**
  * Hands the widget the latest card and order, plus a token to refresh them
@@ -31,22 +41,13 @@ let lastSync = 0;
  */
 export async function refreshWidget(force = false): Promise<void> {
   if (!isNative) return;
-  // Several screens ask at once on start-up; one request is enough.
-  if (!force && Date.now() - lastSync < 3_000) return;
-  lastSync = Date.now();
-  try {
-    const { token, data } = await apiGet<{ token: string; data: WidgetData }>("/api/me/widget");
-    await HollowWidget.sync({ json: JSON.stringify({ ...data, lang: currentLang(), token, apiBase: API_BASE }) });
-  } catch {
-    // The widget keeps what it had; it refreshes itself later.
-  }
+  await widgetSync.refresh(force);
 }
 
 /** Sign-out: the widget shows "sign in" and any tracker goes away. */
 export async function clearWidget(): Promise<void> {
   if (!isNative) return;
-  lastSync = 0;
-  await HollowWidget.clear().catch(() => undefined);
+  await widgetSync.clear();
 }
 
 const TRACKED_KEY = "hollow.tracked-orders";

@@ -7,13 +7,13 @@ let client: SupabaseClient | null = null;
  * Browser Supabase client. Uses ONLY the public anon/publishable key; all
  * privileged operations happen in the Worker with the service-role key.
  */
-export function getSupabase(config: PublicConfig): SupabaseClient {
+export function getSupabase(config: PublicConfig, detectSessionInUrl = true): SupabaseClient {
   if (!client) {
     client = createClient(config.supabaseUrl, config.supabaseAnonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
+        detectSessionInUrl,
         // Implicit flow lets password-reset / confirmation links work even when
         // opened on a different device than the one that requested them.
         flowType: "implicit",

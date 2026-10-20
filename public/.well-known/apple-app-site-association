@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "N2KXQ7MVY3.com.hollowzulfi.coffee",
+        "paths": ["/auth/callback"]
+      }
+    ]
+  }
+}

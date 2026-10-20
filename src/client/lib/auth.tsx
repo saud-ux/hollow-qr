@@ -4,6 +4,7 @@ import type { MeResponse } from "../../shared/types";
 import { apiGet, apiPost, setTokenGetter } from "./api";
 import { currentPushToken } from "./native";
 import { forgetWebPushOnServer } from "./webpush";
+import type { EmailLinkSession } from "../../shared/email-links";
 
 interface AuthState {
   supabase: SupabaseClient;
@@ -14,6 +15,7 @@ interface AuthState {
   meError: unknown;
   refreshMe: () => Promise<MeResponse | null>;
   signOut: () => Promise<void>;
+  completeEmailLink: (link: EmailLinkSession) => Promise<void>;
   /** set when the user arrived through a password-recovery link */
   recovery: boolean;
 }
@@ -104,9 +106,17 @@ export function AuthProvider({ supabase, children }: { supabase: SupabaseClient;
     }
   }, [supabase]);
 
+  const completeEmailLink = useCallback(async (link: EmailLinkSession) => {
+    const { error } = await supabase.auth.setSession({ access_token: link.access_token, refresh_token: link.refresh_token });
+    if (error) throw new Error("EMAIL_LINK_INVALID");
+    // setSession emits SIGNED_IN, not PASSWORD_RECOVERY; retain the link's
+    // verified purpose explicitly so the reset page shows the correct flow.
+    setRecovery(link.type === "recovery");
+  }, [supabase]);
+
   const value = useMemo(
-    () => ({ supabase, session, loading, me, meError, refreshMe, signOut, recovery }),
-    [supabase, session, loading, me, meError, refreshMe, signOut, recovery],
+    () => ({ supabase, session, loading, me, meError, refreshMe, signOut, completeEmailLink, recovery }),
+    [supabase, session, loading, me, meError, refreshMe, signOut, completeEmailLink, recovery],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

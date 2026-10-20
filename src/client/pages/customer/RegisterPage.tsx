@@ -10,6 +10,8 @@ import { useConfig } from "../../lib/config";
 import { safeNext, withNext } from "../../lib/next";
 import { authErrorAr, validateConfirm, validateEmail, validateName, validatePassword } from "../../lib/validation";
 import { tr } from "../../lib/i18n";
+import { isNative } from "../../lib/native";
+import { emailRedirectUrl } from "../../../shared/email-links";
 
 type Errors = Partial<Record<"name" | "email" | "password" | "confirm", string | null>>;
 
@@ -57,7 +59,7 @@ export function RegisterPage() {
         password,
         options: {
           data: { display_name: name.trim() },
-          emailRedirectTo: `${config.appUrl}${after}`,
+          emailRedirectTo: emailRedirectUrl(config.appUrl, after, isNative),
           ...captcha.options,
         },
       });

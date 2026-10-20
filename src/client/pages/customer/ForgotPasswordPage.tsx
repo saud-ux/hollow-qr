@@ -9,6 +9,8 @@ import { useCaptcha } from "../../lib/captcha";
 import { useConfig } from "../../lib/config";
 import { authErrorAr, validateEmail } from "../../lib/validation";
 import { tr } from "../../lib/i18n";
+import { isNative } from "../../lib/native";
+import { emailRedirectUrl } from "../../../shared/email-links";
 
 export function ForgotPasswordPage() {
   const { supabase } = useAuth();
@@ -34,7 +36,7 @@ export function ForgotPasswordPage() {
     setError(null);
     try {
       const { error: authError } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), {
-        redirectTo: `${config.appUrl}/reset-password`,
+        redirectTo: emailRedirectUrl(config.appUrl, "/reset-password", isNative),
         ...captcha.options,
       });
       // Do not reveal whether the email exists; only surface rate limits etc.
