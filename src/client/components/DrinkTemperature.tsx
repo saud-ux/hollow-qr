@@ -40,16 +40,45 @@ function CupArt({ value }: { value: DrinkTemperature }) {
             <path d="M146 34c-9-9 9-15 0-24s9-15 0-24" />
           </g>
         ) : (
-          <g fill="#fbf7f0" stroke="#e6d9c3" strokeWidth="1.5" opacity="0.85">
-            <rect x="80" y="38" width="26" height="18" rx="5" transform="rotate(-12 93 47)" />
-            <rect x="128" y="36" width="26" height="19" rx="5" transform="rotate(10 141 45)" />
-            <rect x="106" y="46" width="20" height="13" rx="4" />
-          </g>
+          <>
+            <defs>
+              {/* Everything above the coffee's front edge: the cubes end where they go under. */}
+              <clipPath id="temp-ice-clip">
+                <path d="M0 -80H240V51.5H197A77.5 9.5 0 0 1 42 51.5H0Z" />
+              </clipPath>
+            </defs>
+            {/* Ice drawn in the cup's own brown line, each cube with a glint. */}
+            <g clipPath="url(#temp-ice-clip)" stroke="#8e6a50" strokeWidth="2.4" strokeLinejoin="round">
+              <rect x="106" y="36" width="28" height="22" rx="5" fill="#e3eef2" transform="rotate(5 120 47)" />
+              <rect x="73" y="29" width="34" height="28" rx="6" fill="#eef5f7" transform="rotate(-14 90 43)" />
+              <rect x="133" y="28" width="34" height="28" rx="6" fill="#e8f1f4" transform="rotate(13 150 42)" />
+            </g>
+            <g clipPath="url(#temp-ice-clip)" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round">
+              <path d="M79 41q0-6 6-7" transform="rotate(-14 90 43)" />
+              <path d="M139 40q0-6 6-7" transform="rotate(13 150 42)" />
+            </g>
+            {/* Drops of water on the cold cup. */}
+            <g fill="#ffffff" stroke="#9fbfca" strokeWidth="1.6">
+              {DROPS.map((d) => (
+                <path key={d} d={d} />
+              ))}
+            </g>
+          </>
         )}
       </svg>
     </span>
   );
 }
+
+const DROPS = [
+  "M54 102c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
+  "M188 110c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
+  "M64 144c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
+  "M180 156c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
+  "M150 112c2.5 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2.5-6 5-10z",
+  "M74 214c2.5 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2.5-6 5-10z",
+  "M170 222c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
+];
 
 function drinkCount(n: number): string {
   const ar = n === 1 ? "مشروب واحد" : n === 2 ? "مشروبان" : n <= 10 ? `${n} مشروبات` : n % 100 >= 11 ? `${n} مشروبًا` : `${n} مشروب`;
