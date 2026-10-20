@@ -173,6 +173,7 @@ export function OrderPage() {
   const flow = steps(order);
   const currentIndex = flowStep(order);
   const cancelled = order.status === "cancelled";
+  const delivery = order.fulfillment === "delivery";
 
   return (
     <ShopLayout onRefresh={load}>
@@ -282,13 +283,13 @@ export function OrderPage() {
             <span>{tr("الإجمالي", "Total")}</span>
             <span>{riyals(order.totalHalalas)}</span>
           </div>
-          {(order.walletHalalas??0)>0 && <><div className="summary__row"><span>{tr("مدفوع من الرصيد","Paid from balance")}</span><span>{riyals(order.walletHalalas!)}</span></div><div className="summary__row"><span>{tr("المتبقي عند الاستلام","Due on pickup")}</span><strong>{riyals(order.totalHalalas-order.walletHalalas!)}</strong></div></>}
+          {(order.walletHalalas??0)>0 && <><div className="summary__row"><span>{tr("مدفوع من الرصيد","Paid from balance")}</span><span>{riyals(order.walletHalalas!)}</span></div><div className="summary__row"><span>{delivery ? tr("المتبقي عند التوصيل", "Due on delivery") : tr("المتبقي عند الاستلام","Due on pickup")}</span><strong>{riyals(order.totalHalalas-order.walletHalalas!)}</strong></div></>}
           {order.promoSavingsHalalas > 0 && (
             <p className="summary__saved">
               {tr(`وفّرت ${riyals(order.promoSavingsHalalas)} مع خصم ${order.promoPercent}%`, `You saved ${riyals(order.promoSavingsHalalas)} with ${order.promoPercent}% off`)}
             </p>
           )}
-          <p className="summary__pay">{tr("الدفع عند الاستلام", "Pay on pickup")} · {formatDateTime(order.createdAt)}</p>
+          <p className="summary__pay">{delivery ? tr("الدفع عند التوصيل", "Pay on delivery") : tr("الدفع عند الاستلام", "Pay on pickup")} · {formatDateTime(order.createdAt)}</p>
         </div>
       </section>
 
