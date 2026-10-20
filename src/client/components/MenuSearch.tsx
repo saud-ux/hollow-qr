@@ -37,7 +37,7 @@ const SETTLE_MS = 450;
 /**
  * The floating «بحث / Search» button above the tab bar. It steps out of the
  * way while the menu is moving and comes back once it stops. The search page
- * grows out of it. Given a drinks `filter`, it comes back as a dark dock:
+ * grows out of it. Given a drinks `filter`, it is a dark dock instead:
  * search, then all / hot / cold.
  */
 export function SearchPill({ onOpen, filter }: { onOpen: (from: DOMRect) => void; filter?: { value: TemperatureChoice; onChange: (value: TemperatureChoice) => void } }) {

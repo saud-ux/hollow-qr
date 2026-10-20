@@ -1,4 +1,4 @@
-import type { CSSProperties, Ref } from "react";
+import type { CSSProperties } from "react";
 import type { DrinkTemperature } from "../../shared/drink-temperature";
 import { tr } from "../lib/i18n";
 import { tapFeedback } from "../lib/native";
@@ -6,7 +6,7 @@ import { tapFeedback } from "../lib/native";
 /** null: all drinks. */
 export type TemperatureChoice = DrinkTemperature | null;
 
-export function TemperatureIcon({ value, size = 20 }: { value: DrinkTemperature; size?: number }) {
+function TemperatureIcon({ value, size = 20 }: { value: DrinkTemperature; size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {value === "hot" ? (
@@ -21,97 +21,9 @@ export function TemperatureIcon({ value, size = 20 }: { value: DrinkTemperature;
   );
 }
 
-/**
- * The HOLLOW cup from the card (and drinks without a photo), with steam rising
- * from a hot one and ice floating in a cold one. The overlay is drawn in the
- * picture's own pixels (240 x 284; the coffee is the ellipse at 120, 51). It
- * paints over the lighter crema in the middle so the coffee is one dark colour.
- */
-function CupArt({ value }: { value: DrinkTemperature }) {
-  return (
-    <span className="temp-tile__cup" aria-hidden="true">
-      <img src="/wallet-preview/cup-open.png" alt="" width={240} height={284} />
-      <svg viewBox="0 0 240 284">
-        <ellipse cx="119.5" cy="52" rx="61" ry="8.6" fill="#5c3a22" />
-        {value === "hot" ? (
-          <g fill="none" stroke="#bdb0a3" strokeWidth="5" strokeLinecap="round" opacity="0.85">
-            <path d="M94 34c-9-9 9-15 0-24s9-15 0-24" />
-            <path d="M120 28c-9-9 9-15 0-24s9-15 0-24" />
-            <path d="M146 34c-9-9 9-15 0-24s9-15 0-24" />
-          </g>
-        ) : (
-          <>
-            <defs>
-              {/* Everything above the coffee's front edge: the cubes end where they go under. */}
-              <clipPath id="temp-ice-clip">
-                <path d="M0 -80H240V51.5H197A77.5 9.5 0 0 1 42 51.5H0Z" />
-              </clipPath>
-            </defs>
-            {/* Ice drawn in the cup's own brown line, each cube with a glint. */}
-            <g clipPath="url(#temp-ice-clip)" stroke="#8e6a50" strokeWidth="2.4" strokeLinejoin="round">
-              <rect x="106" y="36" width="28" height="22" rx="5" fill="#e3eef2" transform="rotate(5 120 47)" />
-              <rect x="73" y="29" width="34" height="28" rx="6" fill="#eef5f7" transform="rotate(-14 90 43)" />
-              <rect x="133" y="28" width="34" height="28" rx="6" fill="#e8f1f4" transform="rotate(13 150 42)" />
-            </g>
-            <g clipPath="url(#temp-ice-clip)" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round">
-              <path d="M79 41q0-6 6-7" transform="rotate(-14 90 43)" />
-              <path d="M139 40q0-6 6-7" transform="rotate(13 150 42)" />
-            </g>
-            {/* Drops of water on the cold cup. */}
-            <g fill="#ffffff" stroke="#9fbfca" strokeWidth="1.6">
-              {DROPS.map((d) => (
-                <path key={d} d={d} />
-              ))}
-            </g>
-          </>
-        )}
-      </svg>
-    </span>
-  );
-}
-
-const DROPS = [
-  "M54 102c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
-  "M188 110c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
-  "M64 144c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
-  "M180 156c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
-  "M150 112c2.5 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2.5-6 5-10z",
-  "M74 214c2.5 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2.5-6 5-10z",
-  "M170 222c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z",
-];
-
-function drinkCount(n: number): string {
-  const ar = n === 1 ? "مشروب واحد" : n === 2 ? "مشروبان" : n <= 10 ? `${n} مشروبات` : n % 100 >= 11 ? `${n} مشروبًا` : `${n} مشروب`;
-  return tr(ar, `${n} ${n === 1 ? "drink" : "drinks"}`);
-}
-
-/** At the top of the drinks: one card for hot drinks, one for cold. Tapping the chosen one again shows all. */
-export function TemperatureTiles({ value, counts, onChange, ref }: { value: TemperatureChoice; counts: Record<DrinkTemperature, number>; onChange: (value: TemperatureChoice) => void; ref?: Ref<HTMLDivElement> }) {
-  return (
-    <div ref={ref} className="temp-tiles" role="group" aria-label={tr("نوع المشروبات", "Drink temperature")}>
-      {(["hot", "cold"] as const).map((t) => (
-        <button
-          key={t}
-          type="button"
-          className={`temp-tile${value === t ? " is-on" : ""}`}
-          aria-pressed={value === t}
-          onClick={() => {
-            tapFeedback();
-            onChange(value === t ? null : t);
-          }}
-        >
-          <span className="temp-tile__name">{t === "hot" ? tr("حارّة", "Hot") : tr("باردة", "Cold")}</span>
-          <span className="temp-tile__count">{drinkCount(counts[t])}</span>
-          <CupArt value={t} />
-        </button>
-      ))}
-    </div>
-  );
-}
-
 const CHOICES: TemperatureChoice[] = [null, "hot", "cold"];
 
-/** All / hot / cold, with a thumb that slides to the choice (in the search dock once the cards are scrolled away). */
+/** All / hot / cold, with a thumb that slides to the choice (in the search dock under the menu). */
 export function TemperatureSwitch({ value, onChange, tabbable = true }: { value: TemperatureChoice; onChange: (value: TemperatureChoice) => void; tabbable?: boolean }) {
   return (
     <div className="temp-switch" style={{ "--i": CHOICES.indexOf(value) } as CSSProperties}>

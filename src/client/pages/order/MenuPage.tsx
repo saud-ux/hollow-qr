@@ -20,7 +20,7 @@ import { lowStockBadge } from "../../lib/stock";
 import { closedNote } from "./hours";
 import { tr } from "../../lib/i18n";
 import { drinkTemperature } from "../../../shared/drink-temperature";
-import { TemperatureTiles, type TemperatureChoice } from "../../components/DrinkTemperature";
+import type { TemperatureChoice } from "../../components/DrinkTemperature";
 
 const CATEGORIES: MenuCategory[] = ["drink", "dessert"];
 
@@ -37,10 +37,17 @@ function menuSections(items: MenuItem[]): Section[] {
   return sections;
 }
 
+/** Choosing hot or cold is only worth offering when the menu has both. */
+function hasHotAndCold(sections: Section[]): boolean {
+  const drinks = sections.find((s) => s.key === "drink")?.items ?? [];
+  return drinks.some((item) => drinkTemperature(item) === "hot") && drinks.some((item) => drinkTemperature(item) === "cold");
+}
+
 export function MenuPage() {
   const { me, session, refreshMe } = useAuth();
   const { menu, error, reload } = useMenu();
   const sections = menu ? menuSections(menu.items) : [];
+  const canChoose = hasHotAndCold(sections);
   // The search page, while open: where the «بحث» button was when it was tapped.
   const [search, setSearch] = useState<{ from: DOMRect } | null>(null);
   const closeSearch = useCallback(() => setSearch(null), []);
@@ -50,33 +57,28 @@ export function MenuPage() {
     setRefreshes((n) => n + 1);
     return Promise.all([reload(), session ? refreshMe() : null]);
   }, [reload, refreshMe, session]);
-  // Hot or cold drinks only (null: all). Chosen on the cards at the top of the
-  // drinks; once those scroll away, the search button carries the choice.
+  // Hot or cold drinks only (null: all), chosen in the search dock at the bottom.
   const [temperature, setTemperature] = useState<TemperatureChoice>(null);
-  const [docked, setDocked] = useState(false);
-  const chooseFromDock = useCallback((value: TemperatureChoice) => {
+  const chooseTemperature = useCallback((value: TemperatureChoice) => {
     setTemperature(value);
-    // The list changes length: show it from its first drink, just under the section chips.
+    // The list changes length: show the drinks from the first one.
     requestAnimationFrame(() => {
-      const grid = document.querySelector("#section-drink .menu-grid");
-      const nav = document.querySelector(".menu-chips");
-      if (!grid || !nav) return;
-      const top = window.scrollY + grid.getBoundingClientRect().top - nav.getBoundingClientRect().bottom - 4;
-      window.scrollTo({ top, behavior: motionOn() ? "smooth" : "auto" });
+      const drinks = document.getElementById("section-drink");
+      if (drinks) drinks.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" });
     });
   }, []);
   return (
     <ShopLayout
       bottom={
         <>
-          {menu && <SearchPill onOpen={(from) => setSearch({ from })} filter={docked ? { value: temperature, onChange: chooseFromDock } : undefined} />}
+          {menu && <SearchPill onOpen={(from) => setSearch({ from })} filter={canChoose ? { value: temperature, onChange: chooseTemperature } : undefined} />}
           <CartBar menu={menu} />
         </>
       }
       onRefresh={refresh}
     >
       {search && menu && <SearchScreen menu={menu} from={search.from} onClose={closeSearch} />}
-      <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} temperature={temperature} onTemperatureChange={setTemperature} onDockedChange={setDocked} />
+      <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} temperature={temperature} />
     </ShopLayout>
   );
 }
@@ -88,8 +90,6 @@ function FullMenu({
   refreshes,
   card,
   temperature,
-  onTemperatureChange,
-  onDockedChange,
 }: {
   menu: MenuResponse | null;
   error: string | null;
@@ -97,39 +97,8 @@ function FullMenu({
   refreshes: number;
   card: Parameters<typeof LoyaltyBand>[0]["card"];
   temperature: TemperatureChoice;
-  onTemperatureChange: (value: TemperatureChoice) => void;
-  onDockedChange: (docked: boolean) => void;
 }) {
   const [active, setActive] = useState<Section["key"] | null>(null);
-  const tilesRef = useRef<HTMLDivElement>(null);
-  const drinks = sections.find((s) => s.key === "drink")?.items ?? [];
-  const counts = { hot: drinks.filter((item) => drinkTemperature(item) === "hot").length, cold: drinks.filter((item) => drinkTemperature(item) === "cold").length };
-  const showTiles = counts.hot > 0 && counts.cold > 0;
-  // Docked: the cards have scrolled away under the chips and the drinks still fill the screen.
-  useEffect(() => {
-    if (!showTiles) return;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const tiles = tilesRef.current;
-      const section = document.getElementById("section-drink");
-      const nav = document.querySelector(".menu-chips");
-      if (!tiles || !section || !nav) return;
-      onDockedChange(tiles.getBoundingClientRect().bottom <= nav.getBoundingClientRect().bottom && section.getBoundingClientRect().bottom > window.innerHeight / 2);
-    };
-    const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-      onDockedChange(false);
-    };
-  }, [showTiles, temperature, onDockedChange]);
   const currentCategory = active ?? sections[0]?.key ?? null;
   const temperatureLabel = temperature === null ? categoryLabel("drink") : temperature === "hot" ? tr("المشروبات الحارة", "Hot drinks") : tr("المشروبات الباردة", "Cold drinks");
   return (
@@ -146,34 +115,19 @@ function FullMenu({
       )}
       {sections.length > 0 && <CategoryChips sections={sections} active={currentCategory} onActiveChange={setActive} />}
       {menu &&
-        sections.map((section) => {
-          const title = (
+        sections.map((section) => (
+          <section key={section.key} id={`section-${section.key}`} className="menu-section" aria-labelledby={`cat-${section.key}`}>
             <h2 id={`cat-${section.key}`} className={`menu-section__title ${section.key === "best" ? "menu-section__title--best" : ""}`}>
               {section.key === "drink" ? temperatureLabel : section.title}
             </h2>
-          );
-          return (
-            <section key={section.key} id={`section-${section.key}`} className="menu-section" aria-labelledby={`cat-${section.key}`}>
-              {section.key === "drink" && temperature !== null ? (
-                <div className="menu-section__head">
-                  {title}
-                  <button type="button" className="show-all" onClick={() => onTemperatureChange(null)}>
-                    {tr("عرض الكل", "Show all")}
-                  </button>
-                </div>
-              ) : (
-                title
-              )}
-              {section.key === "drink" && showTiles && <TemperatureTiles ref={tilesRef} value={temperature} counts={counts} onChange={onTemperatureChange} />}
-              <ul className="menu-grid">
-                {section.items.filter(item => section.key !== "drink" || temperature === null || drinkTemperature(item) === temperature).map((item) => (
-                  <MenuCard key={item.id} item={item} canOrder={menu.shop.isOpen} />
-                ))}
-              </ul>
-              {section.key === "drink" && temperature !== null && !section.items.some(item => drinkTemperature(item) === temperature) && <p className="empty" role="status">{tr("لا توجد مشروبات في هذا القسم حالياً", "No drinks in this section yet")}</p>}
-            </section>
-          );
-        })}
+            <ul className="menu-grid">
+              {section.items.filter(item => section.key !== "drink" || temperature === null || drinkTemperature(item) === temperature).map((item) => (
+                <MenuCard key={item.id} item={item} canOrder={menu.shop.isOpen} />
+              ))}
+            </ul>
+            {section.key === "drink" && temperature !== null && !section.items.some(item => drinkTemperature(item) === temperature) && <p className="empty" role="status">{tr("لا توجد مشروبات في هذا القسم حالياً", "No drinks in this section yet")}</p>}
+          </section>
+        ))}
     </>
   );
 }
