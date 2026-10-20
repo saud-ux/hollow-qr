@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { BUSINESS_TIME_ZONE } from "../../../shared/constants";
 import {
   FULFILLMENT_LABELS_AR,
+  rewardDiscount,
   STATUS_LABELS_AR,
   type AdminOrder,
   type OrderHistoryFilter,
@@ -412,7 +413,9 @@ function OrderDetail({ order: o, onClose }: { order: AdminOrder | null; onClose:
                 </Row>
               )}
               {o.deliveryFeeHalalas > 0 && <Row label="رسوم التوصيل">{riyals(o.deliveryFeeHalalas)}</Row>}
-              {o.discountHalalas > 0 && <Row label="خصم المشروب المجاني">− {riyals(o.discountHalalas)}</Row>}
+              {rewardDiscount(o) > 0 && <Row label="خصم المشروب المجاني">− {riyals(rewardDiscount(o))}</Row>}
+              {(o.giftHalalas ?? 0) > 0 && <Row label="أكواب الضيافة">− {riyals(o.giftHalalas!)}</Row>}
+              {(o.couponHalalas ?? 0) > 0 && <Row label="الكوبون">− {riyals(o.couponHalalas!)}</Row>}
               <Row label="الإجمالي">
                 <strong>{riyals(o.totalHalalas)}</strong>
               </Row>

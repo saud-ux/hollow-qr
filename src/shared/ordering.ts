@@ -180,6 +180,16 @@ export interface Order {
   promoSavingsHalalas: number;
 }
 
+/** What is left to pay at pickup or delivery once the in-app balance is taken off. */
+export function amountDue(order: Pick<Order, "totalHalalas" | "walletHalalas">): number {
+  return Math.max(order.totalHalalas - (order.walletHalalas ?? 0), 0);
+}
+
+/** What the free drink took off: the order's discount less gift cups and the coupon. */
+export function rewardDiscount(order: Pick<Order, "discountHalalas" | "giftHalalas" | "couponHalalas">): number {
+  return Math.max(order.discountHalalas - (order.giftHalalas ?? 0) - (order.couponHalalas ?? 0), 0);
+}
+
 export const MAX_RATING_COMMENT = 300;
 
 export interface RatingOverview {

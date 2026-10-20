@@ -291,7 +291,7 @@ export function SupportPage() {
                 </dd>
                 <dt>Loyalty card?</dt>
                 <dd>
-                  Every drink adds a cup. After 5 cups, the sixth drink is free.
+                  Every paid drink adds a cup. After 5 cups, the sixth drink is free.
                 </dd>
                 <dt>How do I delete my account?</dt>
                 <dd>Account, then Delete account.</dd>
@@ -319,7 +319,7 @@ export function SupportPage() {
                   في التطبيق.
                 </dd>
                 <dt>بطاقة الولاء؟</dt>
-                <dd>كل مشروب يضيف كوبًا لبطاقتك، وبعد 5 أكواب السادس مجاني.</dd>
+                <dd>كل مشروب مدفوع يضيف كوبًا لبطاقتك، وبعد 5 أكواب السادس مجاني.</dd>
                 <dt>كيف أحذف حسابي؟</dt>
                 <dd>«حسابي» ثم «حذف الحساب».</dd>
               </dl>
