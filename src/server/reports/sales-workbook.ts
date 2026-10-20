@@ -6,7 +6,7 @@
  * viewers that never calculate.
  */
 import { formatRiyadh } from "../../shared/format";
-import { FULFILLMENT_LABELS_AR, WEEKDAY_LABELS_AR, rewardDiscount, type AdminOrder, type FulfillmentType, type OrderStatus } from "../../shared/ordering";
+import { FULFILLMENT_LABELS_AR, WEEKDAY_LABELS_AR, rewardDiscount, type AdminOrder, type FulfillmentType, type MenuCategory, type OrderStatus } from "../../shared/ordering";
 import { columnName, excelDate, writeXlsx, type CellStyle, type Row, type Sheet, type StyledCell } from "../lib/xlsx";
 
 export interface SalesWorkbookInput {
@@ -37,6 +37,7 @@ const STATUS: Record<OrderStatus, string> = {
 };
 const DONE = STATUS.completed;
 const NO_OPTION = "—";
+const CATEGORY_AR: Record<MenuCategory, string> = { drink: "مشروب", dessert: "حلى", box: "بوكس" };
 
 const ESPRESSO = "2B1E16";
 const CREAM = "F4EDE0";
@@ -268,7 +269,7 @@ function linesSheet(placed: Placed[]): Sheet {
         status: c(STATUS[o.status], statusStyle(o.status)),
         item: c(line.nameAr, "text"),
         option: c(line.optionNameAr ?? NO_OPTION, "center"),
-        category: c(line.category === "drink" ? "مشروب" : "حلى", "center"),
+        category: c(CATEGORY_AR[line.category], "center"),
         qty: c(line.quantity, "count"),
         unit: c(riyals(line.unitPriceHalalas), "money"),
         amount: c(riyals(line.unitPriceHalalas * line.quantity), "moneyBold", `${L.qty}${r}*${L.unit}${r}`),
@@ -315,7 +316,7 @@ function itemTotals(done: AdminOrder[]): ItemTotal[] {
   for (const line of done.flatMap((o) => o.items)) {
     const option = line.optionNameAr ?? NO_OPTION;
     const key = `${line.nameAr}|${option}`;
-    const entry = map.get(key) ?? { name: line.nameAr, option, category: line.category === "drink" ? "مشروب" : "حلى", qty: 0, halalas: 0 };
+    const entry = map.get(key) ?? { name: line.nameAr, option, category: CATEGORY_AR[line.category], qty: 0, halalas: 0 };
     entry.qty += line.quantity;
     entry.halalas += line.unitPriceHalalas * line.quantity;
     map.set(key, entry);

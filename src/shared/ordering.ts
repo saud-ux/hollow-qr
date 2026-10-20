@@ -1,6 +1,8 @@
 /** Online ordering contracts and helpers shared by the Worker and the web app. */
 
-export type MenuCategory = "drink" | "dessert";
+/** The menu's sections, in the order they are shown. Only drinks earn loyalty cups. */
+export const MENU_CATEGORIES = ["drink", "dessert", "box"] as const;
+export type MenuCategory = (typeof MENU_CATEGORIES)[number];
 export type OrderStatus = "new" | "preparing" | "ready" | "out_for_delivery" | "completed" | "cancelled";
 export type FulfillmentType = "pickup" | "curbside" | "delivery";
 
@@ -355,6 +357,7 @@ export const FULFILLMENT_LABELS_AR: Record<FulfillmentType, string> = {
 export const CATEGORY_LABELS_AR: Record<MenuCategory, string> = {
   drink: "المشروبات",
   dessert: "الحلويات",
+  box: "البوكسات",
 };
 
 export const STATUS_LABELS_EN: Record<OrderStatus, string> = {
@@ -375,6 +378,7 @@ export const FULFILLMENT_LABELS_EN: Record<FulfillmentType, string> = {
 export const CATEGORY_LABELS_EN: Record<MenuCategory, string> = {
   drink: "Drinks",
   dessert: "Desserts",
+  box: "Boxes",
 };
 
 export const WEEKDAY_LABELS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

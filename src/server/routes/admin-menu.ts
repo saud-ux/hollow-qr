@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { BUSINESS_TIME_ZONE } from "../../shared/constants";
-import { isValidHhMm, MAX_MENU_OPTIONS, MENU_IMAGE_MAX_BYTES, type MenuCategory } from "../../shared/ordering";
+import { isValidHhMm, MAX_MENU_OPTIONS, MENU_CATEGORIES, MENU_IMAGE_MAX_BYTES, type MenuCategory } from "../../shared/ordering";
 import type { MenuItemRow, Repository } from "../data/repository";
 import { ApiError } from "../http/errors";
 import { repoOf, type HonoEnv } from "../http/context";
@@ -35,7 +35,7 @@ const itemFields = {
     .nullable()
     .transform((v) => (v ? v : null)),
   descriptionEn: optionalText(300),
-  category: z.enum(["drink", "dessert"]),
+  category: z.enum(MENU_CATEGORIES),
   priceHalalas: halalas,
   isAvailable: z.boolean(),
   isArchived: z.boolean(),
