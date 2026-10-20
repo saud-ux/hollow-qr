@@ -40,6 +40,8 @@ export async function createTestDb(): Promise<PGlite> {
   for (const file of files) {
     await db.exec(readFileSync(join(MIGRATIONS_DIR, file), "utf8"));
   }
+  // Most tests place many orders for one customer; the open-order limit has its own test.
+  await db.exec("update public.shop_settings set max_open_orders = null");
   return db;
 }
 

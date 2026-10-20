@@ -14,33 +14,49 @@ initTheme();
 initLang();
 const root = createRoot(document.getElementById("root")!);
 
-function renderMessage(text: string) {
+function renderMessage(text: string, retry?: () => void) {
   root.render(
     <div className="boot-error" role="alert">
       <img src="/brand/wordmark-espresso.png" alt="HOLLOW" width={180} />
       <p>{text}</p>
+      {retry && (
+        <button type="button" className="btn btn--primary" onClick={retry}>
+          {tr("أعد المحاولة", "Try again")}
+        </button>
+      )}
     </div>,
   );
 }
 
-fetchPublicConfig()
-  .then((config) => {
-    if (!config.supabaseUrl || !config.supabaseAnonKey) {
-      renderMessage(tr("الخدمة غير مهيأة بعد.", "The service isn't set up yet."));
-      return;
-    }
-    const emailCallback = captureEmailCallback(config.appUrl);
-    const supabase = getSupabase(config, !emailCallback);
-    root.render(
-      <StrictMode>
-        <ConfigContext.Provider value={config}>
-          <AuthProvider supabase={supabase}>
-            <CartProvider>
-              <App />
-            </CartProvider>
-          </AuthProvider>
-        </ConfigContext.Provider>
-      </StrictMode>,
-    );
-  })
-  .catch(() => renderMessage(tr("تعذّر تحميل الخدمة. حاول مرة أخرى بعد قليل.", "Couldn't load the app. Please try again shortly.")));
+function boot() {
+  fetchPublicConfig()
+    .then((config) => {
+      if (!config.supabaseUrl || !config.supabaseAnonKey) {
+        renderMessage(tr("الخدمة غير مهيأة بعد.", "The service isn't set up yet."));
+        return;
+      }
+      const emailCallback = captureEmailCallback(config.appUrl);
+      const supabase = getSupabase(config, !emailCallback);
+      root.render(
+        <StrictMode>
+          <ConfigContext.Provider value={config}>
+            <AuthProvider supabase={supabase}>
+              <CartProvider>
+                <App />
+              </CartProvider>
+            </AuthProvider>
+          </ConfigContext.Provider>
+        </StrictMode>,
+      );
+    })
+    .catch(() => {
+      // Opened without a connection (or the server didn't answer): try again from a button, or by itself once back online.
+      window.addEventListener("online", boot, { once: true });
+      renderMessage(tr("تعذّر تحميل الخدمة. تأكد من اتصالك بالإنترنت وحاول مرة ثانية.", "Couldn't load the app. Check your connection and try again."), () => {
+        window.removeEventListener("online", boot);
+        boot();
+      });
+    });
+}
+
+boot();

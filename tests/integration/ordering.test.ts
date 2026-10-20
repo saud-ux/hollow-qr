@@ -380,6 +380,29 @@ describe("customer actions", () => {
     const res = await post(`/api/orders/${curbside.id}/arrived`, {}, bearer(customer.id));
     expect(((await res.json()) as { order: Order }).order.customerArrivedAt).toBeTruthy();
   });
+
+  it("allows two open orders at a time", async () => {
+    await db.exec("update public.shop_settings set max_open_orders = 2");
+    try {
+      const customer = await newCustomer();
+      const first = await placed(customer.id);
+      const secondBody = orderBody();
+      await placed(customer.id, secondBody);
+
+      const third = await placeOrder(customer.id);
+      expect(third.status).toBe(409);
+      expect(await third.json()).toMatchObject({ error: { code: "TOO_MANY_OPEN_ORDERS" } });
+      // A retry of an order that went through is still answered.
+      expect((await placeOrder(customer.id, secondBody)).status).toBe(200);
+      // Someone else can still order.
+      await placed((await newCustomer()).id);
+
+      await advance(first.id, ["preparing", "ready", "completed"]);
+      await placed(customer.id);
+    } finally {
+      await db.exec("update public.shop_settings set max_open_orders = null");
+    }
+  });
 });
 
 describe("menu management", () => {

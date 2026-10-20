@@ -404,8 +404,9 @@ export function CartPage() {
       cart.clear();
       void navigate(`/orders/${order.id}`, { replace: true });
     } catch (err) {
-      // A rejected order is final for this key; a new attempt gets a new one.
-      if (err instanceof ApiClientError && err.status !== 0) idempotencyKey.current = newIdempotencyKey();
+      // A rejected order is final for this key; a new attempt gets a new one. After a
+      // network or server error the order may have gone through, so a retry keeps the key.
+      if (err instanceof ApiClientError && err.status >= 400 && err.status < 500) idempotencyKey.current = newIdempotencyKey();
       if (err instanceof ApiClientError && (err.code === "ITEM_UNAVAILABLE" || err.code === "SHOP_CLOSED" || err.code === "NOT_ENOUGH_STOCK")) void reload();
       // Say which item and how many are left: «باقي حبة وحدة بس من وافل بيكان».
       const short = err instanceof ApiClientError && err.code === "NOT_ENOUGH_STOCK" ? menu?.items.find((i) => i.id === err.details.menuItemId) : undefined;
