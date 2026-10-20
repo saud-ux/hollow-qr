@@ -6790,7 +6790,9 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .temp-tile:focus-visible { outline: 2px solid var(--label); outline-offset: 2px; }
 .temp-tile__name { font-size: 1.15rem; font-weight: 800; line-height: 1.3; }
 .temp-tile__count { font-size: .78rem; font-weight: 600; opacity: .75; }
-.temp-tile__cup { position: absolute; inset-inline-end: 4px; bottom: -14px; width: 86px; height: auto; pointer-events: none; }
+.temp-tile__cup { position: absolute; inset-inline-end: 12px; bottom: -14px; width: 80px; pointer-events: none; }
+.temp-tile__cup img { display: block; width: 100%; height: auto; }
+.temp-tile__cup svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .temp-dock { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: var(--espresso); color: var(--paper); box-shadow: 0 10px 26px rgb(43 30 22 / 30%); transition: opacity 220ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .motion .temp-dock { animation: temp-dock-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .temp-dock.is-away { opacity: 0; transform: translateY(14px) scale(0.96); pointer-events: none; }

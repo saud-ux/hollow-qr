@@ -21,34 +21,30 @@ export function TemperatureIcon({ value, size = 20 }: { value: DrinkTemperature;
   );
 }
 
-/** A HOLLOW paper cup: steam over a hot one, ice in a cold one. */
+/**
+ * The HOLLOW cup from the card (and drinks without a photo), with steam rising
+ * from a hot one and ice floating in a cold one. The overlay is drawn in the
+ * picture's own pixels (240 x 284; the coffee is the ellipse at 120, 51).
+ */
 function CupArt({ value }: { value: DrinkTemperature }) {
   return (
-    <svg className="temp-tile__cup" viewBox="0 0 100 86" aria-hidden="true">
-      {value === "hot" && (
-        <g fill="none" stroke="#bdb0a3" strokeWidth="1.6" strokeLinecap="round" opacity="0.85">
-          <path d="M44 18c-3-3 3-5 0-8s3-5 0-8" />
-          <path d="M56 18c-3-3 3-5 0-8s3-5 0-8" />
-        </g>
-      )}
-      <path d="M27 24 L73 24 L67 86 L33 86 Z" fill="#e6d3ba" />
-      <ellipse cx="50" cy="24" rx="23.5" ry="5.2" fill="#f6eee3" />
-      <ellipse cx="50" cy="24.6" rx="21" ry="3.8" fill={value === "hot" ? "#23150c" : "#3a2212"} />
-      {value === "cold" && (
-        <g fill="#fbf7f0" opacity="0.7">
-          <rect x="37" y="19.5" width="8" height="6" rx="1.5" transform="rotate(-12 41 22)" />
-          <rect x="52" y="19" width="8" height="6.5" rx="1.5" transform="rotate(10 56 22)" />
-          <rect x="45" y="22" width="6" height="4" rx="1.2" />
-        </g>
-      )}
-      <text x="50" y="43" textAnchor="middle" direction="ltr" fontFamily="Georgia, serif" fontWeight="700" fontSize="8.6" fill="#8e3a2b">
-        HOLLOW
-      </text>
-      <g fill="none" stroke="#b5705c" strokeWidth="0.7" strokeLinejoin="round" strokeLinecap="round">
-        <path d="M32 57 q8-6 13-2 q6-5 11 0 q6-4 12 2" />
-        <path d="M36 80 L50 65 L64 80" />
-      </g>
-    </svg>
+    <span className="temp-tile__cup" aria-hidden="true">
+      <img src="/wallet-preview/cup-open.png" alt="" width={240} height={284} />
+      <svg viewBox="0 0 240 284">
+        {value === "hot" ? (
+          <g fill="none" stroke="#bdb0a3" strokeWidth="5" strokeLinecap="round" opacity="0.85">
+            <path d="M100 34c-9-9 9-15 0-24s9-15 0-24" />
+            <path d="M138 34c-9-9 9-15 0-24s9-15 0-24" />
+          </g>
+        ) : (
+          <g fill="#fbf7f0" stroke="#e6d9c3" strokeWidth="1.5" opacity="0.85">
+            <rect x="80" y="38" width="26" height="18" rx="5" transform="rotate(-12 93 47)" />
+            <rect x="128" y="36" width="26" height="19" rx="5" transform="rotate(10 141 45)" />
+            <rect x="106" y="46" width="20" height="13" rx="4" />
+          </g>
+        )}
+      </svg>
+    </span>
   );
 }
 
