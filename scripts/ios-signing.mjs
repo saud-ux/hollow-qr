@@ -84,7 +84,9 @@ async function ensureBundleId(target = APP) {
   const capabilities = [target.push ? "PUSH_NOTIFICATIONS" : null, target.associatedDomains ? "ASSOCIATED_DOMAINS" : null].filter(Boolean);
   // Read first: a 409 could mean something other than "already enabled".
   if (capabilities.length) {
-    const enabled = await api("GET", `/v1/bundleIds/${bundle.id}/bundleIdCapabilities?limit=200`);
+    // Apple's relationship endpoint rejects `limit` (HTTP 400), even though
+    // collection endpoints accept it. Query this relationship without params.
+    const enabled = await api("GET", `/v1/bundleIds/${bundle.id}/bundleIdCapabilities`);
     for (const capabilityType of capabilities) {
       if (enabled.data.some((c) => c.attributes.capabilityType === capabilityType)) continue;
       await api("POST", "/v1/bundleIdCapabilities", {
