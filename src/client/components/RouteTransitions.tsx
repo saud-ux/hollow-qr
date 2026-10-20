@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { NavigationType, useLocation, useNavigationType, type Location } from "react-router";
-import { motionOn, PARALLAX, pushSide, runPageTransition, setEdgeSwiping, takeTapOrigin, wasInAppBack, type ScreenRect, type TransitionKind } from "../lib/motion";
+import { motionOn, PARALLAX, pushSide, runPageTransition, setEdgeSwiping, wasInAppBack, type TransitionKind } from "../lib/motion";
 import { ownsGestures } from "../lib/pwa";
 import { TabBar } from "./Shop";
 
@@ -23,16 +23,12 @@ interface Leaving {
   location: Location;
   scrollY: number;
   kind: TransitionKind;
-  /** What the new page grows from (push), or folds back into (pop). */
-  origin: ScreenRect | null;
   /** Going back: where the page we return to was scrolled. */
   restoreY: number;
 }
 
-// Per history entry: where it was scrolled when we left it, and what was
-// tapped to open it (so going back can fold the page into it again).
+// Per history entry: where it was scrolled when we left it.
 const scrolls = new Map<string, number>();
-const origins = new Map<string, ScreenRect>();
 // The page shown at each step of the app's history (React Router keeps the step in history.state).
 const entries = new Map<number, Location>();
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
@@ -105,16 +101,9 @@ export function RouteTransitions({ render }: { render: (location: Location) => R
     // In a browser, its own back gesture or button has already animated: just swap.
     if (kind === "pop" && navigationType === NavigationType.Pop && !ownsGestures() && !wasInAppBack()) kind = null;
     scrolls.set(shown.key, window.scrollY);
-    let origin: ScreenRect | null = null;
-    if (kind === "push") {
-      origin = takeTapOrigin();
-      if (origin) origins.set(location.key, origin);
-    } else if (kind === "pop") {
-      origin = origins.get(shown.key) ?? null;
-    }
     const restoreY = kind === "pop" ? (scrolls.get(location.key) ?? 0) : 0;
     setShown(location);
-    setLeaving(kind ? { location: shown, scrollY: window.scrollY, kind, origin, restoreY } : null);
+    setLeaving(kind ? { location: shown, scrollY: window.scrollY, kind, restoreY } : null);
     if (swiped) setPeek(null);
   }
   // Going back lands where the page was scrolled; set before the layers are dropped.
@@ -132,7 +121,7 @@ export function RouteTransitions({ render }: { render: (location: Location) => R
     incoming.scrollTop = leaving.restoreY;
     window.scrollTo(0, 0);
     let alive = true;
-    void runPageTransition(outgoing, incoming, leaving.kind, leaving.origin).then(() => {
+    void runPageTransition(outgoing, incoming, leaving.kind).then(() => {
       if (!alive) return;
       pendingScroll.current = leaving.restoreY;
       setLeaving(null);

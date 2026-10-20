@@ -23,7 +23,6 @@ export function initMotion(): void {
   const apply = () => document.documentElement.classList.toggle("motion", motionOn());
   apply();
   reduceQuery?.addEventListener("change", apply);
-  watchTaps();
 }
 
 export const CINEMATIC = { duration: 850, easing: "cubic-bezier(.16,1,.3,1)" } as const;
@@ -44,10 +43,9 @@ export function play(el: Element | null | undefined, keyframes: Keyframe[], opti
 }
 
 // ---------------------------------------------------------------------------
-// Page transitions. Opening something: the thing you tapped grows into the
-// new page, and going back shrinks the page into it again. With nothing to
-// grow from, the page slides in from the trailing side (the right in English,
-// the left in Arabic), like iOS. Tabs cross-fade.
+// Page transitions. Opening something: the new page slides in from the
+// trailing side (the right in English, the left in Arabic) over the one it
+// came from, like iOS, and going back slides it away again. Tabs cross-fade.
 // ---------------------------------------------------------------------------
 
 /** 1 when pages push in from the right (English), -1 when they push in from the left (Arabic). */
@@ -71,18 +69,9 @@ export function isEdgeSwiping(): boolean {
 
 export type TransitionKind = "push" | "pop" | "tab";
 
-/** A box on screen, in viewport pixels. */
-export interface ScreenRect {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
 export const GROW = { duration: 560, easing: "cubic-bezier(.3,.7,.1,1)" } as const;
 const SLIDE = { duration: 420, easing: "cubic-bezier(.32,.72,0,1)" } as const;
 
-let lastTap: { el: Element; at: number } | null = null;
 let inAppBackAt = -Infinity;
 
 /** The page's own Back button was tapped (the browser's back has its own animation). */
@@ -94,34 +83,6 @@ export function wasInAppBack(): boolean {
   return performance.now() - inAppBackAt < 1000;
 }
 
-/** Remembers what was tapped last, so the page it opens can grow out of it. */
-function watchTaps(): void {
-  document.addEventListener(
-    "click",
-    (e) => {
-      const el = e.target instanceof Element ? e.target.closest("a, button, [role='button'], [role='link'], .menu-card, .order-row") : null;
-      // The tab bar switches sections; nothing grows from it.
-      lastTap = el && !el.closest(".tabbar") ? { el, at: performance.now() } : null;
-    },
-    true,
-  );
-}
-
-/** Where the page that is opening now should grow from (taken once). */
-export function takeTapOrigin(): ScreenRect | null {
-  const tap = lastTap;
-  lastTap = null;
-  // Allows for a short wait (placing an order) between the tap and the page.
-  if (!tap || !tap.el.isConnected || performance.now() - tap.at > 1500) return null;
-  const r = tap.el.getBoundingClientRect();
-  if (r.width < 8 || r.height < 8 || r.width * r.height > innerWidth * innerHeight * 0.6) return null;
-  return { left: r.left, top: r.top, width: r.width, height: r.height };
-}
-
-const insetOf = (r: ScreenRect) =>
-  `inset(${r.top}px ${innerWidth - r.left - r.width}px ${innerHeight - r.top - r.height}px ${r.left}px round 16px)`;
-const FULL = "inset(0px 0px 0px 0px round 0px)";
-
 /** The new page's first blocks rise in while it opens. */
 function riseIn(page: Element, delay: number): void {
   [...page.querySelectorAll(".shop__main > *, .customer__main > *")].slice(0, 6).forEach((row, i) =>
@@ -129,25 +90,11 @@ function riseIn(page: Element, delay: number): void {
   );
 }
 
-export function runPageTransition(outgoing: HTMLElement, incoming: HTMLElement, kind: TransitionKind, origin: ScreenRect | null): Promise<void> {
+export function runPageTransition(outgoing: HTMLElement, incoming: HTMLElement, kind: TransitionKind): Promise<void> {
   if (kind === "tab") {
     return Promise.all([
       play(incoming, [{ opacity: 0, transform: "scale(.985)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "ease-out" }),
       play(outgoing, [{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease-out", fill: "forwards" }),
-    ]).then(done);
-  }
-  if (kind === "push" && origin) {
-    riseIn(incoming, GROW.duration * 0.3);
-    return Promise.all([
-      play(incoming, [{ clipPath: insetOf(origin) }, { clipPath: FULL }], GROW),
-      play(outgoing, [{ filter: "brightness(1)" }, { filter: "brightness(.88)" }], { ...GROW, fill: "forwards" }),
-    ]).then(done);
-  }
-  if (kind === "pop" && origin) {
-    // The page folds back into what was tapped, then fades into it.
-    return Promise.all([
-      play(outgoing, [{ clipPath: FULL, opacity: 1 }, { clipPath: insetOf(origin), opacity: 1, offset: 0.85 }, { clipPath: insetOf(origin), opacity: 0 }], { ...GROW, duration: 480, fill: "forwards" }),
-      play(incoming, [{ filter: "brightness(.88)" }, { filter: "brightness(1)" }], { ...GROW, duration: 480 }),
     ]).then(done);
   }
   const side = pushSide();
