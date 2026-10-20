@@ -73,7 +73,7 @@ export function MenuPage() {
     <ShopLayout
       bottom={
         <>
-          {menu && <SearchPill onOpen={(from) => setSearch({ from })} filter={canChoose && (currentCategory === "drink" || currentCategory === "best") ? { value: temperature, onChange: chooseTemperature } : undefined} />}
+          {menu && <SearchPill onOpen={(from) => setSearch({ from })} filter={canChoose && currentCategory === "drink" ? { value: temperature, onChange: chooseTemperature } : undefined} />}
           <CartBar menu={menu} />
         </>
       }
