@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { BUSINESS_TIME_ZONE } from "../../../shared/constants";
 import {
   FULFILLMENT_LABELS_AR,
   rewardDiscount,
@@ -13,7 +12,7 @@ import { Alert, Spinner } from "../../components/Field";
 import { CarIcon, ScooterIcon, StoreIcon } from "../../components/Shop";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiDownload, apiGet, errorText } from "../../lib/api";
-import { formatDateTime } from "../../lib/dates";
+import { formatDateTime, shopDay } from "../../lib/dates";
 import { riyals } from "../../lib/menu";
 
 const PAGE_SIZE = 30;
@@ -37,9 +36,7 @@ const PERIODS: { value: Period; label: string }[] = [
   { value: "custom", label: "تاريخ محدد" },
 ];
 
-const dayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TIME_ZONE });
-/** YYYY-MM-DD on the shop's clock, `back` days ago. */
-const localDay = (back = 0) => dayFormat.format(new Date(Date.now() - back * 864e5));
+const localDay = shopDay;
 
 function periodRange(period: Period, from: string, to: string): { from?: string; to?: string } {
   switch (period) {
@@ -140,10 +137,10 @@ export function AdminOrdersPage() {
     }
   }
 
-  async function exportCsv() {
+  async function exportExcel() {
     setExporting(true);
     try {
-      await apiDownload(`/api/admin/export/orders.csv?${key}`, `hollow-orders-${localDay()}.csv`);
+      await apiDownload(`/api/admin/export/sales.xlsx?${key}`, `hollow-sales-${localDay()}.xlsx`);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -223,7 +220,7 @@ export function AdminOrdersPage() {
               )}
             </p>
             {shown.total > 0 && (
-              <button type="button" className="btn btn--small btn--secondary" onClick={() => void exportCsv()} disabled={exporting}>
+              <button type="button" className="btn btn--small btn--secondary" onClick={() => void exportExcel()} disabled={exporting}>
                 {exporting ? "جارٍ التصدير…" : "تصدير Excel"}
               </button>
             )}

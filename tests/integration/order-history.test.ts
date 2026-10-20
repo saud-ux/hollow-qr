@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PGlite } from "@electric-sql/pglite";
+import { strFromU8, unzipSync } from "fflate";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { MenuItem, MenuResponse, Order, OrderHistoryPage } from "../../src/shared/ordering";
 import { bearer, buildTestApp } from "../helpers/app";
@@ -137,6 +138,19 @@ describe("admin order history", () => {
     expect(lines[1]).toContain(`${done.orderNumber},${done.id}`);
     expect(lines[1]).toContain(`2× ${drink.nameAr} [سكر قليل]`);
     expect(lines[1]).toContain("Abdullah");
+  });
+
+  it("exports the filtered orders as an Excel workbook", async () => {
+    const res = await get("/api/admin/export/sales.xlsx?status=completed", adminId);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    expect(res.headers.get("content-disposition")).toMatch(/^attachment; filename="hollow-sales-.+\.xlsx"$/);
+    const files = unzipSync(new Uint8Array(await res.arrayBuffer()));
+    const orders = strFromU8(files["xl/worksheets/sheet5.xml"]!);
+    expect(orders).toContain(`<v>${done.orderNumber}</v>`);
+    expect(orders).toContain("Abdullah");
+    expect(strFromU8(files["xl/worksheets/sheet1.xml"]!)).toContain("الحالة: المسلّمة");
+    expect((await get("/api/admin/export/sales.xlsx", staffId)).status).toBe(403);
   });
 
   it("is for admins only", async () => {
