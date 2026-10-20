@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { NavigationType, useLocation, useNavigationType, type Location } from "react-router";
-import { motionOn, PARALLAX, pushSide, runPageTransition, setEdgeSwiping, wasInAppBack, type TransitionKind } from "../lib/motion";
+import { motionOn, PARALLAX, pushSide, runPageTransition, setEdgeSwiping, UNDER_DIM, wasInAppBack, type TransitionKind } from "../lib/motion";
 import { ownsGestures } from "../lib/pwa";
 import { TabBar } from "./Shop";
 
@@ -60,7 +60,7 @@ let swipedBack: { restoreY: number } | null = null;
 const swipeLayers = (side: 1 | -1, progress: number) => ({
   top: `translateX(${side * progress * 100}%)`,
   under: `translateX(${-side * PARALLAX * (1 - progress) * 100}%)`,
-  dim: `brightness(${0.82 + 0.18 * progress})`,
+  dim: `brightness(${UNDER_DIM + (1 - UNDER_DIM) * progress})`,
 });
 
 /** Places the page and the one under it for a back swipe `progress` of 0..1. */

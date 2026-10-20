@@ -54,7 +54,9 @@ export function pushSide(): 1 | -1 {
 }
 
 /** How far the page underneath sits to the side while another covers it. */
-export const PARALLAX = 0.28;
+export const PARALLAX = 0.2;
+/** How bright the page underneath stays while another covers it. */
+export const UNDER_DIM = 0.92;
 
 let edgeSwiping = false;
 
@@ -70,7 +72,7 @@ export function isEdgeSwiping(): boolean {
 export type TransitionKind = "push" | "pop" | "tab";
 
 export const GROW = { duration: 560, easing: "cubic-bezier(.3,.7,.1,1)" } as const;
-const SLIDE = { duration: 420, easing: "cubic-bezier(.32,.72,0,1)" } as const;
+const SLIDE = { duration: 380, easing: CALM.easing } as const;
 
 let inAppBackAt = -Infinity;
 
@@ -86,7 +88,7 @@ export function wasInAppBack(): boolean {
 /** The new page's first blocks rise in while it opens. */
 function riseIn(page: Element, delay: number): void {
   [...page.querySelectorAll(".shop__main > *, .customer__main > *")].slice(0, 6).forEach((row, i) =>
-    void play(row, [{ opacity: 0, transform: "translateY(14px)" }, { opacity: 1, transform: "none" }], { duration: 420, easing: CALM.easing, delay: delay + i * 50 }),
+    void play(row, [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 320, easing: CALM.easing, delay: delay + i * 35 }),
   );
 }
 
@@ -100,16 +102,17 @@ export function runPageTransition(outgoing: HTMLElement, incoming: HTMLElement, 
   const side = pushSide();
   const away = `translateX(${side * 100}%)`;
   const under = `translateX(${-side * PARALLAX * 100}%)`;
+  const dim = `brightness(${UNDER_DIM})`;
   if (kind === "push") {
     riseIn(incoming, SLIDE.duration * 0.25);
     return Promise.all([
       play(incoming, [{ transform: away }, { transform: "none" }], SLIDE),
-      play(outgoing, [{ transform: "none", filter: "brightness(1)" }, { transform: under, filter: "brightness(.82)" }], { ...SLIDE, fill: "forwards" }),
+      play(outgoing, [{ transform: "none", filter: "brightness(1)" }, { transform: under, filter: dim }], { ...SLIDE, fill: "forwards" }),
     ]).then(done);
   }
   return Promise.all([
     play(outgoing, [{ transform: "none" }, { transform: away }], { ...SLIDE, fill: "forwards" }),
-    play(incoming, [{ transform: under, filter: "brightness(.82)" }, { transform: "none", filter: "brightness(1)" }], SLIDE),
+    play(incoming, [{ transform: under, filter: dim }, { transform: "none", filter: "brightness(1)" }], SLIDE),
   ]).then(done);
 }
 

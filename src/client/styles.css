@@ -2618,11 +2618,11 @@ html[lang="ar"] .shop__cups-label {
 }
 /* A page sliding in from the right casts its shadow on the left. */
 .rt--push .rt-layer--current {
-  box-shadow: -14px 0 36px rgb(43 30 22 / 20%);
+  box-shadow: -8px 0 24px rgb(43 30 22 / 12%);
 }
 .rt--pop .rt-layer--leaving {
   z-index: 2;
-  box-shadow: -14px 0 36px rgb(43 30 22 / 20%);
+  box-shadow: -8px 0 24px rgb(43 30 22 / 12%);
 }
 .rt--pop .rt-layer--current {
   z-index: 1;
@@ -2634,21 +2634,21 @@ html[lang="ar"] .shop__cups-label {
 }
 .rt--swipe .rt-layer--current {
   z-index: 2;
-  box-shadow: -14px 0 36px rgb(43 30 22 / 20%);
+  box-shadow: -8px 0 24px rgb(43 30 22 / 12%);
 }
 .rt--nodock .rt-layer--peek .tabbar {
   visibility: visible;
 }
 /* In Arabic pages come in from the left, so the shadow falls on the right. */
 [dir="rtl"] :is(.rt--push .rt-layer--current, .rt--pop .rt-layer--leaving, .rt--swipe .rt-layer--current) {
-  box-shadow: 14px 0 36px rgb(43 30 22 / 20%);
+  box-shadow: 8px 0 24px rgb(43 30 22 / 12%);
 }
 /* In the dark theme a brown shadow disappears into the page: use black. */
 :is(html.themed, html.staff-ui)[data-theme="dark"] :is(.rt--push .rt-layer--current, .rt--pop .rt-layer--leaving, .rt--swipe .rt-layer--current) {
-  box-shadow: -14px 0 36px rgb(0 0 0 / 55%);
+  box-shadow: -8px 0 24px rgb(0 0 0 / 40%);
 }
 :is(html.themed, html.staff-ui)[data-theme="dark"][dir="rtl"] :is(.rt--push .rt-layer--current, .rt--pop .rt-layer--leaving, .rt--swipe .rt-layer--current) {
-  box-shadow: 14px 0 36px rgb(0 0 0 / 55%);
+  box-shadow: 8px 0 24px rgb(0 0 0 / 40%);
 }
 /* One tab bar for the whole app, so it stays still while pages move. */
 .rt-layer .tabbar {
