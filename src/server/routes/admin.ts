@@ -18,9 +18,11 @@ import { rateLimit, requireRole, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
 import { toCsv } from "../lib/csv";
 import { toDashboardStats, toStaffMember, toTransactionItem } from "../loyalty/presenters";
-import type { OrderHistoryParams } from "../data/repository";
+import type { OrderHistoryParams, Repository } from "../data/repository";
+import { XLSX_MIME } from "../lib/xlsx";
 import { startOfDate, startOfLocalDay } from "../push/daily-summary";
 import { pushOff, sendToDevices } from "../push/order-notifications";
+import { salesWorkbook } from "../reports/sales-workbook";
 
 const EXPORT_PAGE = 1000;
 const BROADCAST_BATCH = 35;
@@ -76,6 +78,25 @@ function historyFilter(query: z.infer<typeof historyQuery>): Omit<OrderHistoryPa
 
 const HISTORY_EXPORT_PAGE = 200;
 const HISTORY_EXPORT_MAX_PAGES = 50; // 10k orders
+
+/** Every order the history filter matches, for the exports (newest first). */
+async function exportedOrders(repo: Repository, filter: Omit<OrderHistoryParams, "limit" | "offset">): Promise<AdminOrder[]> {
+  const orders: AdminOrder[] = [];
+  for (let p = 0; p < HISTORY_EXPORT_MAX_PAGES; p++) {
+    const { items } = await repo.orderHistory({ ...filter, limit: HISTORY_EXPORT_PAGE, offset: p * HISTORY_EXPORT_PAGE });
+    orders.push(...items);
+    if (items.length < HISTORY_EXPORT_PAGE) break;
+  }
+  return orders;
+}
+
+const HISTORY_STATUS_AR: Record<z.infer<typeof historyQuery>["status"], string> = {
+  all: "",
+  active: "الحالية",
+  ended: "المنتهية",
+  completed: "المسلّمة",
+  cancelled: "الملغاة",
+};
 
 const riyals = (halalas: number) => (halalas / 100).toFixed(2);
 const riyadh = (iso: string | null) => (iso ? formatRiyadh(iso) : "");
@@ -365,14 +386,26 @@ export const adminRoutes = new Hono<HonoEnv>()
 
   .get("/export/orders.csv", async (c) => {
     const filter = historyFilter(parseWith(historyQuery, c.req.query()));
-    const repo = repoOf(c);
-    const rows: unknown[][] = [];
-    for (let p = 0; p < HISTORY_EXPORT_MAX_PAGES; p++) {
-      const { items } = await repo.orderHistory({ ...filter, limit: HISTORY_EXPORT_PAGE, offset: p * HISTORY_EXPORT_PAGE });
-      rows.push(...items.map(orderCsvRow));
-      if (items.length < HISTORY_EXPORT_PAGE) break;
-    }
+    const rows = (await exportedOrders(repoOf(c), filter)).map(orderCsvRow);
     return csvResponse(`hollow-orders-${stamp(c.get("deps").now())}.csv`, toCsv(ORDER_CSV_HEADER, rows));
+  })
+
+  // The sales workbook (Excel): summary, days, items, busy hours, orders and lines, for the same filters.
+  .get("/export/sales.xlsx", async (c) => {
+    const query = parseWith(historyQuery, c.req.query());
+    const now = c.get("deps").now();
+    const orders = await exportedOrders(repoOf(c), historyFilter(query));
+    const filters = [HISTORY_STATUS_AR[query.status] && `الحالة: ${HISTORY_STATUS_AR[query.status]}`, query.q && `بحث: ${query.q}`].filter(Boolean).join(" · ");
+    const bytes = salesWorkbook({ orders, from: query.from ?? null, to: query.to ?? null, filters, now });
+    const period = query.from && query.to ? (query.from === query.to ? query.from : `${query.from}_${query.to}`) : stamp(now);
+    return new Response(bytes.slice().buffer, {
+      status: 200,
+      headers: {
+        "Content-Type": XLSX_MIME,
+        "Content-Disposition": `attachment; filename="hollow-sales-${period}.xlsx"`,
+        "Cache-Control": "no-store",
+      },
+    });
   })
 
   // Sales dashboard. "today" compares with yesterday up to the same time;

@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { WEEKDAY_LABELS_AR, type SalesRange, type SalesReport } from "../../../shared/ordering";
 import { Alert, Spinner } from "../../components/Field";
-import { apiGet, errorText } from "../../lib/api";
+import { apiDownload, apiGet, errorText } from "../../lib/api";
+import { shopDay } from "../../lib/dates";
 import { riyals } from "../../lib/menu";
 
-const RANGES: { value: SalesRange; label: string; compare: string }[] = [
-  { value: "today", label: "اليوم", compare: "عن أمس لنفس الوقت" },
-  { value: "7d", label: "7 أيام", compare: "عن الأيام السبعة قبلها" },
-  { value: "30d", label: "30 يوم", compare: "عن الثلاثين يوم قبلها" },
+const RANGES: { value: SalesRange; label: string; compare: string; days: number }[] = [
+  { value: "today", label: "اليوم", compare: "عن أمس لنفس الوقت", days: 1 },
+  { value: "7d", label: "7 أيام", compare: "عن الأيام السبعة قبلها", days: 7 },
+  { value: "30d", label: "30 يوم", compare: "عن الثلاثين يوم قبلها", days: 30 },
 ];
 
 /** "9 ص" / "3 م" on the shop's clock. */
@@ -50,23 +51,43 @@ export function SalesPanel() {
   const current = RANGES.find((r) => r.value === range)!;
   const shown = report?.range === range ? report : null;
 
+  // The workbook for the chosen period: every order in it, and the sales of the completed ones.
+  const [exporting, setExporting] = useState(false);
+  async function exportExcel() {
+    const from = shopDay(current.days - 1);
+    const to = shopDay();
+    setExporting(true);
+    try {
+      await apiDownload(`/api/admin/export/sales.xlsx?from=${from}&to=${to}`, `hollow-sales-${from === to ? to : `${from}_${to}`}.xlsx`);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <section className="panel sales" aria-labelledby="sales-title">
       <div className="sales__head">
         <h2 id="sales-title">المبيعات</h2>
-        <div className="theme-switch" role="radiogroup" aria-label="الفترة">
-          {RANGES.map((r) => (
-            <button
-              key={r.value}
-              type="button"
-              role="radio"
-              aria-checked={range === r.value}
-              className={`theme-switch__opt ${range === r.value ? "is-on" : ""}`}
-              onClick={() => setRange(r.value)}
-            >
-              {r.label}
-            </button>
-          ))}
+        <div className="sales__tools">
+          <div className="theme-switch" role="radiogroup" aria-label="الفترة">
+            {RANGES.map((r) => (
+              <button
+                key={r.value}
+                type="button"
+                role="radio"
+                aria-checked={range === r.value}
+                className={`theme-switch__opt ${range === r.value ? "is-on" : ""}`}
+                onClick={() => setRange(r.value)}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="btn btn--small btn--secondary" onClick={() => void exportExcel()} disabled={exporting}>
+            {exporting ? "جارٍ التجهيز…" : "تحميل Excel"}
+          </button>
         </div>
       </div>
       <p className="muted small">الطلبات المكتملة فقط.</p>

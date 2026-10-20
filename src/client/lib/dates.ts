@@ -1,6 +1,10 @@
 import { BUSINESS_TIME_ZONE } from "../../shared/constants";
 import { currentLang, tr } from "./i18n";
 
+const shopDayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TIME_ZONE });
+/** YYYY-MM-DD on the shop's clock, `back` days ago. */
+export const shopDay = (back = 0) => shopDayFormat.format(new Date(Date.now() - back * 864e5));
+
 const dateTimeAr = new Intl.DateTimeFormat("ar-SA-u-nu-latn-ca-gregory", {
   timeZone: BUSINESS_TIME_ZONE,
   year: "numeric",
