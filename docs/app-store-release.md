@@ -16,7 +16,8 @@ Apple Pay and other online order-payment methods marked **قريبًا** remain 
    failures promptly. The queue includes previously explicitly deleted customers,
    not accounts merely disabled by staff. Do not roll back the database by
    recreating the original cascading Auth/profile FK.
-3. Verify production `/privacy`, `/support` and `/terms` are publicly reachable.
+3. Verify production `/privacy` and `/support` are publicly reachable (the only pages
+   App Store Connect requires; the app has no terms page and uses Apple's standard EULA).
    Confirm support email delivery and update the policy if actual providers change.
 4. Run the **iOS TestFlight** workflow on `main`. Verify `VITE_API_BASE` points to
    production, not a preview. The workflow now requires Xcode 26+/iOS SDK 26+,
