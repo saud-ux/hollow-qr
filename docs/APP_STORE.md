@@ -125,10 +125,12 @@ Tracking: **No**. Everything below is **linked to the user**, **not used for tra
 | Category | Data type | Why |
 | --- | --- | --- |
 | Contact Info | Name, Email Address, Phone Number, Physical Address | Account, order handover, delivery |
-| Location | Precise Location | Only if the customer taps "use my location" for a delivery address |
-| User Content | Other User Content | Order notes, car description |
+| Location | Precise Location | Delivery pin and saved places (sent when the customer orders or saves a place) |
+| User Content | Other User Content | Order notes, car description, rating comments |
 | Identifiers | User ID | Account |
-| Purchases | Purchase History | Orders and loyalty cups |
+| Purchases | Purchase History | Orders, loyalty cups, balance, hospitality cups and coupons |
+
+Nearby alerts use the location on the phone only (iOS region monitoring); nothing about it reaches the server, so it isn't declared.
 
 Not collected: Health, Financial Info, Contacts, Browsing History, Search History, Diagnostics, Usage Data, Sensitive Info.
 The push device token does not need declaring (Apple treats it as part of the service).
@@ -153,13 +155,14 @@ Password: (the one you set)
 
 How to test
 1. Browse the menu (no sign-in needed), add items, open the cart and sign in with the demo account.
-2. Choose "استلام من الكاشير" (counter pickup), enter any Saudi mobile number such as 0512345678, and place the order. Payment is in person at pickup; there are no in-app payments.
+2. Choose "استلام من الكاشير" (counter pickup), enter any Saudi mobile number such as 0512345678, and place the order. Payment is in person at pickup; there are no in-app payments. A customer can have up to two open orders at a time.
 3. Allow notifications when asked. Our staff move the order through Preparing → Ready → Completed from the café's order board, and each step sends a push notification. If you place an order outside opening hours, the app shows the shop as closed.
 4. "حسابي" (Account) tab → "بطاقتي" (My card) shows the loyalty card. "Add to Apple Wallet" presents the native PKAddPassesViewController.
 5. Account deletion: "حسابي" (Account) tab → "حذف الحساب" (Delete account) at the bottom of the page.
-6. Saved places: "حسابي" (Account) → "عناويني" (My places). The map uses OpenStreetMap; location is asked for only when adding a place or tapping "Use my current location".
+6. Saved places: "حسابي" (Account) → "عناويني" (My places). The map uses OpenStreetMap; tapping "Use my current location" asks for location While Using.
+7. Nearby alerts (optional, off by default): the first time the menu opens, a message explains them and offers to turn them on; they can also be turned on or off under "حسابي" (Account) → "الإشعارات" (Notifications) → "تنبيهات القرب" (Nearby alerts). When on, iOS region monitoring watches a 300 m circle around the café and wakes the app on entry; the app then shows at most one local notification every 12 hours, and only during opening hours. Location "Always" is needed because the customer usually walks or drives in with the app closed. The location never leaves the phone. The café is in Al Zulfi, Saudi Arabia, so the alert can't be triggered from elsewhere; the setting, the permission prompts and the switch can be reviewed anywhere.
 
-Native features: APNs order-status notifications, PassKit (Apple Wallet) loyalty pass, haptics.
+Native features: APNs order-status notifications, Live Activity for an order in progress, home screen widget for the loyalty card, PassKit (Apple Wallet) loyalty pass, nearby alerts (region monitoring + local notification), haptics.
 Contact: hollowcoffee.sa@gmail.com
 ```
 
