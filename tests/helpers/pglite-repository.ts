@@ -42,6 +42,7 @@ import type {
   PlaceInput,
   PlaceOrderParams,
   RemoveStaffResult,
+  ResetShopResult,
   PushLang,
   Repository,
   StaffAlertKind,
@@ -159,6 +160,9 @@ export class PgliteRepository implements Repository {
     if (profile.disabledAt !== null) return { ok: false, code: "ALREADY_REMOVED" };
     await this.db.query("update public.profiles set disabled_at = now() where id = $1 and role = 'staff' and disabled_at is null", [userId]);
     return { ok: true };
+  }
+  async resetShopData(actorId: string): Promise<ResetShopResult> {
+    return (await this.one("select public.reset_shop_data($1) as result", [actorId]))!.result as ResetShopResult;
   }
 
   async listMenuItems(includeArchived: boolean) {

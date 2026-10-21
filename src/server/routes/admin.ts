@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { BUSINESS_TIME_ZONE, DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../../shared/constants";
+import { BUSINESS_TIME_ZONE, DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, RESET_CONFIRM_WORD } from "../../shared/constants";
 import { formatRiyadh, normalizeEmail } from "../../shared/format";
 import {
   BROADCAST_BODY_MAX,
@@ -13,7 +13,7 @@ import {
 } from "../../shared/ordering";
 import type { Paginated, TransactionItem } from "../../shared/types";
 import { ApiError } from "../http/errors";
-import { repoOf, type HonoEnv } from "../http/context";
+import { repoOf, runInBackground, type HonoEnv } from "../http/context";
 import { rateLimit, requireRole, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
 import { toCsv } from "../lib/csv";
@@ -58,6 +58,12 @@ const discountSchema = z.object({
 });
 
 const localDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+const resetSchema = z.object({ confirm: z.literal(RESET_CONFIRM_WORD) });
+const RESET_BLOCKED = {
+  OPEN_ORDERS: "فيه طلبات مفتوحة. أكملها أو ألغها قبل التصفير",
+  PAID_BALANCE: "فيه عملاء شحنوا رصيد بفلوسهم، فما يمكن تصفير الأرصدة",
+} as const;
 
 /** Order history filters: state, a period of local days (both ends included) and a search. */
 const historyQuery = z.object({
@@ -242,6 +248,25 @@ export const adminRoutes = new Hono<HonoEnv>()
     }
     c.get("deps").logger.info("admin.staff_removed", { actor: c.get("user").id, staffUserId: id });
     return c.json({ ok: true });
+  })
+
+  .post("/reset", async (c) => {
+    await parseJsonBody(c, resetSchema);
+    const { logger, wallet } = c.get("deps");
+    const actor = c.get("user").id;
+    const result = await repoOf(c).resetShopData(actor);
+    if (!result.ok) {
+      if (result.code === "FORBIDDEN") throw new ApiError(403, "FORBIDDEN");
+      throw new ApiError(409, "INVALID_REQUEST", undefined, RESET_BLOCKED[result.code]);
+    }
+    logger.info("admin.data_reset", { actor, orders: result.orders, cards: result.passSerials.length });
+    // Cards in Wallet show zero cups again, one at a time to stay under the request limits.
+    if (wallet && result.passSerials.length > 0) {
+      runInBackground(c, (async () => {
+        for (const serial of result.passSerials) await wallet.passChanged(serial);
+      })());
+    }
+    return c.json({ orders: result.orders, cards: result.passSerials.length });
   })
 
   .get("/export/customers.csv", async (c) => {
