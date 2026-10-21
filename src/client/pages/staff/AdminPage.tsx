@@ -1,9 +1,10 @@
 import { AdminCoupons } from "./AdminCoupons";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { RESET_CONFIRM_WORD } from "../../../shared/constants";
 import { normalizeEmail } from "../../../shared/format";
 import { ROLE_LABELS_AR } from "../../../shared/messages";
 import type { DashboardStats, StaffMember } from "../../../shared/types";
-import { ConfirmDialog } from "../../components/Dialog";
+import { ConfirmDialog, Dialog } from "../../components/Dialog";
 import { Alert, Field } from "../../components/Field";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiDownload, apiGet, apiPost, errorText } from "../../lib/api";
@@ -148,17 +149,87 @@ function StaffManagement() {
   );
 }
 
+/** البدء من جديد: deletes every order and zeroes every card; the accounts stay. */
+function ResetPanel({ onReset }: { onReset: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [word, setWord] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  function close() {
+    if (busy) return;
+    setOpen(false);
+    setWord("");
+    setError(null);
+  }
+
+  async function reset() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await apiPost<{ orders: number; cards: number }>("/api/admin/reset", { confirm: word.trim() });
+      setDone(`تم حذف ${r.orders} طلب وتصفير ${r.cards} بطاقة. أول طلب جاي رقمه 1`);
+      setOpen(false);
+      setWord("");
+      onReset();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="panel">
+      <h2>البدء من جديد</h2>
+      <p className="muted">يحذف كل الطلبات ويصفّر الأكواب والأرصدة، وتبقى الحسابات. إذا تحتاج المبيعات، حمّل ملف Excel قبله.</p>
+      {done && <Alert tone="success">{done}</Alert>}
+      <button type="button" className="btn btn--danger-soft" onClick={() => { setDone(null); setOpen(true); }}>
+        حذف الطلبات وتصفير البطاقات
+      </button>
+      <Dialog
+        open={open}
+        title="حذف الطلبات وتصفير البطاقات"
+        tone="danger"
+        onClose={close}
+        actions={
+          <>
+            <button type="button" className="btn btn--danger" disabled={busy || word.trim() !== RESET_CONFIRM_WORD} onClick={() => void reset()}>
+              {busy ? "جارٍ الحذف…" : "حذف وتصفير"}
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={close} disabled={busy}>
+              إلغاء
+            </button>
+          </>
+        }
+      >
+        <ul>
+          <li>يحذف كل الطلبات، وأول طلب بعدها رقمه 1</li>
+          <li>يصفّر الأكواب في كل البطاقات</li>
+          <li>يصفّر الأرصدة وأكواب الهدايا واستخدام الكوبونات</li>
+        </ul>
+        <p>تبقى الحسابات والعناوين والمنيو والكوبونات والإعدادات، وتنحفظ نسخة احتياطية قبل الحذف.</p>
+        {error && <Alert tone="error">{error}</Alert>}
+        <Field label={`اكتب «${RESET_CONFIRM_WORD}» للتأكيد`} value={word} onChange={(e) => setWord(e.target.value)} autoComplete="off" />
+      </Dialog>
+    </section>
+  );
+}
+
 /** المبيعات والإحصاءات: the loyalty numbers, sales and the CSV exports. */
 export function AdminPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
+  // Bumped after a reset so the sales and the numbers load again.
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     apiGet<DashboardStats>("/api/admin/stats")
       .then(setStats)
       .catch((e: unknown) => setError(errorText(e)));
-  }, []);
+  }, [version]);
 
   async function exportCsv(kind: "customers" | "transactions") {
     setExporting(kind);
@@ -175,7 +246,7 @@ export function AdminPage() {
   return (
     <StaffLayout title="المبيعات والإحصاءات" wide>
       {error && <Alert tone="error">{error}</Alert>}
-      <SalesPanel />
+      <SalesPanel key={version} />
       <section className="panel">
         <h2>بطاقة الولاء</h2>
         <div className="stats" aria-label="إحصاءات">
@@ -198,6 +269,7 @@ export function AdminPage() {
           </button>
         </div>
       </section>
+      <ResetPanel onReset={() => setVersion((v) => v + 1)} />
     </StaffLayout>
   );
 }

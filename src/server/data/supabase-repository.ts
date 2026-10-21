@@ -47,6 +47,7 @@ import type {
   PushTarget,
   RateOrderResult,
   RemoveStaffResult,
+  ResetShopResult,
   Repository,
   StaffAlertKind,
   WebPushKeyPair,
@@ -230,6 +231,10 @@ export class SupabaseRepository implements Repository {
       .is("disabled_at", null)) as DbResult;
     if (error) throw new RepositoryError("removeStaffUser", error);
     return { ok: true };
+  }
+
+  async resetShopData(actorId: string): Promise<ResetShopResult> {
+    return (await this.rpc("reset_shop_data", { p_actor: actorId })) as ResetShopResult;
   }
 
   async listMenuItems(includeArchived: boolean): Promise<MenuItemRow[]> {

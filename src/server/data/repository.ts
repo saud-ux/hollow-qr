@@ -142,6 +142,8 @@ export interface CreateStaffParams {
 export type CreateStaffResult = { ok: true; userId: string } | { ok: false; code: "EMAIL_EXISTS" | "WEAK_PASSWORD" };
 export type RemoveStaffResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_STAFF" | "ALREADY_REMOVED" };
 export type DeleteAccountResult = { ok: true; pending?: boolean } | { ok: false; code: "NOT_FOUND" | "NOT_A_CUSTOMER" | "ACTIVE_ORDER" };
+/** passSerials: the Wallet cards that had cups, to refresh on customers' phones. */
+export type ResetShopResult = { ok: true; orders: number; passSerials: string[] } | { ok: false; code: "FORBIDDEN" | "OPEN_ORDERS" | "PAID_BALANCE" };
 
 export interface PlaceInput {
   kind: PlaceKind;
@@ -287,6 +289,8 @@ export interface Repository {
   listStaff(): Promise<ProfileRow[]>;
   createStaffUser(params: CreateStaffParams): Promise<CreateStaffResult>;
   removeStaffUser(userId: string): Promise<RemoveStaffResult>;
+  /** Deletes every order and zeroes every card, balance and gift; accounts stay. */
+  resetShopData(actorId: string): Promise<ResetShopResult>;
 
   listMenuItems(includeArchived: boolean): Promise<MenuItemRow[]>;
   getMenuItem(id: string): Promise<MenuItemRow | null>;

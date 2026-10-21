@@ -7,6 +7,9 @@ export const PROGRAM_NAME = "HOLLOW Rewards";
 /** Paid cups needed for one free drink. Mirrors the CHECK constraints in SQL. */
 export const MAX_STAMPS = 5;
 
+/** Typed by the owner to confirm deleting every order and zeroing every card. */
+export const RESET_CONFIRM_WORD = "تصفير";
+
 /** Business-facing dates are shown in Riyadh time; storage is always UTC. */
 export const BUSINESS_TIME_ZONE = "Asia/Riyadh";
 
