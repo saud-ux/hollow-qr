@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { Nearby, nearbyAvailable } from "../lib/geofence";
-import { tr } from "../lib/i18n";
 import { Dialog } from "./Dialog";
 
 const ASKED_KEY = "hollow.nearby.introduced";
@@ -44,10 +43,10 @@ function NearbyPreview() {
       <div className="nearby-preview__alert">
         <img src="/brand/icon-192.png" alt="" />
         <div>
-          <b>{tr("تعديل مزاج💆🏻‍♂️✨", "Mood reset 💆🏻‍♂️✨")}</b>
-          <span>{tr("بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك.", "Between errands, grab a smooth cup of coffee and take a breather.")}</span>
+          <b>تعديل مزاج💆🏻‍♂️✨</b>
+          <span>بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك.</span>
         </div>
-        <small>{tr("الآن", "now")}</small>
+        <small>الآن</small>
       </div>
     </div>
   );
@@ -55,8 +54,9 @@ function NearbyPreview() {
 
 /**
  * The iOS app tells each phone about nearby alerts once, on the menu, a moment
- * after it opens. Nothing changes unless the customer turns them on here or
- * under Account → Notifications.
+ * after it opens, in Arabic whatever the phone's language (like the alert).
+ * Nothing changes unless the customer turns them on here or under
+ * Account → Notifications.
  */
 export function NearbyIntro() {
   const { pathname } = useLocation();
@@ -104,28 +104,24 @@ export function NearbyIntro() {
   return (
     <Dialog
       open={open}
-      title={tr("لا تفوّت كوبك وأنت قريب", "Don't miss your coffee when you're close")}
+      title="لا تفوّت كوبك وأنت قريب"
       lead={<NearbyPreview />}
       className="nearby-intro"
+      lang="ar"
       focusDialog
       onClose={close}
       actions={
         <>
           <button type="button" className="btn btn--primary btn--block" disabled={busy} onClick={() => void turnOn()}>
-            {busy ? tr("لحظة…", "One moment…") : tr("شغّل تنبيهات القرب", "Turn on nearby alerts")}
+            {busy ? "لحظة…" : "شغّل تنبيهات القرب"}
           </button>
           <button type="button" className="btn btn--ghost btn--block nearby-intro__later" disabled={busy} onClick={close}>
-            {tr("مو الحين", "Not now")}
+            مو الحين
           </button>
         </>
       }
     >
-      <p>
-        {tr(
-          "لما تمر جنب هولو وهو فاتح، يوصلك تنبيه مثل هذا، مرة كل ١٢ ساعة بالكثير. عشان يشتغل، اسمح بالموقع (دائمًا).",
-          "When you pass by HOLLOW while it's open, you'll get an alert like this, at most once every 12 hours. For it to work, allow location (Always).",
-        )}
-      </p>
+      <p>لما تمر جنب هولو وهو فاتح، يوصلك تنبيه مثل هذا، مرة كل ١٢ ساعة بالكثير. عشان يشتغل، اسمح بالموقع (دائمًا).</p>
     </Dialog>
   );
 }

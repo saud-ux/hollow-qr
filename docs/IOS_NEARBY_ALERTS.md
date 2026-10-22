@@ -2,10 +2,10 @@
 
 Customers can turn on **تنبيهات القرب / Nearby alerts** under Account → Notifications in the iOS app. It is off until they turn it on, and it doesn't exist on the website or Android. When a customer who turned it on comes near HOLLOW while it's open, the app shows a local notification inviting them in:
 
-- Title: «تعديل مزاج💆🏻‍♂️✨» (English: "Mood reset 💆🏻‍♂️✨")
-- Body: «بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك.» (English: "Between errands, grab a smooth cup of coffee and take a breather.")
+- Title: «تعديل مزاج💆🏻‍♂️✨»
+- Body: «بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك.»
 
-The alert is in the language the app shows: the app sends it to the plugin (`syncNearbyLang` in `src/client/lib/geofence.ts`) when it opens and whenever the customer changes it, and the plugin keeps it on the phone. Until the app has sent one, the phone's language decides: Arabic for Arabic, English otherwise. The first-open message's preview follows the same language.
+The alert is in Arabic on every phone, whatever the phone's or the app's language, like the order notifications. So is the first-open message below.
 
 The constants are in `ios/App/App/HollowGeofencePlugin.swift` (`HollowGeofenceConfig`):
 

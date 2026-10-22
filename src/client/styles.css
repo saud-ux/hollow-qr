@@ -3013,8 +3013,7 @@ html[lang="ar"] .shop__cups-label {
 .nearby-preview__alert b {
   display: block;
   font-size: 0.85rem;
-}
-.nearby-preview__alert span {
+}.nearby-preview__alert span {
   font-size: 0.8rem;
   color: #4a3b30;
 }

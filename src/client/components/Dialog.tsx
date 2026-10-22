@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { tr } from "../lib/i18n";
+import { tr, type Lang } from "../lib/i18n";
 
 /**
  * Accessible modal built on the native <dialog> element (focus trap + Esc).
@@ -16,6 +16,7 @@ export function Dialog({
   focusDialog = false,
   tone = "default",
   dismissible = false,
+  lang,
 }: {
   open: boolean;
   title: string;
@@ -29,6 +30,8 @@ export function Dialog({
   focusDialog?: boolean;
   tone?: "default" | "danger" | "warning" | "success";
   dismissible?: boolean;
+  /** A dialog written in one language whatever the app's (its direction follows). */
+  lang?: Lang;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -70,6 +73,8 @@ export function Dialog({
     <dialog
       ref={ref}
       className={`dialog dialog--${tone}${className ? ` ${className}` : ""}`}
+      lang={lang}
+      dir={lang ? (lang === "ar" ? "rtl" : "ltr") : undefined}
       aria-labelledby={titleId}
       tabIndex={focusDialog ? -1 : undefined}
       onPointerDown={e => { backdropPress.current = e.target === e.currentTarget && outside(e.currentTarget, e.clientX, e.clientY); }}

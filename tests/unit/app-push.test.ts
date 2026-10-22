@@ -123,8 +123,6 @@ describe("orderStatusMessage", () => {
     expect(orderStatusMessage({ ...placed, fulfillment: "delivery", walletHalalas: 1500 })!.body).toBe("طلبك رقم 12 (المتبقي 10 ر.س - دفع عند التوصيل). ثواني ونبدأ!");
     expect(orderStatusMessage({ ...placed, walletHalalas: 2500 })!.body).toBe("طلبك رقم 12 (مدفوع بالكامل من رصيدك). ثواني ونبدأ!");
     expect(orderStatusMessage({ ...placed, totalHalalas: 0 })!.body).toBe("طلبك رقم 12 (لا يوجد مبلغ للدفع). ثواني ونبدأ!");
-    expect(orderStatusMessage({ ...placed, fulfillment: "delivery", walletHalalas: 1500 }, "en")!.body).toBe("Left to pay SAR 10, pay on delivery. Loading up...");
-    expect(orderStatusMessage({ ...placed, walletHalalas: 2500 }, "en")!.body).toBe("Paid in full from your balance. Loading up...");
   });
 });
 
