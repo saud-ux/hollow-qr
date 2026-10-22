@@ -5,7 +5,7 @@ Customers can turn on **تنبيهات القرب / Nearby alerts** under Accoun
 - Title: «تعديل مزاج💆🏻‍♂️✨»
 - Body: «بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك.»
 
-The alert is in Arabic on every phone, whatever the phone's or the app's language, like the order notifications. The first-open message shows it in Arabic too.
+The alert is in Arabic on every phone, whatever the phone's or the app's language, like the order notifications. So is the first-open message below.
 
 The constants are in `ios/App/App/HollowGeofencePlugin.swift` (`HollowGeofenceConfig`):
 
