@@ -19,8 +19,8 @@ import { riyals, useMenu } from "../../lib/menu";
 import { lowStockBadge } from "../../lib/stock";
 import { closedNote } from "./hours";
 import { tr } from "../../lib/i18n";
-import { drinkTemperature } from "../../../shared/drink-temperature";
-import type { TemperatureChoice } from "../../components/DrinkTemperature";
+import { DRINK_TEMPERATURES, drinkTemperature, type DrinkTemperature } from "../../../shared/drink-temperature";
+import { TemperatureIcon } from "../../components/DrinkTemperature";
 
 /** A block of the menu: «الأفضل مبيعًا» (the owner's picks), then each category. */
 type Section = { key: "best" | MenuCategory; title: string; items: MenuItem[] };
@@ -35,10 +35,70 @@ function menuSections(items: MenuItem[]): Section[] {
   return sections;
 }
 
-/** Choosing hot or cold is only worth offering when the menu has both. */
+/** The drinks are split into hot and cold only when the menu has both. */
 function hasHotAndCold(sections: Section[]): boolean {
   const drinks = sections.find((s) => s.key === "drink")?.items ?? [];
   return drinks.some((item) => drinkTemperature(item) === "hot") && drinks.some((item) => drinkTemperature(item) === "cold");
+}
+
+/** A group counts as in view once its top has scrolled above this share of the screen's height. */
+const GROUP_LINE = 0.45;
+
+/**
+ * The hot or cold group of drinks in view, which the dock highlights, and a
+ * jump to either. During a jump the highlight stays on its target, so it
+ * doesn't flick back while the page passes the other group.
+ */
+function useDrinkGroups(enabled: boolean) {
+  const [inView, setInView] = useState<DrinkTemperature>(DRINK_TEMPERATURES[0]);
+  const target = useRef<DrinkTemperature | null>(null);
+  const release = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      // The last group whose top has passed the line.
+      const line = innerHeight * GROUP_LINE;
+      let group: DrinkTemperature = DRINK_TEMPERATURES[0];
+      for (const t of DRINK_TEMPERATURES) {
+        const top = document.getElementById(`drinks-${t}`)?.getBoundingClientRect().top;
+        if (top !== undefined && top <= line) group = t;
+      }
+      if (target.current && group !== target.current) return;
+      target.current = null;
+      setInView(group);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(frame);
+      removeEventListener("scroll", onScroll);
+      removeEventListener("resize", onScroll);
+    };
+  }, [enabled]);
+
+  useEffect(() => () => window.clearTimeout(release.current), []);
+
+  const jump = useCallback((t: DrinkTemperature) => {
+    setInView(t);
+    target.current = t;
+    // A group the page can't bring up to the line gives the highlight back to the scroll.
+    window.clearTimeout(release.current);
+    release.current = window.setTimeout(() => (target.current = null), 1200);
+    requestAnimationFrame(() => {
+      // The first group starts the section: show the section's title with it.
+      const el = document.getElementById(t === DRINK_TEMPERATURES[0] ? "section-drink" : `drinks-${t}`);
+      el?.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" });
+    });
+  }, []);
+
+  return { inView, jump };
 }
 
 export function MenuPage() {
@@ -58,29 +118,21 @@ export function MenuPage() {
   // The section in view (its chip is highlighted): the first one until the menu scrolls.
   const [active, setActive] = useState<Section["key"] | null>(null);
   const currentCategory = active ?? sections[0]?.key ?? null;
-  // Hot or cold drinks only (null: all), chosen in the search dock at the bottom
-  // (offered with the drinks and best sellers, not among desserts or boxes).
-  const [temperature, setTemperature] = useState<TemperatureChoice>(null);
-  const chooseTemperature = useCallback((value: TemperatureChoice) => {
-    setTemperature(value);
-    // The list changes length: show the drinks from the first one.
-    requestAnimationFrame(() => {
-      const drinks = document.getElementById("section-drink");
-      if (drinks) drinks.scrollIntoView({ behavior: motionOn() ? "smooth" : "auto", block: "start" });
-    });
-  }, []);
+  // The drinks come as a hot group and a cold group; while they are in view the
+  // search dock at the bottom moves between the two.
+  const groups = useDrinkGroups(canChoose);
   return (
     <ShopLayout
       bottom={
         <>
-          {menu && <SearchPill onOpen={(from) => setSearch({ from })} filter={canChoose && currentCategory === "drink" ? { value: temperature, onChange: chooseTemperature } : undefined} />}
+          {menu && <SearchPill onOpen={(from) => setSearch({ from })} groups={canChoose && currentCategory === "drink" ? { value: groups.inView, onChange: groups.jump } : undefined} />}
           <CartBar menu={menu} />
         </>
       }
       onRefresh={refresh}
     >
       {search && menu && <SearchScreen menu={menu} from={search.from} onClose={closeSearch} />}
-      <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} temperature={temperature} currentCategory={currentCategory} onActiveChange={setActive} />
+      <FullMenu menu={menu} error={error} sections={sections} refreshes={refreshes} card={me?.card ?? null} drinkGroups={canChoose} currentCategory={currentCategory} onActiveChange={setActive} />
     </ShopLayout>
   );
 }
@@ -91,7 +143,7 @@ function FullMenu({
   sections,
   refreshes,
   card,
-  temperature,
+  drinkGroups,
   currentCategory,
   onActiveChange,
 }: {
@@ -100,11 +152,10 @@ function FullMenu({
   sections: Section[];
   refreshes: number;
   card: Parameters<typeof LoyaltyBand>[0]["card"];
-  temperature: TemperatureChoice;
+  drinkGroups: boolean;
   currentCategory: Section["key"] | null;
   onActiveChange: (key: Section["key"]) => void;
 }) {
-  const temperatureLabel = temperature === null ? categoryLabel("drink") : temperature === "hot" ? tr("المشروبات الحارة", "Hot drinks") : tr("المشروبات الباردة", "Cold drinks");
   return (
     <>
       <LiveOrder refreshes={refreshes} />
@@ -122,14 +173,29 @@ function FullMenu({
         sections.map((section) => (
           <section key={section.key} id={`section-${section.key}`} className="menu-section" aria-labelledby={`cat-${section.key}`}>
             <h2 id={`cat-${section.key}`} className={`menu-section__title ${section.key === "best" ? "menu-section__title--best" : ""}`}>
-              {section.key === "drink" ? temperatureLabel : section.title}
+              {section.title}
             </h2>
-            <ul className="menu-grid">
-              {section.items.filter(item => section.key !== "drink" || temperature === null || drinkTemperature(item) === temperature).map((item) => (
-                <MenuCard key={item.id} item={item} canOrder={menu.shop.isOpen} />
-              ))}
-            </ul>
-            {section.key === "drink" && temperature !== null && !section.items.some(item => drinkTemperature(item) === temperature) && <p className="empty" role="status">{tr("لا توجد مشروبات في هذا القسم حالياً", "No drinks in this section yet")}</p>}
+            {section.key === "drink" && drinkGroups ? (
+              DRINK_TEMPERATURES.map((t) => (
+                <div key={t} id={`drinks-${t}`} className="menu-group" role="group" aria-labelledby={`drinks-${t}-title`}>
+                  <h3 id={`drinks-${t}-title`} className="menu-group__title">
+                    <TemperatureIcon value={t} size={18} />
+                    {t === "hot" ? tr("الحارة", "Hot") : tr("الباردة", "Cold")}
+                  </h3>
+                  <ul className="menu-grid">
+                    {section.items.filter((item) => drinkTemperature(item) === t).map((item) => (
+                      <MenuCard key={item.id} item={item} canOrder={menu.shop.isOpen} />
+                    ))}
+                  </ul>
+                </div>
+              ))
+            ) : (
+              <ul className="menu-grid">
+                {section.items.map((item) => (
+                  <MenuCard key={item.id} item={item} canOrder={menu.shop.isOpen} />
+                ))}
+              </ul>
+            )}
           </section>
         ))}
     </>
