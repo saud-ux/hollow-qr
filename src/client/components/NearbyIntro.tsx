@@ -122,8 +122,8 @@ export function NearbyIntro() {
     >
       <p>
         {tr(
-          "لما تمر جنب هولو وهو فاتح، يوصلك تنبيه مثل هذا. مرة كل ١٢ ساعة بالكثير، وموقعك يبقى على جوالك.",
-          "When you pass by HOLLOW while it's open, you'll get an alert like this. At most once every 12 hours, and your location stays on your phone.",
+          "لما تمر جنب هولو وهو فاتح، يوصلك تنبيه مثل هذا، مرة كل ١٢ ساعة بالكثير. عشان يشتغل، اسمح بالموقع (دائمًا).",
+          "When you pass by HOLLOW while it's open, you'll get an alert like this, at most once every 12 hours. For it to work, allow location (Always).",
         )}
       </p>
     </Dialog>

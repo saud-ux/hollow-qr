@@ -65,7 +65,7 @@ export function NearbyAlerts() {
         <label className="settings__row settings__row--switch">
           <span>
             {tr("تنبيهات القرب", "Nearby alerts")}
-            <small>{tr("ننبهك لما تكون قريب من هولو وهو فاتح، مرة كل ١٢ ساعة بالكثير", "When you're near HOLLOW while it's open, at most once every 12 hours")}</small>
+            <small>{tr("ننبهك لما تكون قريب من هولو وهو فاتح، مرة كل ١٢ ساعة بالكثير. يحتاج الموقع (دائمًا)", "When you're near HOLLOW while it's open, at most once every 12 hours. Needs location (Always)")}</small>
           </span>
           <input
             type="checkbox"
