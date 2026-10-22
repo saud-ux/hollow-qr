@@ -5,7 +5,7 @@ import { tr } from "../lib/i18n";
 /**
  * Notifications → Nearby alerts (iOS app only): one switch. Turning it on asks
  * for notifications and for location "Always"; until both are allowed, a line
- * under it says what's missing and opens the step that fixes it.
+ * under it says what's missing and opens the app's page in Settings.
  */
 export function NearbyAlerts() {
   const [status, setStatus] = useState<NearbyStatus | null>(null);
@@ -81,15 +81,16 @@ export function NearbyAlerts() {
         <div className="nearby-step" role="status">
           <p>
             {missing === "always"
-              ? tr("باقي خطوة: اسمح لهولو بالموقع «دائمًا»، عشان يعرف جوالك إنك قريب وهو في جيبك.", "One more step: allow HOLLOW to use your location Always, so your phone knows you're near even in your pocket.")
+              ? tr("باقي خطوة: اختر «دائمًا» من الإعدادات ← HOLLOW ← الموقع، عشان يعرف جوالك إنك قريب وهو في جيبك.", "One more step: choose Always in Settings → HOLLOW → Location, so your phone knows you're near even in your pocket.")
               : missing === "services"
                 ? tr("خدمات الموقع مقفلة في جوالك. فعّلها من الإعدادات ← الخصوصية والأمن.", "Location Services are off on your phone. Turn them on in Settings → Privacy & Security.")
                 : missing === "location"
                   ? tr("الموقع مقفل لتطبيق هولو. اسمح فيه «دائمًا» من الإعدادات ← HOLLOW ← الموقع.", "Location is off for HOLLOW. Allow it Always in Settings → HOLLOW → Location.")
                   : tr("الإشعارات مقفلة لتطبيق هولو. فعّلها من الإعدادات ← HOLLOW ← الإشعارات.", "Notifications are off for HOLLOW. Turn them on in Settings → HOLLOW → Notifications.")}
           </p>
-          <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={() => void act(() => (missing === "always" ? Nearby.start() : Nearby.openSettings()))}>
-            {missing === "always" ? tr("السماح دائمًا", "Allow Always") : tr("فتح الإعدادات", "Open Settings")}
+          {/* Straight to Settings: iOS asks for Always only once, so asking again would do nothing. */}
+          <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={() => void act(() => Nearby.openSettings())}>
+            {tr("فتح الإعدادات", "Open Settings")}
           </button>
         </div>
       )}
