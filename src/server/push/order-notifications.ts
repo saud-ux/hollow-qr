@@ -6,9 +6,9 @@ import type { WebPushSender } from "./web-push";
 
 const TITLE = "HOLLOW";
 
-/** The notification for an order's new status in the app's language, or null when none is sent. */
-export function orderStatusMessage(order: Order, lang: PushLang = "ar"): AppPushMessage | null {
-  const text = lang === "en" ? englishText(order) : arabicText(order);
+/** The notification for an order's new status, in Arabic on every phone whatever its language, or null when none is sent. */
+export function orderStatusMessage(order: Order): AppPushMessage | null {
+  const text = arabicText(order);
   return text === null ? null : { ...text, collapseId: order.id, data: { orderId: order.id } };
 }
 
@@ -21,12 +21,6 @@ function amountAr(order: Order): string {
   const due = amountDue(order);
   if (due === 0) return paidFromBalance(order) ? "مدفوع بالكامل من رصيدك" : "لا يوجد مبلغ للدفع";
   return `${paidFromBalance(order) ? "المتبقي" : "الإجمالي"} ${formatSar(due)} ر.س - دفع عند ${order.fulfillment === "delivery" ? "التوصيل" : "الاستلام"}`;
-}
-
-function amountEn(order: Order): string {
-  const due = amountDue(order);
-  if (due === 0) return paidFromBalance(order) ? "Paid in full from your balance" : "Nothing to pay";
-  return `${paidFromBalance(order) ? "Left to pay" : "Total"} SAR ${formatSar(due)}, pay on ${order.fulfillment === "delivery" ? "delivery" : "pickup"}`;
 }
 
 function arabicText(order: Order): PushText | null {
@@ -49,31 +43,6 @@ function arabicText(order: Order): PushText | null {
     case "cancelled":
       if (order.cancelledBy !== "staff") return null;
       return { title: TITLE, body: order.cancelReason ? `نعتذر، تم إلغاء طلبك #${n}: ${order.cancelReason}` : `نعتذر، تم إلغاء طلبك #${n}` };
-    default:
-      return null;
-  }
-}
-
-function englishText(order: Order): PushText | null {
-  const n = order.orderNumber;
-  switch (order.status) {
-    case "new":
-      return { title: `Got your order #${n}! 🤩`, body: `${amountEn(order)}. Loading up...` };
-    case "preparing":
-      return { title: "We're on it! ☕", body: `Your order #${n} is being prepared. Ready soon!` };
-    case "ready":
-      if (order.fulfillment === "pickup") return { title: "Ready at the counter! 📣", body: `Order #${n} is waiting for you at the counter.` };
-      if (order.fulfillment === "curbside") return { title: "Your order is ready! 🚗", body: `Order #${n} is ready. Tap "I'm here" on arrival!` };
-      return { title: TITLE, body: `Your order #${n} is ready and leaving with the driver soon` };
-    case "out_for_delivery":
-      return { title: "On its way!💨🚗", body: `Order #${n} is with the driver, heading your way!` };
-    case "completed": {
-      const cups = order.loyaltyResult?.cupsAdded ?? 0;
-      return { title: TITLE, body: cups > 0 ? `Enjoy! ${cups} ${cups === 1 ? "cup" : "cups"} added to your card` : "Enjoy! Your order is complete" };
-    }
-    case "cancelled":
-      if (order.cancelledBy !== "staff") return null;
-      return { title: TITLE, body: order.cancelReason ? `Sorry, your order #${n} was cancelled: ${order.cancelReason}` : `Sorry, your order #${n} was cancelled` };
     default:
       return null;
   }
@@ -102,12 +71,8 @@ export async function sendToDevices(deps: PushDeps, devices: PushDevice[], messa
 export async function notifyOrderStatus(deps: PushDeps, order: Order): Promise<void> {
   if (pushOff(deps)) return;
   const devices = await deps.repo.pushDevicesForOrder(order.id);
-  let sent = 0;
-  for (const lang of ["ar", "en"] as const) {
-    const message = orderStatusMessage(order, lang);
-    const mine = devices.filter((d) => d.lang === lang);
-    if (message && mine.length > 0) sent += await sendToDevices(deps, mine, message);
-  }
+  const message = orderStatusMessage(order);
+  const sent = message && devices.length > 0 ? await sendToDevices(deps, devices, message) : 0;
   if (devices.length > 0) deps.logger.info("app_push.order_status", { orderId: order.id, status: order.status, devices: devices.length, sent });
   if (deps.appPush.kind !== "disabled") await updateLiveActivities(deps, order);
 }

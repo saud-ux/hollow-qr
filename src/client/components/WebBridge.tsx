@@ -20,8 +20,7 @@ export function WebBridge() {
   }, [navigate]);
 
   // Signing in on a browser that already allowed notifications links it to
-  // this user. This also runs after a language change (the site re-renders
-  // keyed by language), so notifications follow the site's language.
+  // this user.
   useEffect(() => {
     if (isNative || !userId) return;
     void prepareWebPush()

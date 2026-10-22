@@ -90,7 +90,7 @@ describe("website notifications", () => {
     expect(rows.rows).toEqual([{ platform: "web", web_endpoint: sub.endpoint }]);
   });
 
-  it("tells the browser when the order moves on, in the browser's language", async () => {
+  it("tells the browser when the order moves on, in Arabic whatever the browser's language", async () => {
     const customer = await newCustomer();
     const ar = await subscription("web.push.apple.com");
     const en = await subscription();
@@ -100,7 +100,7 @@ describe("website notifications", () => {
     await vi.waitFor(() => expect(sentTo(ar.endpoint)).toHaveLength(1));
     await vi.waitFor(() => expect(sentTo(en.endpoint)).toHaveLength(1));
     expect(sentTo(ar.endpoint)[0]!.message).toMatchObject({ title: "استلمنا طلبك! 🤩", data: { orderId: order.id } });
-    expect(sentTo(en.endpoint)[0]!.message.title).toBe(`Got your order #${order.orderNumber}! 🤩`);
+    expect(sentTo(en.endpoint)[0]!.message.title).toBe("استلمنا طلبك! 🤩");
 
     const res = await post(`/api/staff/orders/${order.id}/status`, { status: "preparing" }, bearer(staffId));
     expect(res.status).toBe(200);

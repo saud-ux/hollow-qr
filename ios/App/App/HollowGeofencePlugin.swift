@@ -72,21 +72,6 @@ enum ShopHours {
     }
 }
 
-/// The alert's language: the one the app shows (it sends it at launch and on
-/// every change), or before that the phone's, Arabic for Arabic and English otherwise.
-enum NearbyLanguage {
-    private static let key = "hollow.geofence.lang"
-
-    static func save(_ lang: String) {
-        UserDefaults.standard.set(lang, forKey: key)
-    }
-
-    static var english: Bool {
-        if let lang = UserDefaults.standard.string(forKey: key) { return lang == "en" }
-        return !(Locale.preferredLanguages.first ?? "ar").lowercased().hasPrefix("ar")
-    }
-}
-
 /// Lives independently of the web view so a location wake-up can be handled.
 final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
     static let shared = HollowGeofenceManager()
@@ -132,7 +117,7 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
     private func monitor() {
         guard enabled else { return }
         guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else {
-            lastError = NearbyLanguage.english ? "Nearby alerts aren't supported on this phone." : "تنبيهات القرب غير مدعومة على هذا الجوال."
+            lastError = "تنبيهات القرب غير مدعومة على هذا الجوال."
             return
         }
         guard location.authorizationStatus == .authorizedAlways else { return }
@@ -184,9 +169,9 @@ final class HollowGeofenceManager: NSObject, CLLocationManagerDelegate {
         guard now - defaults.double(forKey: lastKey) >= HollowGeofenceConfig.cooldownSeconds else { return }
         sending = true
         let content = UNMutableNotificationContent()
-        let english = NearbyLanguage.english
-        content.title = english ? "Mood reset 💆🏻‍♂️✨" : "تعديل مزاج💆🏻‍♂️✨"
-        content.body = english ? "Between errands, grab a smooth cup of coffee and take a breather." : "بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك."
+        // Arabic on every phone, whatever its language (like the order notifications).
+        content.title = "تعديل مزاج💆🏻‍♂️✨"
+        content.body = "بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك."
         content.sound = .default
         content.userInfo = ["kind": "geofence"]
         let request = UNNotificationRequest(identifier: notificationID, content: content,
@@ -261,7 +246,6 @@ public class HollowGeofencePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setHours", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setLanguage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openSettings", returnType: CAPPluginReturnPromise)
     ]
     private var localHandler: HollowGeofenceNotificationHandler?
@@ -301,14 +285,6 @@ public class HollowGeofencePlugin: CAPPlugin, CAPBridgedPlugin {
         ShopHours.save(days.map {
             ShopDayHours(closed: $0["closed"] as? Bool ?? true, opensAt: $0["open"] as? String ?? "00:00", closesAt: $0["close"] as? String ?? "00:00")
         })
-        call.resolve()
-    }
-    /// The app's language ("ar" or "en"), sent at launch and whenever the customer changes it.
-    @objc func setLanguage(_ call: CAPPluginCall) {
-        guard let lang = call.getString("lang"), lang == "ar" || lang == "en" else {
-            call.reject("lang must be ar or en"); return
-        }
-        NearbyLanguage.save(lang)
         call.resolve()
     }
     @objc func openSettings(_ call: CAPPluginCall) {

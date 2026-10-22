@@ -43,9 +43,10 @@ function NearbyPreview() {
       </svg>
       <div className="nearby-preview__alert">
         <img src="/brand/icon-192.png" alt="" />
-        <div>
-          <b>{tr("تعديل مزاج💆🏻‍♂️✨", "Mood reset 💆🏻‍♂️✨")}</b>
-          <span>{tr("بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك.", "Between errands, grab a smooth cup of coffee and take a breather.")}</span>
+        {/* The alert itself is always in Arabic (HollowGeofencePlugin.swift). */}
+        <div lang="ar" dir="rtl">
+          <b>تعديل مزاج💆🏻‍♂️✨</b>
+          <span>بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك.</span>
         </div>
         <small>{tr("الآن", "now")}</small>
       </div>

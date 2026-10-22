@@ -3014,6 +3014,10 @@ html[lang="ar"] .shop__cups-label {
   display: block;
   font-size: 0.85rem;
 }
+/* The alert is Arabic (right-aligned) even in English, where «now» sits on the right too. */
+:root[dir="ltr"] .nearby-preview__alert b {
+  padding-right: 34px;
+}
 .nearby-preview__alert span {
   font-size: 0.8rem;
   color: #4a3b30;

@@ -3,8 +3,7 @@ import { useNavigate } from "react-router";
 import { apiPost } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { initMotion } from "../lib/motion";
-import { currentLang, tr, useLang } from "../lib/i18n";
-import { syncNearbyLang } from "../lib/geofence";
+import { currentLang, tr } from "../lib/i18n";
 import { appLinkPath } from "../../shared/app-links";
 import { parseEmailLink } from "../../shared/email-links";
 import { useConfig } from "../lib/config";
@@ -22,7 +21,6 @@ export function NativeBridge() {
   useEffect(() => { navigation.current = navigate; }, [navigate]);
   const { session, me, completeEmailLink } = useAuth();
   const { appUrl } = useConfig();
-  const { lang } = useLang();
   const signedIn = useRef(false);
   const userId = session?.user.id;
   useEffect(() => {
@@ -100,17 +98,10 @@ export function NativeBridge() {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [userId]);
 
-  // Signing in on a phone that already allowed notifications links it to this
-  // user. This also runs after a language change (the app re-renders keyed by
-  // language), so order notifications follow the app's language.
+  // Signing in on a phone that already allowed notifications links it to this user.
   useEffect(() => {
     if (isNative && userId) void refreshPushIfAllowed().catch(() => undefined);
   }, [userId]);
-
-  // Nearby alerts are written in the language the app shows, Arabic or English.
-  useEffect(() => {
-    syncNearbyLang(lang);
-  }, [lang]);
 
   return null;
 }
