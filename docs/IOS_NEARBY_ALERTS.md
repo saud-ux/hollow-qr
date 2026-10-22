@@ -2,8 +2,10 @@
 
 Customers can turn on **تنبيهات القرب / Nearby alerts** under Account → Notifications in the iOS app. It is off until they turn it on, and it doesn't exist on the website or Android. When a customer who turned it on comes near HOLLOW while it's open, the app shows a local notification inviting them in:
 
-- Title: «تعديل مزاج💆🏻‍♂️✨»
-- Body: «بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك.»
+- Title: «تعديل مزاج💆🏻‍♂️✨» (English: "Mood reset 💆🏻‍♂️✨")
+- Body: «بين المشاوير، خذ لك كوب قهوة رايق يخفف عليك.» (English: "Between errands, grab a smooth cup of coffee and take a breather.")
+
+The alert is in the language the app shows: the app sends it to the plugin (`syncNearbyLang` in `src/client/lib/geofence.ts`) when it opens and whenever the customer changes it, and the plugin keeps it on the phone. Until the app has sent one, the phone's language decides: Arabic for Arabic, English otherwise. The first-open message's preview follows the same language.
 
 The constants are in `ios/App/App/HollowGeofencePlugin.swift` (`HollowGeofenceConfig`):
 
@@ -21,7 +23,7 @@ The constants are in `ios/App/App/HollowGeofencePlugin.swift` (`HollowGeofenceCo
 - **Entry only.** Leaving the circle does nothing.
 - **Opening hours only.** The app sends the shop's weekly hours (from `/api/menu`) to the plugin whenever it loads the menu (`syncShopHours` in `src/client/lib/geofence.ts`), and the plugin keeps them on the phone. An entry is checked against them with the same rule as the database's `shop_is_open` (opening hours, overnight shifts included; the ordering pause is ignored). Until the hours have been received once, every entry counts as closed. An entry while closed is dropped and doesn't use up the 12 hours.
 - **12 hours between alerts.** After an alert, entries are ignored for 12 hours.
-- **Permissions.** Turning the switch on asks for notifications and for location While Using, then Always: as soon as While Using is allowed, the plugin asks for Always too (iOS shows that once). Until both are allowed, a line under the switch says what's missing, with a button that asks for Always or opens Settings.
+- **Permissions.** Turning the switch on asks for notifications and for location While Using, then Always: as soon as While Using is allowed, the plugin asks for Always too (iOS shows that once). Until both are allowed, a line under the switch says what's missing, with a button that opens HOLLOW's page in Settings. For Always too it goes straight to Settings, because iOS shows its own Always prompt only once and asking again would do nothing.
 - **First-open message.** The first time the iOS app shows the menu on a phone, a message (`src/client/components/NearbyIntro.tsx`) appears after about a second: a little map round HOLLOW with the alert it sends, «لا تفوّت كوبك وأنت قريب», and two buttons, «شغّل تنبيهات القرب» (the same as turning the switch on) and «مو الحين». It shows once per phone (`hollow.nearby.introduced` in local storage), and not at all if the alerts are already on.
 - **Upgrading from the test build.** A customer who turned on the old test keeps it on. The test's 75 m region is replaced by the 300 m one the next time the app starts.
 - Only this feature's region and pending notification are touched. Order pushes, the notification-center delegate and other local notifications are left alone: a Capacitor local-notification handler presents only alerts whose `kind` is `geofence` and forwards the rest.

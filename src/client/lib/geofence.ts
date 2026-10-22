@@ -5,6 +5,7 @@
  */
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import type { DayHours } from "../../shared/ordering";
+import type { Lang } from "./i18n";
 
 export interface NearbyStatus {
   enabled: boolean;
@@ -21,6 +22,7 @@ interface GeofencePlugin {
   start(): Promise<NearbyStatus>;
   stop(): Promise<NearbyStatus>;
   setHours(options: { weeklyHours: DayHours[] }): Promise<void>;
+  setLanguage(options: { lang: Lang }): Promise<void>;
   openSettings(): Promise<{ opened: boolean }>;
 }
 
@@ -38,5 +40,16 @@ export function syncShopHours(weeklyHours: DayHours[]): void {
   sentHours = key;
   Nearby.setHours({ weeklyHours }).catch(() => {
     sentHours = "";
+  });
+}
+
+let sentLang = "";
+
+/** The phone writes the alert itself, even with the app closed, so it keeps the app's language. */
+export function syncNearbyLang(lang: Lang): void {
+  if (!nearbyAvailable || lang === sentLang) return;
+  sentLang = lang;
+  Nearby.setLanguage({ lang }).catch(() => {
+    sentLang = "";
   });
 }
