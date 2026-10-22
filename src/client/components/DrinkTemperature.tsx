@@ -1,12 +1,9 @@
 import type { CSSProperties } from "react";
-import type { DrinkTemperature } from "../../shared/drink-temperature";
+import { DRINK_TEMPERATURES, type DrinkTemperature } from "../../shared/drink-temperature";
 import { tr } from "../lib/i18n";
 import { tapFeedback } from "../lib/native";
 
-/** null: all drinks. */
-export type TemperatureChoice = DrinkTemperature | null;
-
-function TemperatureIcon({ value, size = 20 }: { value: DrinkTemperature; size?: number }) {
+export function TemperatureIcon({ value, size = 20 }: { value: DrinkTemperature; size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {value === "hot" ? (
@@ -21,27 +18,28 @@ function TemperatureIcon({ value, size = 20 }: { value: DrinkTemperature; size?:
   );
 }
 
-const CHOICES: TemperatureChoice[] = [null, "hot", "cold"];
-
-/** All / hot / cold, with a thumb that slides to the choice (in the search dock under the menu). */
-export function TemperatureSwitch({ value, onChange, tabbable = true }: { value: TemperatureChoice; onChange: (value: TemperatureChoice) => void; tabbable?: boolean }) {
+/**
+ * Hot / cold, in the search dock under the menu: each takes the menu to its
+ * group of drinks, and the thumb sits on the group in view. Nothing is hidden.
+ */
+export function TemperatureSwitch({ value, onChange, tabbable = true }: { value: DrinkTemperature; onChange: (value: DrinkTemperature) => void; tabbable?: boolean }) {
   return (
-    <div className="temp-switch" style={{ "--i": CHOICES.indexOf(value) } as CSSProperties}>
+    <div className="temp-switch" style={{ "--i": DRINK_TEMPERATURES.indexOf(value) } as CSSProperties}>
       <span className="temp-switch__thumb" aria-hidden="true" />
-      {CHOICES.map((choice) => (
+      {DRINK_TEMPERATURES.map((choice) => (
         <button
-          key={choice ?? "all"}
+          key={choice}
           type="button"
           className={`temp-switch__option${choice === value ? " is-on" : ""}`}
-          aria-pressed={choice === value}
+          aria-current={choice === value ? "true" : undefined}
           tabIndex={tabbable ? 0 : -1}
           onClick={() => {
             tapFeedback();
             onChange(choice);
           }}
         >
-          {choice && <TemperatureIcon value={choice} size={18} />}
-          {choice === null ? tr("الكل", "All") : choice === "hot" ? tr("حار", "Hot") : tr("بارد", "Cold")}
+          <TemperatureIcon value={choice} size={18} />
+          {choice === "hot" ? tr("حار", "Hot") : tr("بارد", "Cold")}
         </button>
       ))}
     </div>

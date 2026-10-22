@@ -1466,6 +1466,22 @@ html[lang="ar"] .shop__cups-label {
   height: 1px;
   background: #e2d5bf;
 }
+/* The drinks' hot and cold groups, each under its own small title. */
+.menu-group {
+  display: grid;
+  gap: 10px;
+}
+.menu-group + .menu-group {
+  margin-top: 8px;
+}
+.menu-group__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--label);
+  font-size: 1rem;
+}
 .menu-grid {
   list-style: none;
   margin: 0;
@@ -2841,7 +2857,8 @@ html[lang="ar"] .shop__cups-label {
   border-color: var(--espresso);
   color: var(--paper);
 }
-.menu-section {
+.menu-section,
+.menu-group {
   scroll-margin-top: calc(120px + env(safe-area-inset-top));
 }
 
@@ -6804,7 +6821,7 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .temp-dock.is-away { opacity: 0; transform: translateY(14px) scale(0.96); pointer-events: none; }
 .temp-dock__search { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--paper) 12%, transparent); color: inherit; cursor: pointer; }
 .temp-dock__divider { width: 1px; height: 22px; margin-inline: 3px; background: color-mix(in srgb, var(--paper) 22%, transparent); }
-.temp-switch { --flow: 1; position: relative; display: grid; grid-template-columns: repeat(3, 70px); height: 44px; }
+.temp-switch { --flow: 1; position: relative; display: grid; grid-template-columns: repeat(2, 70px); height: 44px; }
 [dir="rtl"] .temp-switch { --flow: -1; }
 .temp-switch__thumb { position: absolute; inset-block: 0; inset-inline-start: 0; width: 70px; border-radius: 999px; background: var(--paper); transform: translateX(calc(var(--i, 0) * 70px * var(--flow))); }
 .motion .temp-switch__thumb { transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1); }
