@@ -7198,22 +7198,19 @@ html.staff-ui[data-theme="dark"] .orders-sound.is-on { color: #8fc69d; }
 .car-plate--sm {
   font-size: 4.125px;
 }
+/* Each side: a grid with one column per character, Arabic row above English. */
 .car-plate__half {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  row-gap: 0.15em;
+  padding: 0 0.9em;
   white-space: nowrap;
 }
 .car-plate__half > span {
   font-size: 2.45em;
-  letter-spacing: 0.12em;
-}
-/* Spaced Arabic-Indic digits would otherwise run right to left. */
-.car-plate__digits {
-  unicode-bidi: bidi-override;
-  direction: ltr;
 }
 .car-plate__half.is-hint {
   color: #c4c4c4;

@@ -10,7 +10,18 @@ import {
 } from "../../shared/cars";
 import { currentLang, tr } from "../lib/i18n";
 
-const spaced = (digits: string) => Array.from(digits).join(" ");
+function PlateHalf({ top, bottom, hint }: { top: string[]; bottom: string[]; hint: boolean }) {
+  return (
+    <span className={`car-plate__half ${hint ? "is-hint" : ""}`} style={{ gridTemplateColumns: `repeat(${Math.max(bottom.length, 1)}, minmax(0, 1fr))` }}>
+      {top.map((c, i) => (
+        <span key={`t${i}`}>{c}</span>
+      ))}
+      {bottom.map((c, i) => (
+        <span key={`b${i}`}>{c}</span>
+      ))}
+    </span>
+  );
+}
 
 /**
  * A Saudi plate as it looks on the car: digits on the left, letters on the
@@ -25,17 +36,15 @@ export function CarPlate({ letters, numbers, size = "md", hint = false }: { lett
     letters && numbers
       ? tr(`لوحة ${plateArabic(letters)} ${numbers}`, `Plate ${plateLatin(letters)} ${numbers}`)
       : tr("لوحة السيارة", "Car plate");
+  // One cell per character, Arabic above English, so both sides spread the same way.
+  // The Arabic letters read right to left: their row is the English one mirrored.
+  const digits = Array.from(n);
+  const latin = Array.from(l);
   return (
     <span className={`car-plate car-plate--${size}`} role="img" aria-label={label} dir="ltr">
-      <span className={`car-plate__half ${numbers ? "" : "is-hint"}`}>
-        <span className="car-plate__digits">{spaced(arabicDigits(n))}</span>
-        <span className="car-plate__digits">{spaced(n)}</span>
-      </span>
+      <PlateHalf hint={!numbers} top={Array.from(arabicDigits(n))} bottom={digits} />
       <img className="car-plate__tent" src="/brand/tent-espresso.webp" alt="" width={1100} height={458} />
-      <span className={`car-plate__half ${letters ? "" : "is-hint"}`}>
-        <span dir="rtl">{plateArabic(l)}</span>
-        <span>{plateLatin(l)}</span>
-      </span>
+      <PlateHalf hint={!letters} top={plateArabic(l).split(" ").reverse()} bottom={latin} />
       <span className="car-plate__band" aria-hidden="true">
         <span className="car-plate__country">السعودية</span>
         <span className="car-plate__ksa">
