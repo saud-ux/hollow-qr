@@ -13,6 +13,9 @@ import {
   type PlaceOrderRequest,
 } from "../../../shared/ordering";
 import { Alert, Field } from "../../components/Field";
+import { CarSummary } from "../../components/CarPlate";
+import { CurbsideCar } from "../../components/CurbsideCar";
+import type { CarDetails } from "../../../shared/cars";
 import { showToast } from "../../components/Toast";
 import { inCart, stockLeftText, stockRoom } from "../../lib/stock";
 import { CartSkeleton } from "../../components/Skeletons";
@@ -40,7 +43,6 @@ import { paymentLabel, paymentNote, paymentReady, usePaymentMethods, type Paymen
 const lineKey = (line: CartLine) => `${line.menuItemId}|${line.optionId ?? ""}`;
 
 const PHONE_KEY = "hollow.phone";
-const CAR_KEY = "hollow.car";
 const ADDRESS_KEY = "hollow.address";
 
 function remembered(key: string): string {
@@ -158,7 +160,7 @@ export function CartPage() {
   const [payChosen, setPayment] = useState<PaymentMethod>("on_pickup");
   const payment: PaymentMethod = paymentReady(payChosen) ? payChosen : "on_pickup";
   const [phone, setPhone] = useState(() => remembered(PHONE_KEY));
-  const [car, setCar] = useState(() => remembered(CAR_KEY));
+  const [car, setCar] = useState<CarDetails | null>(null);
   const [address, setAddress] = useState(() => remembered(ADDRESS_KEY));
   const [coords, setCoords] = useState<Coords | null>(null);
   const places = usePlaces(!!session);
@@ -322,7 +324,7 @@ export function CartPage() {
     const normalizedPhone = normalizeSaudiPhone(phone);
     const next: Record<string, string | null> = {
       phone: normalizedPhone ? null : tr("اكتب رقم جوال صحيح (مثال: 0512345678)", "Enter a valid mobile number (e.g. 0512345678)"),
-      car: fulfillment === "curbside" && !car.trim() ? tr("اكتب نوع السيارة ولونها", "Write your car's make and color") : null,
+      car: fulfillment === "curbside" && !car ? tr("أضف سيارتك أو اختر وحدة من سياراتك", "Add your car or pick one of yours") : null,
       address: fulfillment === "delivery" && !address.trim() ? tr("اكتب عنوان التوصيل", "Write the delivery address") : null,
     };
     setErrors(next);
@@ -377,7 +379,7 @@ export function CartPage() {
       })),
       fulfillment,
       phone: normalizedPhone,
-      carDescription: fulfillment === "curbside" ? car.trim() : undefined,
+      car: fulfillment === "curbside" && car ? car : undefined,
       deliveryAddress: fulfillment === "delivery" ? address.trim() : undefined,
       deliveryLat: fulfillment === "delivery" ? coords?.lat : undefined,
       deliveryLng: fulfillment === "delivery" ? coords?.lng : undefined,
@@ -393,7 +395,6 @@ export function CartPage() {
     try {
       const { order } = await apiPost<{ order: Order }>("/api/orders", body);
       remember(PHONE_KEY, normalizedPhone);
-      if (fulfillment === "curbside") remember(CAR_KEY, car.trim());
       if (fulfillment === "delivery") remember(ADDRESS_KEY, address.trim());
       successFeedback();
       // The button turns into a check for a moment before the order opens.
@@ -566,13 +567,12 @@ export function CartPage() {
           </div>
           {options.length === 0 && <p className="muted small">{tr("الاستلام متوقف مؤقتًا، جرّب بعد شوي", "Ordering is paused for now, try again shortly")}</p>}
           {options.length > 0 && fulfillment === "curbside" && (
-            <Field
-              label={tr("السيارة", "Your car")}
-              value={car}
-              onChange={(e) => setCar(e.target.value)}
-              placeholder={tr("مثال: كامري بيضاء", "e.g. white Camry")}
-              hint={tr("نطلع لك الطلب عند السيارة. اضغط «وصلت» من صفحة الطلب عند وصولك", "We'll bring it to your car. Tap \"I'm here\" on the order page when you arrive")}
-              maxLength={80}
+            <CurbsideCar
+              signedIn={!!session}
+              onChange={(next) => {
+                setCar(next);
+                if (next) setErrors((e) => ({ ...e, car: null }));
+              }}
               error={errors.car}
             />
           )}
@@ -682,7 +682,7 @@ export function CartPage() {
           <dl className="checkout-review__contact">
             <div><dt>{tr("الاستلام", "Fulfillment")}</dt><dd>{fulfillmentLabel(fulfillment)}</dd></div>
             <div><dt>{tr("الجوال", "Mobile")}</dt><dd dir="ltr">{phone}</dd></div>
-            {fulfillment === "curbside" && <div><dt>{tr("السيارة", "Car")}</dt><dd>{car}</dd></div>}
+            {fulfillment === "curbside" && car && <div><dt>{tr("السيارة", "Car")}</dt><dd><CarSummary car={car} /></dd></div>}
             {fulfillment === "delivery" && <div><dt>{tr("العنوان", "Address")}</dt><dd>{address}</dd></div>}
           </dl>
         </section>

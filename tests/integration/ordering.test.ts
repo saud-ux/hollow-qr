@@ -170,6 +170,26 @@ describe("placing orders", () => {
     expect(await bad.json()).toMatchObject({ error: { code: "INVALID_PHONE" } });
   });
 
+  it("writes the car sent by the app as one line the staff board reads back", async () => {
+    const customer = await newCustomer();
+    const car = { name: " كامري ", color: "white", colorName: "ignored", plateLetters: "HUL", plateNumbers: "462" };
+    const order = await placed(customer.id, { fulfillment: "curbside", car });
+    expect(order.carDescription).toBe("كامري · أبيض · ه و ل 462");
+    const own = await placed(customer.id, { fulfillment: "curbside", car: { name: "جمس", color: "other", colorName: "عنابي" } });
+    expect(own.carDescription).toBe("جمس · عنابي");
+
+    for (const bad of [
+      { ...car, name: "  " },
+      { ...car, color: "red" },
+      { ...car, color: "other", colorName: "" },
+      { ...car, plateNumbers: null },
+      { ...car, plateLetters: "ABC" },
+      { ...car, plateNumbers: "12345" },
+    ]) {
+      expect((await placeOrder(customer.id, { fulfillment: "curbside", car: bad })).status, JSON.stringify(bad)).toBe(400);
+    }
+  });
+
   it("requires a car for curbside and an address for delivery, and adds the delivery fee", async () => {
     const customer = await newCustomer();
     expect((await placeOrder(customer.id, { fulfillment: "curbside" })).status).toBe(400);

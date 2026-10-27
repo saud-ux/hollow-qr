@@ -12,6 +12,8 @@ Admins manage the menu, photos, hours and fees at `/staff/admin/menu`.
   `ordering_paused` overrides the hours; staff toggle it from the board during rush hours.
   The shop starts paused, so nothing goes live before the admin reviews the menu and hours.
 - **Fulfillment**: pickup, curbside (car required) and delivery (address required, optional GPS pin).
+  The app sends the car as `{ name, color, colorName, plateLetters, plateNumbers }` (`src/shared/cars.ts`); the Worker stores it in `car_description` as one line, «كامري · أبيض · ه و ل 462», which the staff board reads back to draw the colour and the plate.
+  Customers keep up to 5 cars in Account → «سياراتي» (`customer_cars`, `20261028000000_customer_cars.sql`); a guest's car stays on the phone and moves to the account after sign-in.
   Each can be switched off. Delivery adds `delivery_fee_halalas` (default 15 SAR) and can require a minimum order.
 - **Payment**: on collection only (`payment_method = 'on_pickup'`). No card data touches the system.
   Online payment through Moyasar can be added later as a second method.

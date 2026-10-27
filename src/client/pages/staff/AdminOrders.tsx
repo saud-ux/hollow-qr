@@ -10,6 +10,7 @@ import {
 } from "../../../shared/ordering";
 import { Alert, Spinner } from "../../components/Field";
 import { CarIcon, ScooterIcon, StoreIcon } from "../../components/Shop";
+import { CarDescription } from "../../components/CarPlate";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiDownload, apiGet, errorText } from "../../lib/api";
 import { formatDate, formatDateTime, shopDay } from "../../lib/dates";
@@ -388,7 +389,11 @@ function OrderDetail({ order: o, onClose }: { order: AdminOrder | null; onClose:
             <h3>طريقة الاستلام</h3>
             <dl>
               <Row label="الطريقة">{FULFILLMENT_LABELS_AR[o.fulfillment]}</Row>
-              {o.carDescription && <Row label="السيارة">{o.carDescription}</Row>}
+              {o.carDescription && (
+                <Row label="السيارة">
+                  <CarDescription text={o.carDescription} arabic />
+                </Row>
+              )}
               {o.deliveryAddress && (
                 <Row label="العنوان">
                   {o.deliveryAddress}

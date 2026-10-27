@@ -3,7 +3,8 @@ import { z } from "zod";
 import type { CustomerCard, MeResponse } from "../../shared/types";
 import { DISPLAY_NAME_MAX_LENGTH } from "../../shared/constants";
 import { assertCoreSecrets } from "../config";
-import type { AccountRow, PlaceInput, SavePlaceResult } from "../data/repository";
+import type { AccountRow, PlaceInput, SaveCarResult, SavePlaceResult } from "../data/repository";
+import { carSchema } from "./car-schema";
 import { ApiError } from "../http/errors";
 import { repoOf, runInBackground, walletOf, type AppContext, type HonoEnv } from "../http/context";
 import { rateLimit, requireUser } from "../http/middleware";
@@ -71,7 +72,13 @@ function savedOrThrow(result: SavePlaceResult) {
   throw new ApiError(404, "NOT_FOUND");
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function carSavedOrThrow(result: SaveCarResult) {
+  if (result.ok) return result.car;
+  if (result.code === "CARS_LIMIT") throw new ApiError(409, "CARS_LIMIT");
+  throw new ApiError(404, "NOT_FOUND");
+}
+
+const UUID_RE =/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function ownAccount(c: AppContext): Promise<AccountRow> {
   const user = c.get("user");
@@ -233,6 +240,29 @@ export const meRoutes = new Hono<HonoEnv>()
   .delete("/me/places/:id", requireUser, rateLimit("api", "user"), async (c) => {
     const id = c.req.param("id");
     if (!UUID_RE.test(id) || !(await repoOf(c).deletePlace(c.get("user").id, id))) throw new ApiError(404, "NOT_FOUND");
+    return c.json({ ok: true });
+  })
+
+  // Saved cars for curbside pickup.
+  .get("/me/cars", requireUser, rateLimit("api", "user"), async (c) => {
+    return c.json({ cars: await repoOf(c).listCars(c.get("user").id) });
+  })
+
+  .post("/me/cars", requireUser, rateLimit("api", "user"), async (c) => {
+    const car = await parseJsonBody(c, carSchema);
+    return c.json({ car: carSavedOrThrow(await repoOf(c).saveCar(c.get("user").id, null, car)) }, 201);
+  })
+
+  .put("/me/cars/:id", requireUser, rateLimit("api", "user"), async (c) => {
+    const id = c.req.param("id");
+    if (!UUID_RE.test(id)) throw new ApiError(404, "NOT_FOUND");
+    const car = await parseJsonBody(c, carSchema);
+    return c.json({ car: carSavedOrThrow(await repoOf(c).saveCar(c.get("user").id, id, car)) });
+  })
+
+  .delete("/me/cars/:id", requireUser, rateLimit("api", "user"), async (c) => {
+    const id = c.req.param("id");
+    if (!UUID_RE.test(id) || !(await repoOf(c).deleteCar(c.get("user").id, id))) throw new ApiError(404, "NOT_FOUND");
     return c.json({ ok: true });
   })
 

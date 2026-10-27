@@ -45,8 +45,10 @@ export function PrivacyPage() {
                   sign-in provider).
                 </li>
                 <li>
-                  Orders: items, mobile number, car description for curbside
-                  pickup, delivery address.
+                  Orders: items, mobile number, the car for curbside pickup
+                  (name, colour and plate if you add it), delivery address.
+                  Cars you save in My cars stay in your account until you
+                  delete them or your account.
                 </li>
                 <li>
                   Delivery location: when you choose to use your location or
@@ -165,8 +167,10 @@ export function PrivacyPage() {
                   لدى مزوّد تسجيل الدخول).
                 </li>
                 <li>
-                  الطلبات: الأصناف، رقم الجوال، وصف السيارة عند الاستلام من
-                  السيارة، وعنوان التوصيل.
+                  الطلبات: الأصناف، رقم الجوال، السيارة عند الاستلام من
+                  السيارة (اسمها ولونها، ولوحتها إذا أضفتها)، وعنوان التوصيل.
+                  السيارات المحفوظة في «سياراتي» تبقى في حسابك لين تحذفها أو
+                  تحذف حسابك.
                 </li>
                 <li>
                   موقع التوصيل: إذا اخترت استخدام موقعك أو حفظ عنوان، نستقبل

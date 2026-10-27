@@ -28,6 +28,7 @@ import {
 } from "../../src/server/data/mappers";
 import { isDiscountLive, type Discount, type NotificationPrefs, type OrderStatus, type SalesRange, type ShopSettings } from "../../src/shared/ordering";
 import type { SavedPlace } from "../../src/shared/types";
+import type { CarDetails, SavedCar } from "../../src/shared/cars";
 import type {
   ApplyActionParams,
   ApplyActionResult,
@@ -48,7 +49,7 @@ import type {
   StaffAlertKind,
   WebPushKeyPair,
 } from "../../src/server/data/repository";
-import { deleteAccountCode, savePlaceResult } from "../../src/server/data/repository";
+import { deleteAccountCode, saveCarResult, savePlaceResult } from "../../src/server/data/repository";
 
 type Raw = Record<string, unknown>;
 
@@ -459,6 +460,24 @@ export class PgliteRepository implements Repository {
   }
   async deletePlace(userId: string, id: string) {
     return (await this.one("select public.place_delete($1, $2) as r", [userId, id]))!.r === true;
+  }
+  async listCars(userId: string) {
+    return (await this.one("select public.cars_list($1) as r", [userId]))!.r as SavedCar[];
+  }
+  async saveCar(userId: string, id: string | null, car: CarDetails) {
+    const r = await this.one("select public.car_save($1, $2, $3, $4, $5, $6, $7) as r", [
+      userId,
+      id,
+      car.name,
+      car.color,
+      car.colorName,
+      car.plateLetters,
+      car.plateNumbers,
+    ]);
+    return saveCarResult(r!.r);
+  }
+  async deleteCar(userId: string, id: string) {
+    return (await this.one("select public.car_delete($1, $2) as r", [userId, id]))!.r === true;
   }
   async setDisplayName(userId: string, name: string) {
     const r = (await this.one("select public.set_display_name($1, $2) as r", [userId, name]))!.r as { ok: boolean; passSerial?: string | null };

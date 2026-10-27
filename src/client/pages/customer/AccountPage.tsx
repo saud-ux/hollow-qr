@@ -24,6 +24,7 @@ import { showToast } from "../../components/Toast";
 import { enterAccount } from "../../lib/motion";
 import { isNative } from "../../lib/native";
 import { placeIcon, placeName, usePlaces } from "../../lib/places";
+import { useCars } from "../../lib/cars";
 import { canPromptInstall, needsHomeScreen, onInstallChange, promptInstall } from "../../lib/pwa";
 import { getThemeChoice, revealOrigin, setThemeChoice, type ThemeChoice } from "../../lib/theme";
 
@@ -95,6 +96,7 @@ export function AccountPage() {
   const cart = useCart();
   const { account: benefits } = useBenefits(signedIn);
   const places = usePlaces(signedIn);
+  const [cars] = useCars(signedIn);
   const [theme, setTheme] = useState<ThemeChoice>(getThemeChoice);
   const { choice: langChoice, setChoice: setLangChoice } = useLang();
   const [nameOpen, setNameOpen] = useState(false);
@@ -230,6 +232,9 @@ export function AccountPage() {
           )}
           <Row icon="orders" to="/orders">
             {tr("طلباتي", "Orders")}
+          </Row>
+          <Row icon="car" to="/account/cars" sub={tr("للاستلام من السيارة", "For curbside pickup")} value={cars && cars.length > 0 ? <span dir="ltr">{cars.length}</span> : undefined}>
+            {tr("سياراتي", "My cars")}
           </Row>
           <Row icon="bell" to="/account/notifications">
             {tr("الإشعارات", "Notifications")}

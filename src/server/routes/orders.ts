@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { BUSINESS_TIME_ZONE } from "../../shared/constants";
+import { carDescription } from "../../shared/cars";
 import {
   LOW_STOCK,
   MAX_LINE_QUANTITY,
@@ -22,6 +23,7 @@ import { repoOf, runInBackground, type AppContext, type HonoEnv } from "../http/
 import { rateLimit, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
 import { notifyOrderStatus, notifyStaffNewOrder } from "../push/order-notifications";
+import { carSchema } from "./car-schema";
 
 const rateSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -132,6 +134,8 @@ export const placeOrderSchema = z
       .max(MAX_ORDER_LINES),
     fulfillment: z.enum(["pickup", "curbside", "delivery"]),
     phone: z.string().max(30),
+    // The app sends the car itself; carDescription is free text from older app versions.
+    car: carSchema.optional(),
     carDescription: optionalText(80),
     deliveryAddress: optionalText(300),
     deliveryLat: z.number().min(-90).max(90).optional(),
@@ -144,8 +148,8 @@ export const placeOrderSchema = z
     idempotencyKey: z.uuid(),
   })
   .superRefine((v, ctx) => {
-    if (v.fulfillment === "curbside" && !v.carDescription) {
-      ctx.addIssue({ code: "custom", path: ["carDescription"], message: "required for curbside" });
+    if (v.fulfillment === "curbside" && !v.car && !v.carDescription) {
+      ctx.addIssue({ code: "custom", path: ["car"], message: "required for curbside" });
     }
     if (v.fulfillment === "delivery" && !v.deliveryAddress) {
       ctx.addIssue({ code: "custom", path: ["deliveryAddress"], message: "required for delivery" });
@@ -197,7 +201,7 @@ export const orderRoutes = new Hono<HonoEnv>()
       items: body.items.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity, note: i.note ?? null, optionId: i.optionId || null })),
       fulfillment: body.fulfillment,
       phone,
-      carDescription: body.carDescription ?? null,
+      carDescription: body.car ? carDescription(body.car) : (body.carDescription ?? null),
       deliveryAddress: body.deliveryAddress ?? null,
       deliveryLat: body.deliveryLat ?? null,
       deliveryLng: body.deliveryLng ?? null,

@@ -20,6 +20,7 @@ import type {
   ShopSettings,
 } from "../../shared/ordering";
 import type { AppRole, LoyaltyAction, MembershipStatus, PlaceKind, SavedPlace } from "../../shared/types";
+import type { CarDetails, SavedCar } from "../../shared/cars";
 
 export interface ProfileRow {
   id: string;
@@ -159,6 +160,14 @@ export function savePlaceResult(raw: unknown): SavePlaceResult {
   const r = raw as { ok: boolean; code?: string; place?: SavedPlace };
   if (r.ok && r.place) return { ok: true, place: r.place };
   return { ok: false, code: r.code === "KIND_TAKEN" || r.code === "PLACES_LIMIT" ? r.code : "NOT_FOUND" };
+}
+
+export type SaveCarResult = { ok: true; car: SavedCar } | { ok: false; code: "NOT_FOUND" | "CARS_LIMIT" };
+
+export function saveCarResult(raw: unknown): SaveCarResult {
+  const r = raw as { ok: boolean; code?: string; car?: SavedCar };
+  if (r.ok && r.car) return { ok: true, car: r.car };
+  return { ok: false, code: r.code === "CARS_LIMIT" ? "CARS_LIMIT" : "NOT_FOUND" };
 }
 
 export function deleteAccountCode(code: string | undefined): "NOT_FOUND" | "NOT_A_CUSTOMER" | "ACTIVE_ORDER" {
@@ -375,6 +384,11 @@ export interface Repository {
   /** Adds (id null) or edits a place; a new home or work replaces the old one. */
   savePlace(userId: string, id: string | null, input: PlaceInput): Promise<SavePlaceResult>;
   deletePlace(userId: string, id: string): Promise<boolean>;
+  /** The customer's saved cars for curbside pickup, in the order they were added. */
+  listCars(userId: string): Promise<SavedCar[]>;
+  /** Adds (id null) or edits a car; at most 5. */
+  saveCar(userId: string, id: string | null, car: CarDetails): Promise<SaveCarResult>;
+  deleteCar(userId: string, id: string): Promise<boolean>;
   /** Renames the user; returns their pass serial (to refresh Wallet) or null, or false if not found. */
   setDisplayName(userId: string, name: string): Promise<{ passSerial: string | null } | false>;
 

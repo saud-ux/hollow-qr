@@ -13,6 +13,7 @@ import { Dialog } from "../../components/Dialog";
 import { Alert, Spinner } from "../../components/Field";
 import { AvailabilityList } from "../../components/Availability";
 import { CarIcon, ScooterIcon, StoreIcon } from "../../components/Shop";
+import { CarDescription } from "../../components/CarPlate";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiGet, apiPost, errorText } from "../../lib/api";
 import { isAudioReady, orderChime, primeAudio } from "../../lib/feedback";
@@ -389,7 +390,9 @@ function OrderTicket({
         {o.fulfillment === "curbside" && (
           <div>
             <dt>السيارة</dt>
-            <dd>{o.carDescription}</dd>
+            <dd>
+              <CarDescription text={o.carDescription} plate="md" arabic />
+            </dd>
           </div>
         )}
         {o.fulfillment === "delivery" && (

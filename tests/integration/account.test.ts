@@ -2,6 +2,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { MockPushNotifier } from "../../src/server/wallet/apns";
 import type { MeResponse, SavedPlace } from "../../src/shared/types";
+import type { SavedCar } from "../../src/shared/cars";
 import { bearer, buildTestApp } from "../helpers/app";
 import { createAuthUser, createTestDb } from "../helpers/db";
 
@@ -106,6 +107,73 @@ describe("saved places", () => {
     await send("POST", "/api/me/places", home, user);
     expect((await send("POST", "/api/me/delete", { confirm: "DELETE" }, user)).status).toBe(200);
     const rows = await db.query("select 1 from public.customer_places where user_id = $1", [user]);
+    expect(rows.rows).toHaveLength(0);
+  });
+});
+
+describe("saved cars", () => {
+  const camry = { name: "كامري", color: "white", plateLetters: "HUL", plateNumbers: "462" };
+
+  async function cars(userId: string): Promise<SavedCar[]> {
+    const res = await app.request("/api/me/cars", { headers: bearer(userId) });
+    expect(res.status).toBe(200);
+    return ((await res.json()) as { cars: SavedCar[] }).cars;
+  }
+
+  it("adds, edits and deletes cars, in the order they were added", async () => {
+    const user = (await createAuthUser(db, { email: "c1@account.test", name: "Driver" })).id;
+    expect(await cars(user)).toEqual([]);
+
+    const added = await send("POST", "/api/me/cars", camry, user);
+    expect(added.status).toBe(201);
+    const first = ((await added.json()) as { car: SavedCar }).car;
+    expect(first).toMatchObject({ name: "كامري", color: "white", colorName: null, plateLetters: "HUL", plateNumbers: "462" });
+    expect((await send("POST", "/api/me/cars", { name: " جمس ", color: "other", colorName: " عنابي " }, user)).status).toBe(201);
+
+    let list = await cars(user);
+    expect(list.map((c) => c.name)).toEqual(["كامري", "جمس"]);
+    expect(list[1]).toMatchObject({ color: "other", colorName: "عنابي", plateLetters: null, plateNumbers: null });
+
+    // Editing a car drops a colour name it no longer needs, and the plate.
+    const edited = await send("PUT", `/api/me/cars/${list[1]!.id}`, { name: "يوكن", color: "black", colorName: "عنابي" }, user);
+    expect(edited.status).toBe(200);
+    expect(((await edited.json()) as { car: SavedCar }).car).toMatchObject({ name: "يوكن", color: "black", colorName: null });
+
+    expect((await send("DELETE", `/api/me/cars/${first.id}`, undefined, user)).status).toBe(200);
+    expect((await send("DELETE", `/api/me/cars/${first.id}`, undefined, user)).status).toBe(404);
+    list = await cars(user);
+    expect(list.map((c) => c.name)).toEqual(["يوكن"]);
+  });
+
+  it("keeps at most 5 cars and checks what is sent", async () => {
+    const user = (await createAuthUser(db, { email: "c2@account.test", name: "Fleet" })).id;
+    for (let i = 1; i <= 5; i++) {
+      expect((await send("POST", "/api/me/cars", { ...camry, plateNumbers: String(i) }, user)).status).toBe(201);
+    }
+    const sixth = await send("POST", "/api/me/cars", camry, user);
+    expect(sixth.status).toBe(409);
+    expect(await errorCode(sixth)).toBe("CARS_LIMIT");
+
+    expect((await send("POST", "/api/me/cars", { ...camry, name: "" }, user)).status).toBe(400);
+    expect((await send("POST", "/api/me/cars", { ...camry, color: "pink" }, user)).status).toBe(400);
+    expect((await send("POST", "/api/me/cars", { ...camry, color: "other" }, user)).status).toBe(400);
+    expect((await send("POST", "/api/me/cars", { ...camry, plateLetters: null }, user)).status).toBe(400);
+    expect((await send("POST", "/api/me/cars", { ...camry, plateLetters: "hul" }, user)).status).toBe(400);
+    expect((await send("PUT", "/api/me/cars/not-an-id", camry, user)).status).toBe(404);
+  });
+
+  it("are private to their owner and forgotten when the account is deleted", async () => {
+    const owner = (await createAuthUser(db, { email: "c3@account.test", name: "Owner" })).id;
+    const other = (await createAuthUser(db, { email: "c4@account.test", name: "Other" })).id;
+    await send("POST", "/api/me/cars", camry, owner);
+    const [car] = await cars(owner);
+    expect(await cars(other)).toEqual([]);
+    expect((await send("PUT", `/api/me/cars/${car!.id}`, camry, other)).status).toBe(404);
+    expect((await send("DELETE", `/api/me/cars/${car!.id}`, undefined, other)).status).toBe(404);
+    expect((await app.request("/api/me/cars")).status).toBe(401);
+
+    expect((await send("POST", "/api/me/delete", { confirm: "DELETE" }, owner)).status).toBe(200);
+    const rows = await db.query("select 1 from public.customer_cars where user_id = $1", [owner]);
     expect(rows.rows).toHaveLength(0);
   });
 });

@@ -1,4 +1,5 @@
 /** Online ordering contracts and helpers shared by the Worker and the web app. */
+import type { CarDetails } from "./cars";
 
 /** The menu's sections, in the order they are shown. Only drinks earn loyalty cups. */
 export const MENU_CATEGORIES = ["drink", "dessert", "box"] as const;
@@ -308,6 +309,8 @@ export interface PlaceOrderRequest {
   items: { menuItemId: string; quantity: number; note?: string; optionId?: string }[];
   fulfillment: FulfillmentType;
   phone: string;
+  car?: CarDetails;
+  /** Free text, from app versions before saved cars. */
   carDescription?: string;
   deliveryAddress?: string;
   deliveryLat?: number;

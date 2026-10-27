@@ -18,6 +18,7 @@ import { EmailCallbackPage } from "./pages/customer/EmailCallbackPage";
 import { AccountPage } from "./pages/customer/AccountPage";
 import { NotificationsPage } from "./pages/customer/NotificationsPage";
 import { PlacePage } from "./pages/customer/PlacePage";
+import { CarsPage } from "./pages/customer/CarsPage";
 import { WalletPage } from "./pages/customer/WalletPage";
 import { CartPage } from "./pages/order/CartPage";
 import { MenuPage } from "./pages/order/MenuPage";
@@ -74,6 +75,7 @@ function CustomerRoutes() {
           <Route path="/account" element={<AccountPage />} />
           <Route path="/account/notifications" element={<NotificationsPage />} />
           <Route path="/account/places/:id" element={<PlacePage />} />
+          <Route path="/account/cars" element={<CarsPage />} />
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/orders" element={<OrdersPage />} />

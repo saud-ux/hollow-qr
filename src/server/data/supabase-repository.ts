@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Broadcast, Discount, NotificationPrefs, Order, OrderStatus, RatingOverview, SalesRange, SalesReport, ShopSettings } from "../../shared/ordering";
 import { MENU_IMAGE_BUCKET, isDiscountLive } from "../../shared/ordering";
 import type { SavedPlace } from "../../shared/types";
+import type { CarDetails, SavedCar } from "../../shared/cars";
 import {
   mapAccount,
   mapBroadcast,
@@ -52,7 +53,7 @@ import type {
   StaffAlertKind,
   WebPushKeyPair,
 } from "./repository";
-import { deleteAccountCode, savePlaceResult } from "./repository";
+import { deleteAccountCode, saveCarResult, savePlaceResult } from "./repository";
 
 type Raw = Record<string, unknown>;
 type DbError = { message: string; code?: string } | null;
@@ -667,6 +668,28 @@ export class SupabaseRepository implements Repository {
 
   async deletePlace(userId: string, id: string) {
     return (await this.rpc("place_delete", { p_user_id: userId, p_id: id })) === true;
+  }
+
+  async listCars(userId: string) {
+    return (await this.rpc("cars_list", { p_user_id: userId })) as SavedCar[];
+  }
+
+  async saveCar(userId: string, id: string | null, car: CarDetails) {
+    return saveCarResult(
+      await this.rpc("car_save", {
+        p_user_id: userId,
+        p_id: id,
+        p_name: car.name,
+        p_color: car.color,
+        p_color_name: car.colorName,
+        p_plate_letters: car.plateLetters,
+        p_plate_numbers: car.plateNumbers,
+      }),
+    );
+  }
+
+  async deleteCar(userId: string, id: string) {
+    return (await this.rpc("car_delete", { p_user_id: userId, p_id: id })) === true;
   }
 
   async setDisplayName(userId: string, name: string) {
