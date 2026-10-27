@@ -503,3 +503,24 @@ describe("wallet registrations", () => {
     expect(devices.rows).toHaveLength(0);
   });
 });
+
+describe("hosted database guard", () => {
+  // Supabase runs PostgREST requests with pg-safeupdate, which refuses a DELETE or
+  // UPDATE without a WHERE clause; this database doesn't, so the rule is checked here.
+  it("every function's DELETE and UPDATE has a WHERE clause", async () => {
+    const defs = await db.query<{ fn: string; def: string }>(
+      `select p.oid::regprocedure::text as fn, pg_get_functiondef(p.oid) as def
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public' and p.prokind = 'f'`,
+    );
+    const bare: string[] = [];
+    for (const { fn, def } of defs.rows) {
+      for (const statement of def.replace(/--[^\n]*/g, "").split(";")) {
+        if (/\b(?:delete\s+from|update)\s+public\.\w+/i.test(statement) && !/\bwhere\b/i.test(statement)) {
+          bare.push(`${fn}: ${statement.trim().split("\n")[0]}`);
+        }
+      }
+    }
+    expect(bare).toEqual([]);
+  });
+});
