@@ -4284,12 +4284,12 @@ button.rate__star:active {
   --steam: #a08a74;
   position: relative;
   width: 120px;
-  height: 108px;
+  height: 122px;
   margin: 12px auto 0;
 }
 .ready-cup__steam {
   position: absolute;
-  top: 8px;
+  top: 0;
   left: 50%;
   width: 70px;
   height: 38px;
@@ -4308,7 +4308,7 @@ button.rate__star:active {
   bottom: 0;
   left: 50%;
   width: 66px;
-  height: 78px;
+  height: 88px;
   margin-left: -33px;
   filter: drop-shadow(0 6px 10px rgb(43 30 22 / 18%));
 }

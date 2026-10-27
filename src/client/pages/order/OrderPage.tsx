@@ -51,7 +51,7 @@ function headline(order: Order): string {
   }
 }
 
-/** The HOLLOW cup, steaming, on a ready order. */
+/** The HOLLOW cup from the loyalty card, steaming, on a ready order. */
 function ReadyCup() {
   return (
     <div className="ready-cup" aria-hidden="true">
@@ -60,7 +60,7 @@ function ReadyCup() {
         <path d="M35 34 C29 24 41 16 35 2" />
         <path d="M47 36 C41 28 53 20 47 8" />
       </svg>
-      <img className="ready-cup__img" src="/wallet-preview/cup-open.png" alt="" width={66} height={78} />
+      <img className="ready-cup__img" src="/wallet-preview/cup-filled.png" alt="" width={66} height={88} />
       <svg className="ready-cup__badge" viewBox="0 0 32 32">
         <circle cx="16" cy="16" r="14" />
         <path d="M10 16.5 L14.2 20.5 L22 12" pathLength={1} />
