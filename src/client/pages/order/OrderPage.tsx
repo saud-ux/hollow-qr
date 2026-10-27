@@ -5,6 +5,7 @@ import { ConfirmDialog } from "../../components/Dialog";
 import { NotifyCard } from "../../components/NotifyCard";
 import { OffersPrompt } from "../../components/OffersPrompt";
 import { Alert } from "../../components/Field";
+import { CarDescription } from "../../components/CarPlate";
 import { TicketSkeleton } from "../../components/Skeletons";
 import { ShopLayout } from "../../components/Shop";
 import { apiGet, apiPost, errorText } from "../../lib/api";
@@ -213,13 +214,15 @@ export function OrderPage() {
           {order.customerArrivedAt ? (
             <p>
               <strong>{tr("أبلغنا الموظف بوصولك", "We told the staff you're here")}</strong>
-              <small>{tr(`بنطلع لك الطلب عند السيارة (${order.carDescription})`, `We'll bring it to your car (${order.carDescription})`)}</small>
+              <small>{tr("بنطلع لك الطلب عند السيارة", "We'll bring it to your car")}</small>
+              <CarDescription text={order.carDescription} />
             </p>
           ) : (
             <>
               <p>
                 <strong>{tr("وصلت عند الكوفي؟", "Outside the café?")}</strong>
-                <small>{tr(`اضغط الزر ونطلع لك الطلب عند السيارة (${order.carDescription})`, `Tap the button and we'll bring it to your car (${order.carDescription})`)}</small>
+                <small>{tr("اضغط الزر ونطلع لك الطلب عند السيارة", "Tap the button and we'll bring it to your car")}</small>
+                <CarDescription text={order.carDescription} />
               </p>
               <button type="button" className="btn btn--reward btn--block btn--lg" onClick={() => void action("arrived")} disabled={busy}>
                 {tr("وصلت", "I'm here")}

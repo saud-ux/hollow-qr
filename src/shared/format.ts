@@ -59,3 +59,8 @@ export function formatRiyadh(iso: string | null | undefined): string {
   const hour = parts.hour === "24" ? "00" : parts.hour;
   return `${parts.year}-${parts.month}-${parts.day} ${hour}:${parts.minute}:${parts.second}`;
 }
+
+/** «٠٥١٢» → «0512»: Arabic-Indic (and Persian) digits as Western ones. */
+export function westernDigits(text: string): string {
+  return text.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+}

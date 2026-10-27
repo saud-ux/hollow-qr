@@ -1958,6 +1958,22 @@ html[lang="ar"] .shop__cups-label {
 .arrive small {
   color: #e8dcc6;
 }
+.arrive .car-summary {
+  margin-top: 8px;
+  justify-self: start;
+}
+.arrive .car-summary__text small {
+  color: #cdb68a;
+}
+.arrive .car-swatch {
+  box-shadow: inset 0 0 0 1px rgb(241 232 218 / 35%);
+}
+/* The espresso panel stays dark brown with light text in the dark theme too. */
+:is(html.themed, html.staff-ui)[data-theme="dark"] .sheet--dark {
+  background: #2b1e16;
+  border-color: #3d2e24;
+  color: #f1e8da;
+}
 .loyalty-note {
   display: flex;
   align-items: center;

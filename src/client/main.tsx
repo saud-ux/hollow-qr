@@ -8,10 +8,12 @@ import { getSupabase } from "./lib/supabase";
 import { captureEmailCallback } from "./lib/email-callback";
 import { initLang, tr } from "./lib/i18n";
 import { initTheme } from "./lib/theme";
+import { installWesternDigits } from "./lib/digits";
 import "./styles.css";
 
 initTheme();
 initLang();
+installWesternDigits();
 const root = createRoot(document.getElementById("root")!);
 
 function renderMessage(text: string, retry?: () => void) {
