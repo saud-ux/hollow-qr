@@ -56,7 +56,6 @@ export function CarsPage() {
     <CustomerLayout dock={<TabBar />}>
       <BackButton fallback="/account" />
       <h1 className="page-title">{tr("سياراتي", "My cars")}</h1>
-      <p className="muted">{tr(`نستخدمها في الاستلام من السيارة، وتختارها بضغطة وقت الطلب. تقدر تحفظ حتى ${MAX_CARS} سيارات.`, `Pick one with a tap for curbside pickup. You can save up to ${MAX_CARS} cars.`)}</p>
       {error && <Alert tone="error">{error}</Alert>}
 
       {cars === null ? (
