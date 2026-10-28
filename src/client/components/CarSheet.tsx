@@ -33,9 +33,9 @@ function Check() {
 }
 
 /**
- * Adds or edits a car, from the bottom of the screen: the plate (optional),
- * the car's name and its colour. The plate fills in as it is typed, and after
- * the third letter the numbers box takes over.
+ * Adds or edits a car, from the bottom of the screen: the car's name and its
+ * colour (both needed), then the plate (optional). The plate fills in as it
+ * is typed, and after the third letter the numbers box takes over.
  */
 export function CarSheet({
   car,
@@ -132,69 +132,6 @@ export function CarSheet({
           </button>
         </div>
 
-        <section className="car-sheet__sec" aria-labelledby={`${ids}-plate`}>
-          <div className="car-sheet__label">
-            <span id={`${ids}-plate`}>{tr("لوحة السيارة", "Plate")}</span>
-            <span className="car-sheet__optional">{tr("اختياري", "Optional")}</span>
-          </div>
-          <p className="car-sheet__note">{tr("تساعدنا نعرف سيارتك أسرع، وتقدر تتركها فاضية", "Helps us spot your car faster. You can leave it empty")}</p>
-          <div className="car-sheet__plate">
-            <CarPlate letters={letters} numbers={numbers} size="lg" hint />
-          </div>
-          <div className="car-sheet__plate-inputs">
-            <div className="field">
-              <label htmlFor={`${ids}-letters`}>{tr("الحروف", "Letters")}</label>
-              <input
-                ref={lettersRef}
-                id={`${ids}-letters`}
-                className="car-sheet__plate-input"
-                dir="auto"
-                autoComplete="off"
-                autoCapitalize="characters"
-                autoCorrect="off"
-                spellCheck={false}
-                enterKeyHint="next"
-                value={shownLetters}
-                placeholder={en ? "H U L" : "ه‍ و ل"}
-                aria-describedby={`${ids}-plate-hint`}
-                onChange={(e) => {
-                  const read = readPlateLetters(e.target.value);
-                  const filled = read.letters.length === 3 && letters.length < 3;
-                  setLetters(read.letters);
-                  setShownLetters(read.shown);
-                  setRejected(read.rejected);
-                  if (filled) numbersRef.current?.focus();
-                }}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), numbersRef.current?.focus())}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor={`${ids}-numbers`}>{tr("الأرقام", "Numbers")}</label>
-              <input
-                ref={numbersRef}
-                id={`${ids}-numbers`}
-                className="car-sheet__plate-input car-sheet__plate-input--digits"
-                dir="ltr"
-                inputMode="numeric"
-                autoComplete="off"
-                enterKeyHint="done"
-                value={numbers}
-                placeholder="1234"
-                aria-describedby={`${ids}-plate-hint`}
-                onChange={(e) => setNumbers(readPlateNumbers(e.target.value))}
-                onKeyDown={(e) => {
-                  if (e.key === "Backspace" && !numbers) {
-                    e.preventDefault();
-                    lettersRef.current?.focus();
-                  }
-                }}
-              />
-            </div>
-          </div>
-          <small id={`${ids}-plate-hint`} className={rejected || halfPlate ? "field__error" : "field__hint"} aria-live="polite">
-            {plateHint}
-          </small>
-        </section>
 
         <section className="car-sheet__sec" aria-labelledby={`${ids}-name`}>
           <span id={`${ids}-name`} className="car-sheet__label">
@@ -296,6 +233,70 @@ export function CarSheet({
               />
             </div>
           )}
+        </section>
+
+        <section className="car-sheet__sec" aria-labelledby={`${ids}-plate`}>
+          <div className="car-sheet__label">
+            <span id={`${ids}-plate`}>{tr("لوحة السيارة", "Plate")}</span>
+            <span className="car-sheet__optional">{tr("اختياري", "Optional")}</span>
+          </div>
+          <p className="car-sheet__note">{tr("تساعدنا نعرف سيارتك أسرع، وتقدر تتركها فاضية", "Helps us spot your car faster. You can leave it empty")}</p>
+          <div className="car-sheet__plate">
+            <CarPlate letters={letters} numbers={numbers} size="lg" hint />
+          </div>
+          <div className="car-sheet__plate-inputs">
+            <div className="field">
+              <label htmlFor={`${ids}-letters`}>{tr("الحروف", "Letters")}</label>
+              <input
+                ref={lettersRef}
+                id={`${ids}-letters`}
+                className="car-sheet__plate-input"
+                dir="auto"
+                autoComplete="off"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="next"
+                value={shownLetters}
+                placeholder={en ? "H U L" : "ه‍ و ل"}
+                aria-describedby={`${ids}-plate-hint`}
+                onChange={(e) => {
+                  const read = readPlateLetters(e.target.value);
+                  const filled = read.letters.length === 3 && letters.length < 3;
+                  setLetters(read.letters);
+                  setShownLetters(read.shown);
+                  setRejected(read.rejected);
+                  if (filled) numbersRef.current?.focus();
+                }}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), numbersRef.current?.focus())}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor={`${ids}-numbers`}>{tr("الأرقام", "Numbers")}</label>
+              <input
+                ref={numbersRef}
+                id={`${ids}-numbers`}
+                className="car-sheet__plate-input car-sheet__plate-input--digits"
+                dir="ltr"
+                inputMode="numeric"
+                autoComplete="off"
+                enterKeyHint="done"
+                value={numbers}
+                placeholder="1234"
+                aria-describedby={`${ids}-plate-hint`}
+                onChange={(e) => setNumbers(readPlateNumbers(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.key === "Backspace" && !numbers) {
+                    e.preventDefault();
+                    lettersRef.current?.focus();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <small id={`${ids}-plate-hint`} className={rejected || halfPlate ? "field__error" : "field__hint"} aria-live="polite">
+            {plateHint}
+          </small>
         </section>
 
         <div className="car-sheet__foot">
