@@ -2815,11 +2815,16 @@ html[lang="ar"] .shop__cups-label {
 }
 /* The receipt kept on top of the order's ticket (ReceiptStub): tap to open it. */
 .receipt-stub {
+  /* How far the torn bottom edge tucks into the top of the ticket below. */
+  --receipt-tuck: 18px;
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  margin-bottom: 12px;
+  /* Also cancels the 16px gap .shop__main puts between the page's blocks. */
+  margin-bottom: calc(-1 * (var(--receipt-tuck) + 16px));
   padding: 12px 16px 20px;
   border: 0;
   border-radius: 16px 16px 0 0;
@@ -2843,6 +2848,13 @@ html[lang="ar"] .shop__cups-label {
 }
 .receipt-stub.is-waiting {
   visibility: hidden;
+}
+/* The ticket under it makes room for the tucked edge, so the order number and the tent stay clear. */
+.receipt-stub + .ticket .ticket__band {
+  padding-top: calc(20px + 18px);
+}
+.receipt-stub + .ticket .ticket__band::after {
+  height: calc(92% - 18px);
 }
 .receipt-stub__no {
   font-size: 1.7rem;
