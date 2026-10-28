@@ -5582,7 +5582,37 @@ html.sheet-open .search-pill-row {
 :is(html.themed, html.staff-ui)[data-theme="dark"] .map-picker {
   border-color: #33271e;
 }
-:is(html.themed, html.staff-ui)[data-theme="dark"] .map-picker .leaflet-tile-pane {
+/* Street map or satellite photos, switched from the top corner. */
+.map-picker__layers {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+  z-index: 502;
+  display: flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgb(43 30 22 / 82%);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+}
+.map-picker__layer {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #fbf8f2;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.map-picker__layer[aria-pressed="true"] {
+  background: var(--gold);
+  color: #2b1e16;
+}
+.motion .map-picker__layer {
+  transition: background-color 0.2s, color 0.2s;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] .map-picker:not(.map-picker--satellite) .leaflet-tile-pane {
   filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
 }
 .place-locate {
