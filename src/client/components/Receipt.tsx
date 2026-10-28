@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, type Ref, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { amountDue, type MenuItem, type Order } from "../../shared/ordering";
-import { formatDateTime } from "../lib/dates";
+import { formatDateTime, formatWhen } from "../lib/dates";
 import { tr } from "../lib/i18n";
 import { riyals } from "../lib/menu";
 import { fulfillmentLabel, lineName, lineOptionName, statusLabel } from "../lib/menuText";
-import { play } from "../lib/motion";
+import { motionOn, play } from "../lib/motion";
 import { tapFeedback } from "../lib/native";
 import { paperSound, printBurst, tearSound } from "../lib/printerSound";
 
@@ -14,7 +14,8 @@ type MenuItems = MenuItem[] | null | undefined;
 /**
  * The order as a paper receipt from the café's printer: the order number big,
  * the lines with dotted leaders, the total. It stays white in the dark theme,
- * like real paper. `status` adds the order's status under the number.
+ * like real paper. `status` adds the order's status under the number; once
+ * the order is picked up or delivered, that is a green ink stamp with the time.
  */
 export function ReceiptPaper({ order, menuItems, status = false, thanks = false }: { order: Order; menuItems: MenuItems; status?: boolean; thanks?: boolean }) {
   const delivery = order.fulfillment === "delivery";
@@ -29,7 +30,15 @@ export function ReceiptPaper({ order, menuItems, status = false, thanks = false 
         #{order.orderNumber}
       </span>
       <span className="paper-receipt__c paper-receipt__muted">{formatDateTime(order.createdAt)}</span>
-      {status && <span className="paper-receipt__status">{statusLabel(order)}</span>}
+      {status &&
+        (order.status === "completed" ? (
+          <span className="paper-receipt__stamp">
+            ✓ {statusLabel(order)}
+            {order.completedAt && <small>{formatWhen(order.completedAt)}</small>}
+          </span>
+        ) : (
+          <span className="paper-receipt__status">{statusLabel(order)}</span>
+        ))}
       <hr />
       {order.items.map((line, i) => {
         const option = line.optionNameAr ? lineOptionName(line, menuItems) : null;
@@ -268,11 +277,37 @@ export function ReceiptSheet({ order, menuItems, from, onClose }: { order: Order
     return { transform: `translate(${s.left - p.left}px, ${s.top - p.top}px) scale(${k})`, clipPath: `inset(0 0 ${Math.max(0, p.height - s.height / k)}px 0)`, opacity: 0.4 };
   };
 
+  // A picked-up order: once the receipt is open, the stamp comes down on it.
+  function stampDown() {
+    const stamp = paper.current?.querySelector(".paper-receipt__stamp");
+    if (!stamp || !motionOn()) return;
+    const landing = 560 + 260;
+    void play(
+      stamp,
+      [
+        { opacity: 0, transform: "rotate(-16deg) scale(2.3)" },
+        { opacity: 1, transform: "rotate(-7deg) scale(.9)", offset: 0.62, easing: "ease-out" },
+        { transform: "rotate(-7deg) scale(1.05)", offset: 0.82 },
+        { transform: "rotate(-7deg) scale(1)" },
+      ],
+      { duration: 420, delay: 560, easing: "cubic-bezier(.55,0,.9,.4)" },
+    );
+    void play(paper.current?.querySelector(".paper-receipt"), [{ transform: "none" }, { transform: "translateY(3px) scale(.992)" }, { transform: "none" }], {
+      duration: 220,
+      delay: landing,
+      easing: "ease-out",
+    });
+    window.setTimeout(() => {
+      if (!closing.current) tapFeedback();
+    }, landing);
+  }
+
   useLayoutEffect(() => {
     const start = rolled();
     paperSound();
     void play(backdrop.current, [{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: "ease-out" });
     if (start) void play(paper.current, [start, { transform: "none", clipPath: "inset(0 0 0 0)", opacity: 1 }], { duration: 560, easing: "cubic-bezier(.3,.7,.1,1)" });
+    stampDown();
     closeBtn.current?.focus();
     // Opens once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
