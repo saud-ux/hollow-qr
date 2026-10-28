@@ -25,6 +25,8 @@ import { enablePush, successFeedback } from "../../lib/native";
 import { CALM, motionOn, play } from "../../lib/motion";
 import { unlockPrinterSound } from "../../lib/printerSound";
 import { OriginSwitch } from "../../components/OriginSwitch";
+import { CouponSaved } from "../../components/CouponSaved";
+import { Odometer } from "../../components/Odometer";
 import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
 import { SwipeToDelete } from "../../components/SwipeToDelete";
@@ -786,8 +788,9 @@ export function CartPage() {
           {quote && <>{quote.gift_discount>0 && <div className="summary__row"><span>{tr("أكواب الضيافة","Gift cups")}</span><span>− {riyals(quote.gift_discount)}</span></div>}{quote.reward_discount>0 && <div className="summary__row"><span>{tr("مكافأة الولاء","Loyalty reward")}</span><span>− {riyals(quote.reward_discount)}</span></div>}{quote.coupon_discount>0 && <div className="summary__row"><span>{tr("الكوبون","Coupon")}</span><span>− {riyals(quote.coupon_discount)}</span></div>}{quote.wallet_used>0 && <div className="summary__row"><span>{tr("من رصيدك","From your balance")}</span><span>− {riyals(quote.wallet_used)}</span></div>}</>}
           <div className="summary__row summary__row--total">
             <span>{quote && quote.wallet_used > 0 ? tr("المتبقي للدفع", "Amount remaining") : tr("الإجمالي", "Total")}</span>
-            <Rolling text={riyals(total)} />
+            <Odometer text={riyals(total)} />
           </div>
+          {couponSaving > 0 && <CouponSaved key={couponCode} halalas={couponSaving} />}
           {saved > 0 && <p className="summary__saved">{tr(`وفّرت ${riyals(saved)} مع الخصم`, `You save ${riyals(saved)} with the discount`)}</p>}
           <p className="summary__pay">{total === 0 && !quotePending && !quoteError ? tr("لا يوجد مبلغ متبقٍ للدفع", "No payment remaining") : paymentLabel(payment, fulfillment)}</p>
         </section>

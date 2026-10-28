@@ -2813,25 +2813,59 @@ html[lang="ar"] .shop__cups-label {
   transform: translateX(-50%);
   cursor: pointer;
 }
-/* On the ticket's dark band: opens the receipt. */
-.ticket__receipt {
-  position: absolute;
-  z-index: 1;
-  top: 10px;
-  inset-inline-end: 10px;
+/* The receipt kept on top of the order's ticket (ReceiptStub): tap to open it. */
+.receipt-stub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px 16px 20px;
+  border: 0;
+  border-radius: 16px 16px 0 0;
+  background: #fffdf8;
+  color: #2b1e16;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transform-origin: top center;
+  filter: drop-shadow(0 6px 12px rgb(43 30 22 / 14%));
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 14px 8px repeat-x;
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 14px 8px repeat-x;
+  -webkit-tap-highlight-color: transparent;
+}
+.receipt-stub:active {
+  transform: scale(0.98);
+}
+.receipt-stub:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+.receipt-stub.is-waiting {
+  visibility: hidden;
+}
+.receipt-stub__no {
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.receipt-stub__main {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+.receipt-stub__main small {
+  color: #7b6d61;
+  font-size: 0.8rem;
+}
+.receipt-stub__open {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  min-height: 32px;
-  padding: 4px 10px;
-  border: 1px solid rgb(243 230 184 / 35%);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 8%);
-  color: #f0d77a;
-  font: inherit;
-  font-size: 0.78rem;
+  gap: 2px;
+  color: #8c6239;
+  font-size: 0.8rem;
   font-weight: 700;
-  cursor: pointer;
 }
 
 /* Light sweep across the order ticket when its status changes (app only). */
@@ -7140,6 +7174,62 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
   background: transparent;
   color: #2b1e16;
   cursor: pointer;
+}
+/* A price that rolls digit by digit (Odometer.tsx). */
+.odometer__num {
+  display: inline-flex;
+  align-items: center;
+  unicode-bidi: isolate;
+}
+.odometer__num > span {
+  height: 1.25em;
+  line-height: 1.25em;
+}
+.odometer__digit {
+  display: inline-block;
+  overflow: hidden;
+}
+.odometer__strip {
+  display: flex;
+  flex-direction: column;
+}
+.odometer__strip > span {
+  height: 1.25em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.motion .odometer__strip {
+  transition: transform 0.9s cubic-bezier(.2,.9,.1,1);
+}
+/* «وفّرت … مع الكوبون» under the total, with gold beans flying out (CouponSaved.tsx). */
+.coupon-saved {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+.coupon-saved__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.coupon-saved__beans i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0;
+  pointer-events: none;
 }
 /* A coupon just took money off: gold light runs across the order button. */
 .btn--shine {

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type Ref, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { amountDue, type MenuItem, type Order } from "../../shared/ordering";
 import { formatDateTime } from "../lib/dates";
@@ -92,6 +92,49 @@ export function ReceiptPaper({ order, menuItems, status = false, thanks = false 
   );
 }
 
+/** «صنف واحد», «صنفين», «3 أصناف», «11 صنف». */
+function itemsLabel(count: number): string {
+  if (count === 1) return tr("صنف واحد", "1 item");
+  if (count === 2) return tr("صنفين", "2 items");
+  return tr(`${count} ${count <= 10 ? "أصناف" : "صنف"}`, `${count} items`);
+}
+
+/**
+ * The receipt torn off and kept on top of the order's ticket: the order
+ * number, how many items and the total. Tap it to open the whole receipt.
+ * Placing an order prints into it.
+ */
+export function ReceiptStub({ order, open, waiting, onOpen, ref }: { order: Order; open: boolean; waiting: boolean; onOpen: () => void; ref: Ref<HTMLButtonElement> }) {
+  const count = order.items.reduce((n, line) => n + line.quantity, 0);
+  return (
+    <button
+      ref={ref}
+      type="button"
+      className={`receipt-stub ${waiting ? "is-waiting" : ""}`}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      aria-label={tr(`فاتورة الطلب رقم ${order.orderNumber}. اضغط لعرضها`, `Receipt for order ${order.orderNumber}. Tap to open`)}
+      onClick={onOpen}
+    >
+      <span className="receipt-stub__no" dir="ltr">
+        #{order.orderNumber}
+      </span>
+      <span className="receipt-stub__main">
+        <b>{tr("فاتورة طلبك", "Your receipt")}</b>
+        <small>
+          {itemsLabel(count)} · {riyals(order.totalHalalas)}
+        </small>
+      </span>
+      <span className="receipt-stub__open" aria-hidden="true">
+        {tr("عرض", "Open")}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </span>
+    </button>
+  );
+}
+
 /** Printing goes in bursts with short pauses, like a card machine: the header, the lines, the end. */
 const BURSTS: [number, number][] = [
   [0.3, 520],
@@ -103,7 +146,8 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /**
  * The moment an order is placed: a small printer drops in over the order page
  * and prints the receipt in bursts (with its sound and a light tap for each),
- * the receipt tears off and folds into the ticket's dark band. A tap skips it.
+ * the receipt tears off and folds into `target`, the receipt card on top of
+ * the ticket. A tap skips it.
  * Only shown while motion is on.
  */
 export function PrintReceipt({ order, menuItems, target, onDone }: { order: Order; menuItems: MenuItems; target: RefObject<HTMLElement | null>; onDone: () => void }) {
@@ -160,8 +204,8 @@ export function PrintReceipt({ order, menuItems, target, onDone }: { order: Orde
       await wait(180);
       if (!going()) return;
 
-      // Folded into the ticket's band, where the order number lives on.
-      const band = target.current?.querySelector(".ticket__band") ?? target.current;
+      // Folded into the receipt card on top of the ticket.
+      const band = target.current;
       if (band) {
         const r = sheet.getBoundingClientRect();
         const b = band.getBoundingClientRect();
