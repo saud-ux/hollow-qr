@@ -33,7 +33,7 @@ function tiles(layer: Layer): L.TileLayer {
   return layer === "satellite"
     ? L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
         maxZoom: 19,
-        maxNativeZoom: 18,
+        maxNativeZoom: 17,
         attribution: "© Esri, Maxar",
       })
     : L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
