@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { flowStep, isActiveStatus, MAX_RATING_COMMENT, orderFlow, type Order, type OrderStatus } from "../../../shared/ordering";
 import { ConfirmDialog } from "../../components/Dialog";
 import { NotifyCard } from "../../components/NotifyCard";
 import { OffersPrompt } from "../../components/OffersPrompt";
 import { Alert } from "../../components/Field";
 import { CarDescription } from "../../components/CarPlate";
+import { PrintReceipt, ReceiptSheet } from "../../components/Receipt";
 import { TicketSkeleton } from "../../components/Skeletons";
 import { ShopLayout } from "../../components/Shop";
 import { apiGet, apiPost, errorText } from "../../lib/api";
@@ -14,7 +15,7 @@ import { useCart } from "../../lib/cart";
 import { formatDateTime } from "../../lib/dates";
 import { riyals, useMenu } from "../../lib/menu";
 import { fulfillmentLabel, lineName, lineOptionName, statusLabel } from "../../lib/menuText";
-import { animateTracker, serveCup } from "../../lib/motion";
+import { animateTracker, motionOn, serveCup } from "../../lib/motion";
 import { isNative, successFeedback } from "../../lib/native";
 import { endOrderOnLockScreen, refreshWidget, trackOrderOnLockScreen } from "../../lib/widget";
 import { tr } from "../../lib/i18n";
@@ -81,6 +82,16 @@ export function OrderPage() {
   const { menu } = useMenu();
   const navigate = useNavigate();
   const shownStep = useRef<{ id: string; index: number } | null>(null);
+  // Just placed (from the cart): the receipt prints over the page, once.
+  const location = useLocation();
+  const [printing, setPrinting] = useState(() => Boolean((location.state as { printReceipt?: boolean } | null)?.printReceipt) && motionOn());
+  useEffect(() => {
+    // A reload or a later visit shows the order without printing again.
+    const state: unknown = window.history.state;
+    if (state && typeof state === "object" && "usr" in state) window.history.replaceState({ ...state, usr: null }, "");
+  }, []);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const receiptButton = useRef<HTMLButtonElement>(null);
 
   const load = useCallback(
     () =>
@@ -186,6 +197,19 @@ export function OrderPage() {
             #{order.orderNumber}
           </span>
           <span className="ticket__status">{statusLabel(order)}</span>
+          <button
+            ref={receiptButton}
+            type="button"
+            className="ticket__receipt"
+            aria-haspopup="dialog"
+            aria-expanded={receiptOpen}
+            onClick={() => setReceiptOpen(true)}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6M9 12h6" />
+            </svg>
+            {tr("الفاتورة", "Receipt")}
+          </button>
         </div>
         {isCollectReady(order) && <ReadyCup />}
         <p className="ticket__headline">{headline(order)}</p>
@@ -321,6 +345,9 @@ export function OrderPage() {
       <Link to="/menu" className="btn btn--secondary btn--block">
         {tr("طلب جديد", "New order")}
       </Link>
+
+      {printing && <PrintReceipt order={order} menuItems={menu?.items} target={ticketRef} onDone={() => setPrinting(false)} />}
+      {receiptOpen && <ReceiptSheet order={order} menuItems={menu?.items} from={receiptButton} onClose={() => setReceiptOpen(false)} />}
 
       <ConfirmDialog
         open={confirmCancel}

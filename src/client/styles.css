@@ -2609,6 +2609,231 @@ html[lang="ar"] .shop__cups-label {
   justify-items: end;
 }
 
+/* ---------- The order's paper receipt (Receipt.tsx) ---------- */
+/* Real paper: white in both themes, with a torn zigzag bottom edge. */
+.paper-receipt {
+  position: relative;
+  display: grid;
+  gap: 7px;
+  padding: 18px 18px 28px;
+  background: #fffdf8;
+  color: #2b1e16;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 14px 8px repeat-x;
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 14px 8px repeat-x;
+}
+.paper-receipt hr {
+  width: 100%;
+  margin: 2px 0;
+  border: 0;
+  border-top: 1.5px dashed rgb(43 30 22 / 35%);
+}
+.paper-receipt__word {
+  width: 104px;
+  height: auto;
+  margin: 2px auto 0;
+}
+.paper-receipt__c {
+  text-align: center;
+}
+.paper-receipt__muted {
+  color: #7b6d61;
+}
+.paper-receipt__no {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+.paper-receipt__status {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: #f3e6b8;
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+.paper-receipt__status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c9a227;
+}
+.motion .paper-receipt__status::before {
+  animation: printer-led 1s steps(2) infinite;
+}
+.paper-receipt__line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.paper-receipt__line > span:last-child {
+  white-space: nowrap;
+}
+.paper-receipt__name {
+  min-width: 0;
+}
+.paper-receipt__name small {
+  display: block;
+  color: #7b6d61;
+}
+.paper-receipt__dots {
+  flex: 1;
+  min-width: 12px;
+  border-bottom: 1.5px dotted rgb(43 30 22 / 35%);
+  translate: 0 -3px;
+}
+.paper-receipt__line--total {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.paper-receipt__tent {
+  width: 62px;
+  height: auto;
+  margin: 2px auto 0;
+}
+.paper-receipt__bars {
+  height: 28px;
+  margin: 0 12px;
+  background: repeating-linear-gradient(90deg, #2b1e16 0 2px, transparent 2px 4px, #2b1e16 4px 5px, transparent 5px 8px, #2b1e16 8px 11px, transparent 11px 12px);
+}
+
+/* Placing an order: the printer over the order page. */
+.print-receipt {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: calc(env(safe-area-inset-top) + 64px);
+  background: rgb(20 12 8 / 55%);
+  overflow: hidden;
+  cursor: pointer;
+}
+.printer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(300px, calc(100% - 48px));
+  height: 44px;
+  padding: 0 16px 6px;
+  border-radius: 16px 16px 12px 12px;
+  background: linear-gradient(#2b1e16, #1a120d);
+  box-shadow: 0 8px 18px rgb(0 0 0 / 30%);
+}
+.printer::after {
+  content: "";
+  position: absolute;
+  inset: auto 18px 6px;
+  height: 3px;
+  border-radius: 2px;
+  background: #000;
+  opacity: 0.7;
+}
+.printer__mark {
+  width: 52px;
+  height: auto;
+  opacity: 0.85;
+}
+.printer__led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c9a227;
+  box-shadow: 0 0 8px #c9a227;
+}
+.printer.is-busy .printer__led {
+  animation: printer-led 0.35s steps(2) infinite;
+}
+@keyframes printer-led {
+  50% {
+    opacity: 0.2;
+  }
+}
+.print-receipt__feed {
+  width: min(264px, calc(100% - 72px));
+  max-height: calc(100dvh - 150px);
+  margin-top: -8px;
+  padding-bottom: 16px;
+  overflow: hidden;
+}
+.print-receipt__feed.is-free {
+  overflow: visible;
+}
+.print-receipt__feed > div {
+  transform-origin: top center;
+  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 25%));
+}
+
+/* The receipt again, from the ticket (ReceiptSheet). */
+.receipt-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  display: flex;
+  justify-content: center;
+}
+.receipt-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(20 12 8 / 55%);
+}
+.receipt-sheet__paper {
+  position: relative;
+  width: min(300px, calc(100% - 48px));
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 150px);
+  margin-top: calc(env(safe-area-inset-top) + 48px);
+  align-self: flex-start;
+  overflow: auto;
+  overscroll-behavior: contain;
+  transform-origin: top left;
+  filter: drop-shadow(0 14px 24px rgb(0 0 0 / 30%));
+}
+.receipt-sheet__close {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 24px);
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--espresso);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+/* On the ticket's dark band: opens the receipt. */
+.ticket__receipt {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  inset-inline-end: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid rgb(243 230 184 / 35%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+  color: #f0d77a;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* Light sweep across the order ticket when its status changes (app only). */
 .ticket__sheen {
   position: absolute;
@@ -5230,6 +5455,80 @@ html.sheet-open .search-pill-row {
   background: rgb(0 0 0 / 35%);
   pointer-events: none;
 }
+.motion .map-picker__pin,
+.motion .map-picker__shadow {
+  transition: transform 0.22s cubic-bezier(.3,.7,.1,1), opacity 0.22s;
+}
+/* Moving the map: the pin is lifted off it, with a hint above. */
+.map-picker.is-up .map-picker__pin {
+  transform: translate(-50%, calc(-100% - 16px)) scale(1.06);
+}
+.map-picker.is-up .map-picker__shadow {
+  transform: translate(-50%, -50%) scale(0.55);
+  opacity: 0.5;
+}
+.map-picker__hint {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 92px);
+  z-index: 501;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #2b1e16;
+  color: #fbf8f2;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translate(-50%, 6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.map-picker.is-up .map-picker__hint {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+/* Dropped: a gold ring spreads where the pin landed. */
+.map-picker__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 498;
+  width: 44px;
+  height: 22px;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+}
+.place-distance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.place-distance svg {
+  flex: none;
+}
+/* The suggested address has just typed itself in. */
+.motion .field--typed input {
+  animation: field-typed 0.9s ease-out;
+}
+@keyframes field-typed {
+  from {
+    box-shadow: 0 0 0 2px var(--gold);
+  }
+  to {
+    box-shadow: 0 0 0 2px transparent;
+  }
+}
 .map-picker .leaflet-control-attribution {
   font-size: 10px;
   background: rgb(255 255 255 / 70%);
@@ -6787,6 +7086,80 @@ html.staff-ui[data-theme="dark"] .disc-item:is(:hover, .is-on) {
 .checkout-coupon .coupon-entry { margin: 14px 0 0; }
 .checkout-coupon .coupon-entry input { border-width: 1px; }
 .checkout-coupon__result { margin-top: 10px; font-size: .875rem; }
+/* An applied code: a gold ticket with notches cut out of its sides. */
+.coupon-ticket {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  min-height: 56px;
+  padding: 9px 18px;
+  border-radius: 12px;
+  background: var(--gold-soft);
+  color: #2b1e16;
+  -webkit-mask: radial-gradient(circle 8px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 8px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle 8px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 8px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+}
+.coupon-ticket__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+.coupon-ticket__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  padding-inline-start: 12px;
+  border-inline-start: 1.5px dashed rgb(43 30 22 / 30%);
+  line-height: 1.35;
+}
+.coupon-ticket__text b {
+  justify-self: start;
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  letter-spacing: 0.08em;
+  unicode-bidi: isolate;
+}
+.coupon-ticket__text small {
+  color: #6f5f52;
+  font-size: 0.8rem;
+}
+.coupon-ticket__remove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #2b1e16;
+  cursor: pointer;
+}
+/* A coupon just took money off: gold light runs across the order button. */
+.btn--shine {
+  position: relative;
+  overflow: hidden;
+}
+.motion .btn--shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgb(201 162 39 / 55%) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: btn-shine 0.9s ease-out 0.25s forwards;
+  pointer-events: none;
+}
+@keyframes btn-shine {
+  to {
+    transform: translateX(120%);
+  }
+}
 .gift-quantity { display: flex; align-items: center; justify-content: center; gap: 24px; margin-block: 22px; }
 .gift-quantity .btn { min-width: 52px; min-height: 52px; font-size: 24px; padding: 4px; }
 .gift-quantity output { font-size: 2rem; font-weight: 700; min-width: 2ch; text-align: center; }

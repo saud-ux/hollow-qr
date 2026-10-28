@@ -23,6 +23,7 @@ import { CarIcon, CardIcon, CashIcon, ItemImage, PhonePayIcon, QtyStepper, Scoot
 import { ApiClientError, apiPost, errorText } from "../../lib/api";
 import { enablePush, successFeedback } from "../../lib/native";
 import { CALM, motionOn, play } from "../../lib/motion";
+import { unlockPrinterSound } from "../../lib/printerSound";
 import { OriginSwitch } from "../../components/OriginSwitch";
 import { Rolling } from "../../components/Rolling";
 import { SalePrice } from "../../components/SalePrice";
@@ -287,6 +288,15 @@ export function CartPage() {
     }
   }
   const total = quote?.due ?? subtotal + fee - discount;
+  // Once per applied code, when its saving first shows: gold light runs across the order button.
+  const couponSaving = couponCode ? (quote?.coupon_discount ?? 0) : 0;
+  const [shinedFor, setShinedFor] = useState("");
+  const [shine, setShine] = useState(false);
+  if (!couponCode && shinedFor) setShinedFor("");
+  if (couponSaving > 0 && shinedFor !== couponCode) {
+    setShinedFor(couponCode);
+    setShine(true);
+  }
   // A line can't be ordered when the item is off, or its origin is missing or out of stock.
   const lineProblem = ({ line, item }: (typeof lines)[number]): "soldout" | "choose" | "option-out" | "too-many" | null => {
     if (!isOrderable(item)) return "soldout";
@@ -369,6 +379,8 @@ export function CartPage() {
     }
     const normalizedPhone = validateContact();
     if (!normalizedPhone) { void goToStep(2); return; }
+    // The order page prints the receipt; its sound may only start from this tap.
+    if (motionOn()) unlockPrinterSound();
 
     const body: PlaceOrderRequest = {
       items: lines.map(({ line }) => ({
@@ -403,7 +415,7 @@ export function CartPage() {
         await new Promise((r) => setTimeout(r, 750));
       }
       cart.clear();
-      void navigate(`/orders/${order.id}`, { replace: true });
+      void navigate(`/orders/${order.id}`, { replace: true, state: { printReceipt: true } });
     } catch (err) {
       // A rejected order is final for this key; a new attempt gets a new one. After a
       // network or server error the order may have gone through, so a retry keeps the key.
@@ -791,7 +803,8 @@ export function CartPage() {
             <button
               ref={submitRef}
               type="submit"
-              className={`btn btn--primary btn--block btn--lg ${placed ? "btn--placed" : ""}`}
+              className={`btn btn--primary btn--block btn--lg ${placed ? "btn--placed" : ""} ${shine ? "btn--shine" : ""}`}
+              onAnimationEnd={(e) => e.animationName === "btn-shine" && setShine(false)}
               disabled={busy || placed || changingStep || couponChecking || (needsQuote && (!quote || quotePending || !!quoteError)) || !menu.shop.isOpen || unavailable.length > 0 || belowMinimum || options.length === 0}
               aria-label={placed ? tr("تم إرسال الطلب", "Order placed") : undefined}
             >

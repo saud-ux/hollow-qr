@@ -11,7 +11,8 @@ import { TabBar } from "../../components/Shop";
 import { apiDelete, apiPost, apiSend, errorText } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { currentLang, tr } from "../../lib/i18n";
-import { placeName, usePlaces } from "../../lib/places";
+import { motionOn } from "../../lib/motion";
+import { distanceFromHollow, placeName, usePlaces } from "../../lib/places";
 
 const MapPicker = lazy(() => import("../../components/MapPicker"));
 
@@ -85,6 +86,28 @@ function PlaceForm({ existing }: { existing: SavedPlace | null }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   // A saved address is the customer's own words: never replace it with a suggestion.
   const addressTouched = useRef(!isNew);
+  // A suggestion types itself in, letter by letter, then the field glows once.
+  const typing = useRef(0);
+  const [typed, setTyped] = useState(false);
+  const typeAddress = (text: string) => {
+    window.clearInterval(typing.current);
+    setTyped(false);
+    if (!motionOn()) {
+      setAddress(text);
+      return;
+    }
+    const letters = Array.from(text);
+    let n = 0;
+    typing.current = window.setInterval(() => {
+      n += 1;
+      setAddress(letters.slice(0, n).join(""));
+      if (n >= letters.length) {
+        window.clearInterval(typing.current);
+        setTyped(true);
+      }
+    }, 28);
+  };
+  useEffect(() => () => window.clearInterval(typing.current), []);
 
   // A new place starts where the phone is.
   useEffect(() => {
@@ -104,7 +127,7 @@ function PlaceForm({ existing }: { existing: SavedPlace | null }) {
     const timer = window.setTimeout(() => {
       streetAt(point, ctrl.signal)
         .then((street) => {
-          if (street && !addressTouched.current) setAddress(street);
+          if (street && !addressTouched.current) typeAddress(street);
         })
         .catch(() => undefined);
     }, 700);
@@ -194,19 +217,27 @@ function PlaceForm({ existing }: { existing: SavedPlace | null }) {
           <MapPicker center={center} recenter={recenter} onMove={setPoint} />
         </Suspense>
         <p className="muted small">{tr("حرّك الخريطة لين يصير الدبوس على الباب بالضبط.", "Move the map until the pin is right on the door.")}</p>
+        <p className="place-distance" aria-live="polite">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z" />
+            <circle cx="12" cy="10" r="2.2" />
+          </svg>
+          {distanceFromHollow(point)}
+        </p>
         <button type="button" className="btn btn--ghost place-locate" onClick={() => void locateMe()} disabled={locating}>
           <AccountIcon name="pin" className="place-locate__icon" />
           {locating ? tr("نحدد موقعك…", "Finding you…") : tr("حدّد موقعي الحالي", "Use my current location")}
         </button>
       </div>
 
-      <div className="field">
+      <div className={`field ${typed ? "field--typed" : ""}`}>
         <label htmlFor="place-address">{tr("العنوان", "Address")}</label>
         <input
           id="place-address"
           value={address}
           onChange={(e) => {
             addressTouched.current = true;
+            window.clearInterval(typing.current);
             setAddress(e.target.value);
           }}
           maxLength={300}

@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { BenefitAccount } from "../../shared/benefits";
 import { tr } from "../lib/i18n";
 import { riyals } from "../lib/menu";
+import { play } from "../lib/motion";
+import { successFeedback, warnFeedback } from "../lib/native";
 import { Dialog } from "./Dialog";
 import { Alert } from "./Field";
 
@@ -31,9 +33,43 @@ type Props = {
   onBalanceChange: (use: boolean) => void;
 };
 
+/** Stamped on like a paper ticket: a little too big, then pressed flat. */
+const TICKET_IN: Keyframe[] = [
+  { opacity: 0, transform: "scale(1.15) rotate(-3deg)" },
+  { opacity: 1, transform: "scale(.97) rotate(.4deg)", offset: 0.6 },
+  { opacity: 1, transform: "none" },
+];
+const SHAKE: Keyframe[] = [
+  { transform: "translateX(0)" }, { transform: "translateX(-9px)" }, { transform: "translateX(8px)" },
+  { transform: "translateX(-6px)" }, { transform: "translateX(4px)" }, { transform: "translateX(0)" },
+];
+
 export function CheckoutBenefits(props: Props) {
   const [giftOpen, setGiftOpen] = useState(false);
   const { account, selectedGifts, giftLimit } = props;
+  const couponBox = useRef<HTMLDetailsElement>(null);
+  const entry = useRef<HTMLDivElement>(null);
+  const ticket = useRef<HTMLDivElement>(null);
+
+  // An applied code stays in view, as a gold ticket that stamps on with a tap you can feel.
+  const applied = props.couponCode;
+  const shownCode = useRef(applied);
+  useLayoutEffect(() => {
+    if (applied && couponBox.current) couponBox.current.open = true;
+    if (applied && applied !== shownCode.current) {
+      void play(ticket.current, TICKET_IN, { duration: 520, easing: "cubic-bezier(.3,.7,.1,1)" });
+      successFeedback();
+    }
+    shownCode.current = applied;
+  }, [applied]);
+
+  // A code that doesn't work: the field shakes its head.
+  const { couponError } = props;
+  useEffect(() => {
+    if (!couponError) return;
+    void play(entry.current, SHAKE, { duration: 420, easing: "ease-out" });
+    warnFeedback();
+  }, [couponError]);
   return (
     <>
       {account && account.gift_cups > 0 && (
@@ -58,14 +94,27 @@ export function CheckoutBenefits(props: Props) {
           </label>
         </section>
       )}
-      <details className="sheet checkout-coupon">
+      <details ref={couponBox} className="sheet checkout-coupon">
         <summary><BenefitIcon kind="tag" /><span>{tr("عندك كود خصم؟", "Have a discount code?")}</span><span className="checkout-coupon__chevron" aria-hidden="true">⌄</span></summary>
-        <div className="coupon-entry field">
+        {!applied && <div ref={entry} className="coupon-entry field">
           <input type="text" disabled={props.couponChecking} aria-invalid={!!props.couponError} aria-describedby={props.couponError ? "checkout-coupon-error" : undefined} aria-label={tr("أدخل الكود", "Enter code")} placeholder={tr("أدخل الكود", "Enter code")} autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={40} value={props.couponInput} onChange={e => props.onCouponInputChange(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (props.couponInput.trim()) props.onApplyCoupon(); } }} />
           <button type="button" className="btn btn--primary" disabled={props.couponChecking || !props.couponInput.trim()} onClick={props.onApplyCoupon}>{props.couponChecking ? tr("جارٍ التحقق…", "Checking…") : tr("تطبيق", "Apply")}</button>
-        </div>
+        </div>}
         {props.couponError && <div id="checkout-coupon-error"><Alert tone="error">{props.couponError}</Alert></div>}
-        {props.couponCode && <div className="benefits-row checkout-coupon__result"><span>{props.couponDiscount > 0 ? tr(`تم تطبيق الكود · − ${riyals(props.couponDiscount)}`, `Applied · − ${riyals(props.couponDiscount)}`) : props.couponCode}</span><button type="button" className="btn btn--ghost" onClick={props.onRemoveCoupon}>{tr("إزالة", "Remove")}</button></div>}
+        {applied && (
+          <div ref={ticket} className="coupon-ticket" role="status">
+            <span className="coupon-ticket__icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+            </span>
+            <span className="coupon-ticket__text">
+              <b dir="ltr">{applied}</b>
+              <small>{props.couponDiscount > 0 ? tr(`تم تطبيق الكود · − ${riyals(props.couponDiscount)}`, `Applied · − ${riyals(props.couponDiscount)}`) : tr("تم تطبيق الكود", "Code applied")}</small>
+            </span>
+            <button type="button" className="coupon-ticket__remove" aria-label={tr("إزالة الكود", "Remove code")} onClick={props.onRemoveCoupon}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          </div>
+        )}
       </details>
       <Dialog open={giftOpen} dismissible title={tr("اختر عدد أكواب الضيافة", "Choose your gift cups")} onClose={() => setGiftOpen(false)} actions={<button type="button" className="btn btn--primary" autoFocus onClick={() => setGiftOpen(false)}>{tr("تم", "Done")}</button>}>
         <p>{tr(`تقدر تستخدم حتى ${giftLimit} كوب من طلبك الحالي`, `You can use up to ${giftLimit} cups in this order`)}</p>

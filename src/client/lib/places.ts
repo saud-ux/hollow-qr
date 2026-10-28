@@ -17,6 +17,26 @@ export function placeAddress(place: Pick<SavedPlace, "address" | "details">): st
   return place.details ? `${place.address} — ${place.details}` : place.address;
 }
 
+/** HOLLOW's door, the same point the iOS nearby alerts use (HollowGeofencePlugin.swift). */
+export const HOLLOW_SPOT = { lat: 26.303045, lng: 44.832762 } as const;
+
+/** Straight-line distance in kilometres (haversine). */
+export function kmBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+/** «يبعد 1.4 كم عن هولو», or «قريب من هولو» within a few hundred metres. */
+export function distanceFromHollow(point: { lat: number; lng: number }): string {
+  const km = kmBetween(point, HOLLOW_SPOT);
+  if (km < 0.3) return tr("قريب جدًا من هولو", "Right by HOLLOW");
+  const shown = km < 10 ? km.toFixed(1) : String(Math.round(km));
+  return tr(`يبعد ${shown} كم عن هولو`, `${shown} km from HOLLOW`);
+}
+
 /** The signed-in customer's saved places (null while loading). */
 export function usePlaces(enabled: boolean): SavedPlace[] | null {
   const [places, setPlaces] = useState<SavedPlace[] | null>(null);
