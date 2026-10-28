@@ -7594,8 +7594,11 @@ html.staff-ui[data-theme="dark"] .orders-sound.is-on { color: #8fc69d; }
 .checkout-review__items li > span { flex-shrink: 0; font-size: .85rem; }
 /* A line the coupon applies to: the old price struck through, the new one beside it. */
 .coupon-line { display: inline-flex; align-items: baseline; gap: 6px; }
-.coupon-line__old { position: relative; color: var(--label); font-size: .78rem; text-decoration: none; }
-.coupon-line__old::after { content: ""; position: absolute; inset-inline: -2px; top: 52%; height: 1.5px; background: currentColor; }
+/* A tight box (line-height 1) so the line crosses the digits, not the taller riyal sign's box. */
+.coupon-line__old { position: relative; display: inline-block; line-height: 1; color: var(--label); font-size: .78rem; text-decoration: none; }
+/* The digits' middle sits about 36% down this box (measured): the line goes through it. */
+.coupon-line__old::after { content: ""; position: absolute; inset-inline: -2px; top: 30%; height: 1.5px; background: currentColor; }
+.coupon-line__sar { font-size: 1.3em; line-height: 0; }
 .coupon-line__new { color: var(--success); font-weight: 800; }
 .motion .coupon-line__old::after { transform-origin: right; animation: coupon-strike .35s cubic-bezier(.3,.7,.1,1) var(--d, 0ms) backwards; }
 .motion .coupon-line__new { animation: coupon-new .45s cubic-bezier(.3,.7,.1,1) calc(var(--d, 0ms) + 120ms) backwards; }

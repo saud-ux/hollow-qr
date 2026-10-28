@@ -33,7 +33,7 @@ import { SwipeToDelete } from "../../components/SwipeToDelete";
 import { useAuth } from "../../lib/auth";
 import { useCart, type CartLine } from "../../lib/cart";
 import { newIdempotencyKey } from "../../lib/hooks";
-import { riyals, useMenu } from "../../lib/menu";
+import { RIYAL, riyals, useMenu } from "../../lib/menu";
 import { withNext } from "../../lib/next";
 import { fulfillmentLabel, itemName, optionLabel } from "../../lib/menuText";
 import { closedNote } from "./hours";
@@ -294,6 +294,8 @@ export function CartPage() {
   // two lines (two origins) shares its amount by quantity; the last line takes the rest.
   const couponByItem = couponCode ? quote?.coupon_by_item : undefined;
   const lineShare = new Map<string, number>();
+  // A price with its riyal sign drawn larger, for the struck-through line prices.
+  const bigSign = (text: string) => text.split(RIYAL).flatMap((part, k) => (k ? [<span key={k} className="coupon-line__sar">{RIYAL}</span>, part] : [part]));
   for (const [itemId, amount] of Object.entries(couponByItem ?? {})) {
     const its = lines.filter(({ line }) => line.menuItemId === itemId);
     const qty = its.reduce((n, { line }) => n + line.quantity, 0);
@@ -705,8 +707,8 @@ export function CartPage() {
             // With a coupon on this line: the old price is struck through and the new one comes in, line after line.
             const priceTag = share > 0 ? (
               <span className="coupon-line" style={{ "--d": `${struck++ * 130}ms` } as CSSProperties} aria-label={tr(`${riyals(price - share)} بعد الكوبون، بدل ${riyals(price)}`, `${riyals(price - share)} after the coupon, was ${riyals(price)}`)}>
-                <s className="coupon-line__old" aria-hidden="true">{riyals(price)}</s>
-                <span className="coupon-line__new" aria-hidden="true">{riyals(price - share)}</span>
+                <s className="coupon-line__old" aria-hidden="true">{bigSign(riyals(price))}</s>
+                <span className="coupon-line__new" aria-hidden="true">{bigSign(riyals(price - share))}</span>
               </span>
             ) : <span>{riyals(price)}</span>;
             return <li key={lineKey(line)}><ItemImage item={item} /><div><strong>{line.quantity} × {itemName(item)}</strong>{origin && <small>{tr(origin.nameAr, origin.nameEn || origin.nameAr)}</small>}{line.note && <small>{line.note}</small>}</div>{priceTag}</li>;
