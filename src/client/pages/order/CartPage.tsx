@@ -1,6 +1,6 @@
 import { CheckoutBenefits } from "../../components/CheckoutBenefits";
 import { benefitCall, useBenefits, useBenefitQuote } from "../../lib/benefits";
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   isOrderable,
@@ -290,6 +290,20 @@ export function CartPage() {
     }
   }
   const total = quote?.due ?? subtotal + fee - discount;
+  // The coupon's share of each line, from the database's per-item split. An item in
+  // two lines (two origins) shares its amount by quantity; the last line takes the rest.
+  const couponByItem = couponCode ? quote?.coupon_by_item : undefined;
+  const lineShare = new Map<string, number>();
+  for (const [itemId, amount] of Object.entries(couponByItem ?? {})) {
+    const its = lines.filter(({ line }) => line.menuItemId === itemId);
+    const qty = its.reduce((n, { line }) => n + line.quantity, 0);
+    let left = amount;
+    its.forEach(({ line }, k) => {
+      const part = k === its.length - 1 ? left : Math.floor((amount * line.quantity) / qty);
+      left -= part;
+      lineShare.set(lineKey(line), part);
+    });
+  }
   // Once per applied code, when its saving first shows: gold light runs across the order button.
   const couponSaving = couponCode ? (quote?.coupon_discount ?? 0) : 0;
   const [shinedFor, setShinedFor] = useState("");
@@ -684,10 +698,19 @@ export function CartPage() {
         <div className="checkout-pane" hidden={step !== 3}>
         <section className="sheet checkout-review" aria-label={tr("مراجعة الأصناف", "Review items")}>
           <div className="checkout-review__head"><h2 className="pass-label">{tr("طلبك", "Your order")}</h2><button type="button" className="link-btn" disabled={busy || changingStep} onClick={() => { void goToStep(1); }}>{tr("تعديل", "Edit")}</button></div>
-          <ul className="checkout-review__items">{lines.map(({ line, item }) => {
+          <ul className="checkout-review__items">{(() => { let struck = 0; return lines.map(({ line, item }) => {
             const origin = item.options.find((o) => o.id === line.optionId);
-            return <li key={lineKey(line)}><ItemImage item={item} /><div><strong>{line.quantity} × {itemName(item)}</strong>{origin && <small>{tr(origin.nameAr, origin.nameEn || origin.nameAr)}</small>}{line.note && <small>{line.note}</small>}</div><span>{riyals(priceOf(item) * line.quantity)}</span></li>;
-          })}</ul>
+            const price = priceOf(item) * line.quantity;
+            const share = lineShare.get(lineKey(line)) ?? 0;
+            // With a coupon on this line: the old price is struck through and the new one comes in, line after line.
+            const priceTag = share > 0 ? (
+              <span className="coupon-line" style={{ "--d": `${struck++ * 130}ms` } as CSSProperties} aria-label={tr(`${riyals(price - share)} بعد الكوبون، بدل ${riyals(price)}`, `${riyals(price - share)} after the coupon, was ${riyals(price)}`)}>
+                <s className="coupon-line__old" aria-hidden="true">{riyals(price)}</s>
+                <span className="coupon-line__new" aria-hidden="true">{riyals(price - share)}</span>
+              </span>
+            ) : <span>{riyals(price)}</span>;
+            return <li key={lineKey(line)}><ItemImage item={item} /><div><strong>{line.quantity} × {itemName(item)}</strong>{origin && <small>{tr(origin.nameAr, origin.nameEn || origin.nameAr)}</small>}{line.note && <small>{line.note}</small>}</div>{priceTag}</li>;
+          }); })()}</ul>
           {note && <p className="checkout-review__note">{note}</p>}
           {unavailable.length > 0 && <Alert tone="error">{tr("بعض الأصناف لم تعد متوفرة. عدّل سلتك للمتابعة.", "Some items are no longer available. Edit your cart to continue.")}</Alert>}
         </section>

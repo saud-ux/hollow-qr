@@ -27,6 +27,8 @@ export interface BenefitQuote {
   gifts: number;
   paid_drinks: number;
   coupon_id: string | null;
+  /** Menu item id → halalas the coupon took off that item (adds up to coupon_discount). Absent before migration 20261029000000. */
+  coupon_by_item?: Record<string, number>;
 }
 export interface Coupon {
   id: string;
