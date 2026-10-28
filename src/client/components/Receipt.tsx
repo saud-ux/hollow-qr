@@ -33,6 +33,7 @@ export function ReceiptPaper({ order, menuItems, status = false, thanks = false 
       {status &&
         (order.status === "completed" ? (
           <span className="paper-receipt__stamp">
+            <span className="paper-receipt__stamp-tent" aria-hidden="true" />
             ✓ {statusLabel(order)}
             {order.completedAt && <small>{formatWhen(order.completedAt)}</small>}
           </span>
@@ -265,6 +266,8 @@ export function ReceiptSheet({ order, menuItems, from, onClose }: { order: Order
   const paper = useRef<HTMLDivElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
   const closing = useRef(false);
+  const stamper = useRef<SVGSVGElement>(null);
+  const stamperShadow = useRef<HTMLDivElement>(null);
 
   // Where the button is, as a transform and clip of the open receipt.
   const rolled = (): Keyframe | null => {
@@ -277,29 +280,61 @@ export function ReceiptSheet({ order, menuItems, from, onClose }: { order: Order
     return { transform: `translate(${s.left - p.left}px, ${s.top - p.top}px) scale(${k})`, clipPath: `inset(0 0 ${Math.max(0, p.height - s.height / k)}px 0)`, opacity: 0.4 };
   };
 
-  // A picked-up order: once the receipt is open, the stamp comes down on it.
+  // A picked-up order: once the receipt has unrolled, a wooden stamper comes
+  // down on it, presses, and lifts away, leaving the stamp in green ink.
   function stampDown() {
-    const stamp = paper.current?.querySelector(".paper-receipt__stamp");
+    const stamp = paper.current?.querySelector<HTMLElement>(".paper-receipt__stamp");
     if (!stamp || !motionOn()) return;
-    const landing = 560 + 260;
-    void play(
-      stamp,
-      [
-        { opacity: 0, transform: "rotate(-16deg) scale(2.3)" },
-        { opacity: 1, transform: "rotate(-7deg) scale(.9)", offset: 0.62, easing: "ease-out" },
-        { transform: "rotate(-7deg) scale(1.05)", offset: 0.82 },
-        { transform: "rotate(-7deg) scale(1)" },
-      ],
-      { duration: 420, delay: 560, easing: "cubic-bezier(.55,0,.9,.4)" },
-    );
+    const unrolled = 560;
+    const travel = 1250;
+    const impact = unrolled + travel * 0.58;
+    void play(stamp, [{ opacity: 0, transform: "rotate(-7deg) scale(1.04)" }, { opacity: 0.88, transform: "rotate(-7deg)" }], { duration: 160, delay: impact });
     void play(paper.current?.querySelector(".paper-receipt"), [{ transform: "none" }, { transform: "translateY(3px) scale(.992)" }, { transform: "none" }], {
       duration: 220,
-      delay: landing,
+      delay: impact,
       easing: "ease-out",
     });
     window.setTimeout(() => {
       if (!closing.current) tapFeedback();
-    }, landing);
+    }, impact);
+    window.setTimeout(() => {
+      const tool = stamper.current;
+      const shade = stamperShadow.current;
+      if (closing.current || !tool || !shade) return;
+      // The stamper's inked pad lands on the stamp: size and place it from there.
+      const box = stamp.getBoundingClientRect();
+      const cx = box.left + box.width / 2;
+      const cy = box.top + box.height / 2;
+      const size = stamp.offsetWidth * 1.3;
+      Object.assign(tool.style, { width: `${size}px`, height: `${size}px`, left: `${cx - size / 2}px`, top: `${cy + stamp.offsetHeight / 2 - size * PAD_LINE}px` });
+      Object.assign(shade.style, { width: `${stamp.offsetWidth * 1.15}px`, left: `${cx - (stamp.offsetWidth * 1.15) / 2}px`, top: `${cy - 10}px` });
+      const at = (y: number, x = 0, turn = -7, squash = 1) => `translate(${x}px, ${y}px) rotate(${turn}deg) scale(1, ${squash})`;
+      void play(
+        tool,
+        [
+          { opacity: 0, transform: at(-260, 70, -16) },
+          { opacity: 1, transform: at(-110), offset: 0.28 },
+          { transform: at(-125), offset: 0.46, easing: "cubic-bezier(.6,0,1,1)" },
+          { transform: at(0, 0, -7, 0.96), offset: 0.58 },
+          { transform: at(0), offset: 0.66 },
+          { opacity: 1, transform: at(0), offset: 0.74, easing: "cubic-bezier(.3,0,.5,1)" },
+          { opacity: 0, transform: at(-280, 50, 2) },
+        ],
+        { duration: travel, easing: "ease-out" },
+      );
+      void play(
+        shade,
+        [
+          { opacity: 0, transform: "scale(.5)" },
+          { opacity: 0.18, transform: "scale(.8)", offset: 0.28 },
+          { opacity: 0.16, transform: "scale(.78)", offset: 0.46, easing: "ease-in" },
+          { opacity: 0.4, transform: "scale(1)", offset: 0.58 },
+          { opacity: 0.4, transform: "scale(1)", offset: 0.74 },
+          { opacity: 0, transform: "scale(.5)" },
+        ],
+        { duration: travel, easing: "ease-out" },
+      );
+    }, unrolled);
   }
 
   useLayoutEffect(() => {
@@ -343,6 +378,12 @@ export function ReceiptSheet({ order, menuItems, from, onClose }: { order: Order
       <div ref={paper} className="receipt-sheet__paper">
         <ReceiptPaper order={order} menuItems={menuItems} status />
       </div>
+      {order.status === "completed" && (
+        <>
+          <div ref={stamperShadow} className="stamper-shadow" aria-hidden="true" />
+          <Stamper ref={stamper} />
+        </>
+      )}
       <button ref={closeBtn} type="button" className="receipt-sheet__close" aria-label={tr("إغلاق الفاتورة", "Close the receipt")} onClick={() => void close()}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
           <path d="M6 6l12 12M18 6 6 18" />
@@ -350,5 +391,35 @@ export function ReceiptSheet({ order, menuItems, from, onClose }: { order: Order
       </button>
     </div>,
     document.body,
+  );
+}
+
+/** Where the stamper's inked pad is, as a fraction of its height. */
+const PAD_LINE = 171 / 200;
+
+/** A wooden hand stamper: a turned handle on a block, a rubber pad inked green. */
+function Stamper({ ref }: { ref: Ref<SVGSVGElement> }) {
+  return (
+    <svg ref={ref} className="stamper" viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <linearGradient id="stamper-handle" x1="0" x2="1">
+          <stop offset="0" stopColor="#9a5a26" />
+          <stop offset="0.45" stopColor="#e0a565" />
+          <stop offset="1" stopColor="#a4612b" />
+        </linearGradient>
+        <linearGradient id="stamper-front" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ecd3a9" />
+          <stop offset="1" stopColor="#d2ad7a" />
+        </linearGradient>
+      </defs>
+      <path d="M22 104h156l12 16H10Z" fill="#f4e1c0" />
+      <rect x="10" y="120" width="180" height="40" rx="2" fill="url(#stamper-front)" />
+      <path d="M18 131c40-3 70 3 110-1s50 2 56 1M18 146c30 2 60-3 96 0s50-2 70 1" fill="none" stroke="#a87a45" strokeOpacity=".35" strokeWidth="1.2" />
+      <rect x="14" y="160" width="172" height="8" fill="#2a211b" />
+      <rect x="16" y="168" width="168" height="3" fill="#2f7d48" />
+      <ellipse cx="100" cy="104" rx="30" ry="7" fill="#b06b30" />
+      <path d="M78 104c6-14 12-24 12-38 0-10-8-18-8-30 0-16 8-26 18-26s18 10 18 26c0 12-8 20-8 30 0 14 6 24 12 38Z" fill="url(#stamper-handle)" />
+      <ellipse cx="100" cy="15" rx="12" ry="4.5" fill="#f0c48f" opacity=".7" />
+    </svg>
   );
 }

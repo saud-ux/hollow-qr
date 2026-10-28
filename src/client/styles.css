@@ -2687,6 +2687,33 @@ html[lang="ar"] .shop__cups-label {
   font-size: 0.68rem;
   font-weight: 700;
 }
+/* HOLLOW's tent, in the same ink. */
+.paper-receipt__stamp-tent {
+  width: 64px;
+  aspect-ratio: 1100 / 458;
+  margin-bottom: 2px;
+  background: currentColor;
+  -webkit-mask: url("/brand/tent-espresso.webp") center / contain no-repeat;
+  mask: url("/brand/tent-espresso.webp") center / contain no-repeat;
+}
+/* The wooden stamper that presses the stamp when the receipt opens. */
+.stamper,
+.stamper-shadow {
+  position: fixed;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+.stamper {
+  transform-origin: 50% 85.5%;
+  filter: drop-shadow(0 6px 8px rgb(0 0 0 / 25%));
+}
+.stamper-shadow {
+  height: 20px;
+  border-radius: 50%;
+  background: #000;
+  filter: blur(6px);
+}
 .paper-receipt__line {
   display: flex;
   align-items: baseline;
