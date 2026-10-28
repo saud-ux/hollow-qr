@@ -1,7 +1,8 @@
 /**
  * The receipt printer heard when an order is placed: a card machine's stepper
  * whine pulsing with each dot line over the thermal head's hiss, a paper rip
- * when the receipt tears off, and a soft brush when it opens or folds away.
+ * when the receipt tears off, a soft brush when it opens or folds away, and the
+ * wooden stamper's knock on a picked-up order's receipt.
  * Made with Web Audio, so there is no file to load. It plays as "ambient"
  * audio: quiet, mixed with the customer's music, and silent when the iPhone's
  * silent switch is on.
@@ -136,4 +137,50 @@ export function paperSound(): void {
   g.gain.linearRampToValueAtTime(0, t + 0.34);
   src.connect(band).connect(g).connect(c.destination);
   src.start(t, Math.random(), 0.36);
+}
+
+/** The wooden stamper landing: a low thump through the paper, a knock of wood, a slap of rubber. */
+export function stampSound(): void {
+  const c = audio();
+  if (!c) return;
+  const t = c.currentTime + 0.005;
+  const out = c.createGain();
+  out.gain.value = 0.5;
+  out.connect(c.destination);
+  const thump = c.createOscillator();
+  thump.frequency.setValueAtTime(170, t);
+  thump.frequency.exponentialRampToValueAtTime(55, t + 0.14);
+  const thumpLevel = c.createGain();
+  thumpLevel.gain.setValueAtTime(0, t);
+  thumpLevel.gain.linearRampToValueAtTime(0.9, t + 0.004);
+  thumpLevel.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  thump.connect(thumpLevel).connect(out);
+  thump.start(t);
+  thump.stop(t + 0.16);
+  const wood = c.createOscillator();
+  wood.type = "triangle";
+  wood.frequency.value = 620;
+  const woodLevel = c.createGain();
+  woodLevel.gain.setValueAtTime(0.0001, t);
+  woodLevel.gain.linearRampToValueAtTime(0.12, t + 0.003);
+  woodLevel.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+  wood.connect(woodLevel).connect(out);
+  wood.start(t);
+  wood.stop(t + 0.11);
+  const burst = (type: BiquadFilterType, frequency: number, q: number, level: number, length: number) => {
+    const src = c.createBufferSource();
+    src.buffer = noise(c);
+    const filter = c.createBiquadFilter();
+    filter.type = type;
+    filter.frequency.value = frequency;
+    filter.Q.value = q;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(level, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.001, t + length);
+    src.connect(filter).connect(g).connect(out);
+    src.start(t, Math.random(), length + 0.02);
+  };
+  burst("bandpass", 1100, 3, 0.7, 0.05);
+  burst("highpass", 3000, 0.7, 0.25, 0.03);
 }

@@ -7,7 +7,7 @@ import { riyals } from "../lib/menu";
 import { fulfillmentLabel, lineName, lineOptionName, statusLabel } from "../lib/menuText";
 import { motionOn, play } from "../lib/motion";
 import { tapFeedback } from "../lib/native";
-import { paperSound, printBurst, tearSound } from "../lib/printerSound";
+import { paperSound, printBurst, stampSound, tearSound } from "../lib/printerSound";
 
 type MenuItems = MenuItem[] | null | undefined;
 
@@ -295,7 +295,9 @@ export function ReceiptSheet({ order, menuItems, from, onClose }: { order: Order
       easing: "ease-out",
     });
     window.setTimeout(() => {
-      if (!closing.current) tapFeedback();
+      if (closing.current) return;
+      stampSound();
+      tapFeedback();
     }, impact);
     window.setTimeout(() => {
       const tool = stamper.current;
