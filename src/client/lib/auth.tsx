@@ -42,9 +42,12 @@ export function AuthProvider({ supabase, children }: { supabase: SupabaseClient;
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       if (event === "PASSWORD_RECOVERY") setRecovery(true);
+      if (sessionRef.current?.user.id !== next?.user.id) {
+        setMe(null);
+        setMeError(null);
+      }
       sessionRef.current = next;
       setSession(next);
-      if (!next) setMe(null);
     });
     return () => sub.subscription.unsubscribe();
   }, [supabase]);
