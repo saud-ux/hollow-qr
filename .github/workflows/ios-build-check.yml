@@ -7,12 +7,17 @@ on:
     branches: [main]
     paths:
       - "ios/**"
-      - "src/client/lib/geofence.ts"
+      - "src/client/**"
+      - "src/shared/**"
+      - "tsconfig.*.json"
       - "scripts/ios-*"
       - ".github/workflows/ios-*.yml"
   pull_request:
     paths:
       - "ios/**"
+      - "src/client/**"
+      - "src/shared/**"
+      - "tsconfig.*.json"
       - "scripts/ios-*"
       - ".github/workflows/ios-*.yml"
   workflow_dispatch:
