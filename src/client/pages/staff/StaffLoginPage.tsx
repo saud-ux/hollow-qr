@@ -1,12 +1,13 @@
 import { Navigate, useNavigate } from "react-router";
 import { Wordmark } from "../../components/Brand";
 import { useAuth } from "../../lib/auth";
+import { roleHomePath } from "../../lib/role-route";
 import { LoginForm } from "../customer/LoginPage";
 
 export function StaffLoginPage() {
   const { session, me } = useAuth();
   const navigate = useNavigate();
-  if (session && me && me.user.role !== "customer") return <Navigate to="/staff" replace />;
+  if (session && me && me.user.role !== "customer") return <Navigate to={roleHomePath(me.user.role)} replace />;
   return (
     <div className="staff-login">
       <Wordmark variant="cream" className="staff-login__logo" />
