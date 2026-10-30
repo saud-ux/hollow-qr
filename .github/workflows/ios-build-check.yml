@@ -45,6 +45,9 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Lint and test
+        run: pnpm lint && pnpm test
+
       - name: Build the web app and copy it into the iOS project
         run: |
           pnpm build
