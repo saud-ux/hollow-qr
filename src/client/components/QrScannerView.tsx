@@ -1,5 +1,6 @@
 import QrScanner from "qr-scanner";
 import { useEffect, useRef, useState } from "react";
+import { isNative } from "../lib/native";
 
 /**
  * Camera QR scanner tuned for iPhone / iPad Safari.
