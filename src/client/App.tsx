@@ -1,6 +1,8 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import { Spinner } from "./components/Field";
+import { useAuth } from "./lib/auth";
+import { roleHomePath } from "./lib/role-route";
 import { NativeBridge } from "./components/NativeBridge";
 import { WebBridge } from "./components/WebBridge";
 import { RouteTransitions } from "./components/RouteTransitions";
@@ -49,7 +51,7 @@ export function App() {
         <Toaster />
         <NearbyIntro />
         <Suspense fallback={<Spinner />}>
-          {isNative ? <CustomerRoutes /> : <WebRoutes />}
+          <AppRoutes />
         </Suspense>
       </LangProvider>
     </BrowserRouter>
@@ -65,7 +67,7 @@ function CustomerRoutes() {
     <RouteTransitions
       render={(location) => (
         <Routes location={location}>
-          <Route path="/" element={<Navigate to="/menu" replace />} />
+          <Route path="/" element={<RoleHomeRedirect />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -76,7 +78,7 @@ function CustomerRoutes() {
           <Route path="/account/notifications" element={<NotificationsPage />} />
           <Route path="/account/places/:id" element={<PlacePage />} />
           <Route path="/account/cars" element={<CarsPage />} />
-          <Route path="/menu" element={<MenuPage />} />
+          <Route path="/menu" element={<RoleAwareMenu />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/:id" element={<OrderPage />} />
@@ -90,17 +92,42 @@ function CustomerRoutes() {
   );
 }
 
-/** Website: staff and admin pages keep their own layout; everything else is the customer app. */
-function WebRoutes() {
+/** Staff screens work inside the iOS app as well as on the website. */
+function AppRoutes() {
   const { pathname } = useLocation();
   return pathname === "/staff" || pathname.startsWith("/staff/") ? <StaffRoutes /> : <CustomerRoutes />;
+}
+
+/** Use the verified API role, never an email address, for landing destinations. */
+function RoleHomeRedirect({ guestPath = "/menu" }: { guestPath?: string }) {
+  const { session, loading, me, meError, refreshMe } = useAuth();
+  if (loading || (session && !me && !meError)) return <Spinner />;
+  if (session && !me) {
+    return (
+      <div className="boot-error" role="alert">
+        <p>تعذّر التحقق من صلاحية الحساب. تأكد من اتصالك ثم حاول مرة ثانية.</p>
+        <button type="button" className="btn btn--primary" onClick={() => void refreshMe()}>أعد المحاولة</button>
+      </div>
+    );
+  }
+  return <Navigate to={session && me ? roleHomePath(me.user.role) : guestPath} replace />;
+}
+
+/** Returning staff/admin users go to their workspace, not the customer menu. */
+function RoleAwareMenu() {
+  const { session, loading, me, meError } = useAuth();
+  if (isNative && (loading || (session && !me && !meError))) return <Spinner />;
+  if (isNative && session && me && me.user.role !== "customer") {
+    return <Navigate to={roleHomePath(me.user.role)} replace />;
+  }
+  return <MenuPage />;
 }
 
 function StaffRoutes() {
   return (
     <Routes>
       <Route path="/staff/login" element={<StaffLoginPage />} />
-      <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
+      <Route path="/staff" element={<RoleHomeRedirect guestPath="/staff/login" />} />
       <Route
         path="/staff/orders"
         element={

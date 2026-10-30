@@ -2,7 +2,7 @@
 
 A Capacitor app that ships the same React build as the website. It adds iPhone features on top:
 order-status push notifications, a native "Add to Apple Wallet" sheet, and haptics.
-It is for customers only. Staff keep using the web board.
+Customers, staff, and admins share the same sign-in; the server-verified role selects the correct in-app workspace.
 
 - App Store name **HOLLOW Coffee**, home-screen name **HOLLOW**, bundle id `com.hollowzulfi.coffee`, team `N2KXQ7MVY3`.
 - iPhone only, iOS 15+, portrait, Arabic first (English listing too).
@@ -25,7 +25,9 @@ It is for customers only. Staff keep using the web board.
 
 In the app:
 
-- The app opens on the menu. `/` and staff routes redirect to `/menu`.
+- Signed-out users open on the menu. After email/password sign-in, customers return to their requested customer page, staff open `/staff/orders`, and admins open `/staff/admin`.
+- Staff/admin pages run inside the iOS app using the same protected routes as the website. Existing staff order push notifications open the in-app staff orders screen.
+- Returning signed-in staff/admin accounts open their workspace instead of the customer menu; permission checks remain enforced by the Worker.
 - After the first order the app asks for notification permission.
   Each staff status change (preparing, ready, out for delivery, completed with cups added, cancelled by staff with the reason)
   sends one notification per device. Notifications for the same order replace each other (`apns-collapse-id`).

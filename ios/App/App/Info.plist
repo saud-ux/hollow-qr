@@ -73,6 +73,8 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>نستخدم الكاميرا لمسح رموز QR الخاصة ببطاقات العملاء عند تسجيل دخول الموظفين.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>نستخدم موقعك لتحديد عنوان التوصيل، وإذا فعّلت تنبيهات القرب لننبهك لما تكون قريب من هولو.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

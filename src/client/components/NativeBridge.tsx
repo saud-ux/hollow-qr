@@ -8,7 +8,7 @@ import { appLinkPath } from "../../shared/app-links";
 import { parseEmailLink } from "../../shared/email-links";
 import { useConfig } from "../lib/config";
 import { showToast } from "./Toast";
-import { initNativePush, initNativeShell, isNative, openWebsite, refreshPushIfAllowed } from "../lib/native";
+import { initNativePush, initNativeShell, isNative, refreshPushIfAllowed } from "../lib/native";
 import { syncWidgetAccount, listenForTrackerTokens, refreshWidget } from "../lib/widget";
 
 // Survives route/language remounts. Store fingerprints, never email credentials.
@@ -38,7 +38,7 @@ export function NativeBridge() {
       open: (target) => {
         if (target.kind === "order") void navigation.current(`/orders/${target.orderId}`);
         else if (target.kind === "menu") void navigation.current("/menu");
-        else openWebsite("/staff/orders");
+        else void navigation.current("/staff/orders");
       },
     }).catch(() => undefined);
     listenForTrackerTokens();
