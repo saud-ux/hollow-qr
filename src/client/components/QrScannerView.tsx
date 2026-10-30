@@ -43,7 +43,9 @@ export function QrScannerView({ onResult, onClose, paused }: { onResult: (text: 
       const name = err instanceof Error ? err.name : String(err);
       setError(
         /NotAllowed|Permission/i.test(name)
-          ? "تم رفض إذن الكاميرا. اسمح باستخدام الكاميرا من إعدادات Safari ثم أعد المحاولة."
+          ? isNative
+            ? "تم رفض إذن الكاميرا. فعّل إذن الكاميرا لتطبيق HOLLOW من إعدادات الآيفون ثم أعد المحاولة."
+            : "تم رفض إذن الكاميرا. اسمح باستخدام الكاميرا من إعدادات Safari ثم أعد المحاولة."
           : "تعذّر تشغيل الكاميرا. تأكد من فتح الموقع عبر HTTPS أو استخدم الإدخال اليدوي.",
       );
     });
