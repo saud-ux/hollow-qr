@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
+import { Link, Navigate, useSearchParams } from "react-router";
 import { normalizeEmail } from "../../../shared/format";
 import { CustomerLayout } from "../../components/CustomerLayout";
-import { Alert, Field } from "../../components/Field";
+import { Alert, Field, Spinner } from "../../components/Field";
 import { Turnstile } from "../../components/Turnstile";
 import { useAuth } from "../../lib/auth";
 import { useCaptcha } from "../../lib/captcha";
 import { safeNext, withNext } from "../../lib/next";
+import { afterLoginPath } from "../../lib/role-route";
 import { authErrorAr, validateEmail } from "../../lib/validation";
 import { tr } from "../../lib/i18n";
 
@@ -79,18 +80,28 @@ export function LoginForm({ onSuccess, submitLabel = tr("تسجيل الدخول
 }
 
 export function LoginPage() {
-  const { session } = useAuth();
-  const navigate = useNavigate();
+  const { session, loading, me, meError, refreshMe } = useAuth();
   const [params] = useSearchParams();
   const next = safeNext(params);
-  if (session) return <Navigate to={next} replace />;
+  if (loading || (session && !me && !meError)) return <Spinner />;
+  if (session && me) return <Navigate to={afterLoginPath(me.user.role, next)} replace />;
+  if (session && !me) {
+    return (
+      <CustomerLayout>
+        <section className="card form center">
+          <Alert tone="error">{tr("تعذّر التحقق من صلاحية الحساب. حاول مرة ثانية.", "Couldn't verify your account role. Please try again.")}</Alert>
+          <button type="button" className="btn btn--primary" onClick={() => void refreshMe()}>{tr("أعد المحاولة", "Try again")}</button>
+        </section>
+      </CustomerLayout>
+    );
+  }
   return (
     <CustomerLayout hero>
       <section className="hero">
         <h1 className="hero__title">{tr("أهلًا من جديد", "Welcome back")}</h1>
         <p className="hero__sub">{tr("سجّل دخولك عشان تطلب وتتابع أكوابك.", "Sign in to order and keep track of your cups.")}</p>
       </section>
-      <LoginForm onSuccess={() => void navigate(next, { replace: true })} />
+      <LoginForm onSuccess={() => void refreshMe()} />
       <p className="form__alt">
         <Link to="/forgot-password">{tr("نسيت كلمة المرور؟", "Forgot your password?")}</Link>
       </p>
