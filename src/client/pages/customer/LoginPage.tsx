@@ -6,6 +6,7 @@ import { Alert, Field, Spinner } from "../../components/Field";
 import { Turnstile } from "../../components/Turnstile";
 import { useAuth } from "../../lib/auth";
 import { useCaptcha } from "../../lib/captcha";
+import { isNative } from "../../lib/native";
 import { safeNext, withNext } from "../../lib/next";
 import { afterLoginPath } from "../../lib/role-route";
 import { authErrorAr, validateEmail } from "../../lib/validation";
@@ -84,7 +85,10 @@ export function LoginPage() {
   const [params] = useSearchParams();
   const next = safeNext(params);
   if (loading || (session && !me && !meError)) return <Spinner />;
-  if (session && me) return <Navigate to={afterLoginPath(me.user.role, next)} replace />;
+  // In the iOS app staff/admin sign in like any customer and open the menu; a
+  // button on the account screen takes them to their board. The website keeps
+  // sending staff/admin straight to their workspace.
+  if (session && me) return <Navigate to={isNative ? next : afterLoginPath(me.user.role, next)} replace />;
   if (session && !me) {
     return (
       <CustomerLayout>
