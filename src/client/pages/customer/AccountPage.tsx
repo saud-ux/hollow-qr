@@ -221,15 +221,14 @@ export function AccountPage() {
       {signedIn && <CustomerBenefits />}
       {signedIn && (
         <Section title={tr("عام", "General")}>
-          {user && user.role !== "customer" && !isNative ? (
+          {user && user.role !== "customer" && (
             <Row icon="staff" to="/staff">
-              {tr("لوحة الموظفين", "Staff board")}
-            </Row>
-          ) : (
-            <Row icon="card" to="/wallet" value={card ? <span dir="ltr">{`${Math.min(card.stampCount, MAX_STAMPS)} / ${MAX_STAMPS}`}</span> : undefined}>
-              {tr("بطاقتي", "My card")}
+              {user.role === "admin" ? tr("لوحة الإدارة", "Admin board") : tr("لوحة الموظفين", "Staff board")}
             </Row>
           )}
+          <Row icon="card" to="/wallet" value={card ? <span dir="ltr">{`${Math.min(card.stampCount, MAX_STAMPS)} / ${MAX_STAMPS}`}</span> : undefined}>
+            {tr("بطاقتي", "My card")}
+          </Row>
           <Row icon="orders" to="/orders">
             {tr("طلباتي", "Orders")}
           </Row>
