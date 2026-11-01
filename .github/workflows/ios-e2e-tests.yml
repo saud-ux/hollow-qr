@@ -1,0 +1,144 @@
+# Manual-only, isolated UI smoke tests. No deploy, signing, GitHub/Apple secrets or DB credentials.
+name: iOS E2E (isolated Maestro)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-e2e-isolated
+  cancel-in-progress: false
+
+jobs:
+  ui-smoke:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      CI: "true"
+      MAESTRO_CLI_NO_ANALYTICS: "1"
+    steps:
+      - name: Checkout read-only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies and run in-memory checks
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+
+      - name: Start local read-only fixture
+        run: |
+          nohup node scripts/e2e/mock-api.mjs > "$RUNNER_TEMP/e2e-mock.log" 2>&1 &
+          for i in {1..40}; do
+            if curl --fail --silent http://127.0.0.1:8765/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/e2e-mock.log"
+          exit 1
+
+      - name: Build app against LOCAL fixture ONLY
+        env:
+          VITE_API_BASE: http://127.0.0.1:8765
+        run: |
+          set -euo pipefail
+          test "$VITE_API_BASE" = "http://127.0.0.1:8765"
+          pnpm build
+          npx cap sync ios
+          # Only in this disposable CI checkout: allow loopback HTTP.
+          # Production Info.plist, TestFlight archive and signing are untouched.
+          /usr/libexec/PlistBuddy -c 'Add :NSAppTransportSecurity dict' ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c 'Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true' ios/App/App/Info.plist
+          plutil -lint ios/App/App/Info.plist
+
+      - name: Boot available iPhone simulator
+        run: |
+          set -euo pipefail
+          SIMULATOR_ID="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)
+          devices = [d for ds in data["devices"].values() for d in ds if d["name"].startswith("iPhone") and d.get("isAvailable", True)]
+          if not devices:
+              raise SystemExit("No iPhone simulator is installed on this runner")
+          print(devices[0]["udid"])
+          ')"
+          echo "SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+
+      - name: Compile and install unsigned simulator app
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            > "$RUNNER_TEMP/ios-e2e-build.log" 2>&1 || {
+              grep -E 'error:' "$RUNNER_TEMP/ios-e2e-build.log" | head -50 || true
+              tail -80 "$RUNNER_TEMP/ios-e2e-build.log"
+              exit 1
+            }
+          APP="$RUNNER_TEMP/DerivedData/Build/Products/Debug-iphonesimulator/App.app"
+          test -d "$APP"
+          xcrun simctl install "$SIMULATOR_ID" "$APP"
+
+      - name: Install pinned Maestro CLI
+        env:
+          MAESTRO_VERSION: "2.12.0"
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Run guest UI smoke flows (NO checkout or write operations)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/e2e-results"
+          maestro --device "$SIMULATOR_ID" test \
+            --format junit \
+            --output "$RUNNER_TEMP/e2e-results/report.xml" \
+            --test-output-dir "$RUNNER_TEMP/e2e-results/artifacts" \
+            --debug-output "$RUNNER_TEMP/e2e-results/debug" \
+            e2e/maestro
+
+      - name: Collect simulator screenshot on failure
+        if: failure()
+        run: |
+          mkdir -p "$RUNNER_TEMP/e2e-results"
+          if [ -n "${SIMULATOR_ID:-}" ]; then
+            xcrun simctl io "$SIMULATOR_ID" screenshot "$RUNNER_TEMP/e2e-results/failure.png" || true
+          fi
+
+      - name: Upload test results (no accounts or customer data)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-e2e-isolated-results
+          path: |
+            ${{ runner.temp }}/e2e-results/
+            ${{ runner.temp }}/e2e-mock.log
+          if-no-files-found: warn
+          retention-days: 7
