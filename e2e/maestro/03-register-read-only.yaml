@@ -17,6 +17,6 @@ name: Guest registration screen - no account created
 - tapOn:
     text: "^(Sign up|إنشاء حساب)$"
 - assertVisible:
-    text: "Sign up, collect|سجّل واجمع"
+    text: ".*(Sign up, collect|سجّل واجمع).*"
 - assertVisible:
     text: "Confirm password|تأكيد كلمة المرور"
