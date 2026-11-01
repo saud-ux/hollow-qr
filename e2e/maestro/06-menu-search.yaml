@@ -1,0 +1,27 @@
+appId: com.hollowzulfi.coffee
+name: Guest search - find a fixture item without API writes
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: deny
+- extendedWaitUntil:
+    visible: "لا تفوّت كوبك وأنت قريب"
+    timeout: 15000
+- tapOn: "مو الحين"
+- assertNotVisible: "لا تفوّت كوبك وأنت قريب"
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
+- tapOn:
+    text: "^(Search|بحث)$"
+- assertVisible:
+    text: "Search the menu|ابحث في المنيو"
+- tapOn:
+    text: "Search the menu|ابحث في المنيو"
+- inputText: "QA Espresso"
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
+- tapOn:
+    text: "^(Cancel|إلغاء)$"
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"

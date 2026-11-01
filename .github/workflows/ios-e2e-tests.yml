@@ -3,12 +3,17 @@ name: iOS E2E (isolated Maestro)
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "e2e/maestro/**"
+      - "scripts/e2e/**"
+      - ".github/workflows/ios-e2e-tests.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ios-e2e-isolated
+  group: ios-e2e-isolated-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -113,7 +118,7 @@ jobs:
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
           "$HOME/.maestro/bin/maestro" --version
 
-      - name: Run guest UI smoke flows (NO checkout or write operations)
+      - name: Run isolated guest UI flows (NO real signup, checkout or write operations)
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/e2e-results"
