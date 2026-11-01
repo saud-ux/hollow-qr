@@ -1,0 +1,76 @@
+# Free standard GitHub-hosted Linux runner on this PUBLIC repository.
+# All data stays in a disposable in-memory PGlite Postgres instance.
+# No production Supabase, Cloudflare, Apple, Wallet or payment credentials.
+name: Free functional sandbox (customer, staff, admin)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "tests/**"
+      - "src/server/**"
+      - "src/shared/**"
+      - "supabase/migrations/**"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - ".github/workflows/free-functional-sandbox.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tests/**"
+      - "src/server/**"
+      - "src/shared/**"
+      - "supabase/migrations/**"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - ".github/workflows/free-functional-sandbox.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: free-functional-sandbox-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulated-backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install lockfile dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify type safety and lint
+        run: |
+          pnpm typecheck
+          pnpm lint
+
+      - name: Customer, employee and owner full journey on isolated Postgres
+        run: pnpm exec vitest run tests/integration/free-staging-journey.test.ts
+
+      - name: Complete regression suite on disposable Postgres
+        run: pnpm test
+
+      - name: Summarize limitations
+        if: always()
+        run: |
+          {
+            echo '## Free functional sandbox'
+            echo ''
+            echo 'All tests use fake identities, mock integrations and a fresh in-process PostgreSQL (PGlite).'
+            echo 'No production database, network service, customer record, real payment, Apple Wallet signing or deployment is exercised.'
+            echo 'A green run validates only the simulated code/migration behavior, **not** live Supabase schema compatibility.'
+          } >> "$GITHUB_STEP_SUMMARY"
