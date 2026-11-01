@@ -5,6 +5,11 @@ name: Guest registration screen - no account created
     clearState: true
     permissions:
       all: deny
+- extendedWaitUntil:
+    visible: "لا تفوّت كوبك وأنت قريب"
+    timeout: 15000
+- tapOn: "مو الحين"
+- assertNotVisible: "لا تفوّت كوبك وأنت قريب"
 - assertVisible:
     text: "QA Espresso|إسبريسو تجريبي"
 - tapOn:
