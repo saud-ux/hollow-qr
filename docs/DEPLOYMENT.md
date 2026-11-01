@@ -5,6 +5,8 @@ Supabase provides Postgres and Auth.
 
 ## 1. Supabase
 
+> **Do not replay these steps on the existing production project.** The live Supabase migration history uses different version IDs for customer cars and coupon-by-item, and the explicit-WHERE fix exists in production without a matching history entry. The `db push` instructions below are for a fresh project only. Before any live schema operation, compare a schema-only export with a disposable migration-built database and follow [Phase 1 security and handoff audit](PHASE1_SECURITY_AND_HANDOFF.md).
+
 1. Create a project (Free plan is fine).
 2. Apply the migrations:
    ```bash

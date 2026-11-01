@@ -58,6 +58,9 @@ jobs:
           pnpm typecheck
           pnpm lint
 
+      - name: Database least-privilege regression (RLS and RPC grants)
+        run: pnpm exec vitest run tests/integration/security-posture.test.ts
+
       - name: Customer, employee and owner full journey on isolated Postgres
         run: pnpm exec vitest run tests/integration/free-staging-journey.test.ts
 

@@ -19,6 +19,8 @@ Apple Wallet loyalty card for **HOLLOW — Al Zulfi**: _buy 5 cups, the 6th is f
 
 ## Quick start (local)
 
+> **Production safety:** The hosted Supabase migration history is not identical to the repository filenames. The commands below are for a **new disposable development project only**, not the live café database. Do not run `supabase db push` or `db reset` against production until schema definitions and migration history have been reconciled. See [Phase 1 security and handoff audit](docs/PHASE1_SECURITY_AND_HANDOFF.md).
+
 ```bash
 pnpm install
 cp .dev.vars.example .dev.vars        # fill SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY
@@ -71,4 +73,5 @@ docs/                deployment, Apple Wallet, architecture & security notes
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): Supabase + Cloudflare setup, secrets, deploy
 - [docs/APPLE_WALLET.md](docs/APPLE_WALLET.md): certificates, switching mock → production, APNs mTLS
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): loyalty rules, security model, design decisions
+- [docs/PHASE1_SECURITY_AND_HANDOFF.md](docs/PHASE1_SECURITY_AND_HANDOFF.md): security posture, migration reconciliation and safe transfer checklist
 - [docs/ORDERING.md](docs/ORDERING.md): online ordering rules, order flow, deployment notes
