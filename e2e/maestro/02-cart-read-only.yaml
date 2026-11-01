@@ -3,6 +3,8 @@ name: Guest cart - add item without placing order
 ---
 - launchApp:
     clearState: true
+    permissions:
+      all: deny
 - assertVisible:
     text: "QA Espresso|إسبريسو تجريبي"
 - tapOn:
