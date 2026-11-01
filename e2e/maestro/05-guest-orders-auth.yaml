@@ -13,7 +13,7 @@ name: Guest order history requires sign-in - no session created
 - assertVisible:
     text: "QA Espresso|إسبريسو تجريبي"
 - tapOn:
-    text: "^(My orders|طلباتي)$"
+    text: "^(Orders|طلباتي)$"
 - assertVisible:
     text: "Welcome back|أهلًا من جديد"
 - assertVisible:
