@@ -1,0 +1,15 @@
+appId: com.hollowzulfi.coffee
+name: Guest cart - add item without placing order
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
+- tapOn:
+    text: "Add QA Espresso to cart|إضافة إسبريسو تجريبي إلى السلة"
+- tapOn:
+    text: "^(Cart|السلة)$"
+- assertVisible:
+    text: "Your cart|سلتك"
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
