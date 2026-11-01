@@ -1,0 +1,15 @@
+appId: com.hollowzulfi.coffee
+name: Guest registration screen - no account created
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
+- tapOn:
+    text: "^(Account|حسابي)$"
+- tapOn:
+    text: "^(Sign up|إنشاء حساب)$"
+- assertVisible:
+    text: "Sign up, collect|سجّل واجمع"
+- assertVisible:
+    text: "Confirm password|تأكيد كلمة المرور"
