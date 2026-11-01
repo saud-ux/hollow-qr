@@ -3,6 +3,8 @@ name: Guest navigation - menu to login and recovery
 ---
 - launchApp:
     clearState: true
+    permissions:
+      all: deny
 - assertVisible:
     text: "QA Espresso|إسبريسو تجريبي"
 - tapOn:
