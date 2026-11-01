@@ -1,0 +1,31 @@
+appId: com.hollowzulfi.coffee
+name: Guest registration validates empty fields locally - no signup
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: deny
+- extendedWaitUntil:
+    visible: "لا تفوّت كوبك وأنت قريب"
+    timeout: 15000
+- tapOn: "مو الحين"
+- assertNotVisible: "لا تفوّت كوبك وأنت قريب"
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
+- tapOn:
+    text: "^(Account|حسابي)$"
+- tapOn:
+    text: "^(Sign up|إنشاء حساب)$"
+- scrollUntilVisible:
+    element:
+      text: "^(Join now|انضم الآن)$"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    text: "^(Join now|انضم الآن)$"
+- assertVisible:
+    text: "Please enter your name|يرجى إدخال الاسم"
+- assertVisible:
+    text: "Please enter your email|يرجى إدخال البريد الإلكتروني"
+- assertNotVisible:
+    text: "Your card is ready|تم إنشاء بطاقتك بنجاح"
