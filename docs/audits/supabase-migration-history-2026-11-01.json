@@ -1,0 +1,115 @@
+{
+  "observedAt": "2026-11-01",
+  "source": "Supabase MCP list_migrations (read-only; names/versions only; not schema or row data)",
+  "project": "hollow-rewards",
+  "migrations": [
+    {
+      "version": "20261002000000",
+      "name": "hollow_rewards_v1"
+    },
+    {
+      "version": "20261002180000",
+      "name": "sync_role_from_app_metadata"
+    },
+    {
+      "version": "20261005000000",
+      "name": "staff_soft_removal"
+    },
+    {
+      "version": "20261006000000",
+      "name": "online_ordering"
+    },
+    {
+      "version": "20261007000000",
+      "name": "app_push_and_account_deletion"
+    },
+    {
+      "version": "20261008000000",
+      "name": "menu_options"
+    },
+    {
+      "version": "20261009000000",
+      "name": "owner_tools"
+    },
+    {
+      "version": "20261010000000",
+      "name": "english"
+    },
+    {
+      "version": "20261011000000",
+      "name": "order_numbers_from_one"
+    },
+    {
+      "version": "20261012000000",
+      "name": "sales_report"
+    },
+    {
+      "version": "20261013000000",
+      "name": "live_activities"
+    },
+    {
+      "version": "20261014000000",
+      "name": "best_sellers"
+    },
+    {
+      "version": "20261015000000",
+      "name": "account_places"
+    },
+    {
+      "version": "20261016000000",
+      "name": "stock_counts"
+    },
+    {
+      "version": "20261017000000",
+      "name": "order_history"
+    },
+    {
+      "version": "20261018000000",
+      "name": "discounts"
+    },
+    {
+      "version": "20261019000000",
+      "name": "web_push"
+    },
+    {
+      "version": "20261020000000",
+      "name": "menu_item_deletion"
+    },
+    {
+      "version": "20261021000000",
+      "name": "customer_benefits"
+    },
+    {
+      "version": "20261022000000",
+      "name": "wallet_topups"
+    },
+    {
+      "version": "20261023000000",
+      "name": "fix_coupon_management"
+    },
+    {
+      "version": "20261024000000",
+      "name": "app_store_account_deletion"
+    },
+    {
+      "version": "20261025000000",
+      "name": "open_order_limit"
+    },
+    {
+      "version": "20261026000000",
+      "name": "box_category"
+    },
+    {
+      "version": "20261027000000",
+      "name": "shop_data_reset"
+    },
+    {
+      "version": "20261027093823",
+      "name": "customer_cars"
+    },
+    {
+      "version": "20261028115232",
+      "name": "coupon_by_item"
+    }
+  ]
+}
