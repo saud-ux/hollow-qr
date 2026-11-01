@@ -50,7 +50,12 @@ jobs:
         run: |
           nohup node scripts/e2e/mock-api.mjs > "$RUNNER_TEMP/e2e-mock.log" 2>&1 &
           for i in {1..40}; do
-            if curl --fail --silent http://127.0.0.1:8765/health >/dev/null; then exit 0; fi
+            if curl --fail --silent http://127.0.0.1:8765/health >/dev/null; then
+              # Guardrails: test auth config must be fake, and writes must fail.
+              curl -fsS http://127.0.0.1:8765/api/public-config | grep -Fq '"supabaseUrl":"http://127.0.0.1:8765"'
+              test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8765/api/orders)" = "405"
+              exit 0
+            fi
             sleep 1
           done
           cat "$RUNNER_TEMP/e2e-mock.log"
