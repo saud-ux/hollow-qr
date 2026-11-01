@@ -21,6 +21,6 @@ name: Guest navigation - menu to login and recovery
 - assertVisible:
     text: "Welcome back|أهلًا من جديد"
 - tapOn:
-    text: "Forgot your password|نسيت كلمة المرور"
+    text: ".*(Forgot your password|نسيت كلمة المرور).*"
 - assertVisible:
     text: "Reset your password|استعادة كلمة المرور"
