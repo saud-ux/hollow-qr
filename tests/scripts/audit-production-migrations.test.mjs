@@ -9,7 +9,7 @@ const snapshotPath = fileURLToPath(new URL("../../docs/audits/supabase-migration
 
 test("historical production snapshot has documented differences and no unexpected orphans", () => {
   const snapshot = JSON.parse(readFileSync(snapshotPath, "utf8"));
-  const result = auditMigrationHistory(readdirSync(migrationDir).sort(), snapshot.migrations);
+  const result = auditMigrationHistory(readdirSync(migrationDir).filter((f) => f.endsWith(".sql") && f.slice(0, 8) <= "20261031").sort(), snapshot.migrations);
   assert.equal(result.localCount, 28);
   assert.equal(result.hostedCount, 27);
   assert.equal(result.exact.length, 25);
