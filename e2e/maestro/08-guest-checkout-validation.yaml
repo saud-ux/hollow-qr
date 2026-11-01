@@ -1,0 +1,40 @@
+appId: com.hollowzulfi.coffee
+name: Guest checkout - form validation without placing an order
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: deny
+- extendedWaitUntil:
+    visible: "لا تفوّت كوبك وأنت قريب"
+    timeout: 15000
+- tapOn: "مو الحين"
+- assertNotVisible: "لا تفوّت كوبك وأنت قريب"
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
+- tapOn:
+    text: "Add QA Espresso to cart|إضافة إسبريسو تجريبي إلى السلة"
+- tapOn:
+    text: "^(Cart|السلة)$"
+- assertVisible:
+    text: "Your cart|سلتك"
+- scrollUntilVisible:
+    element:
+      text: "Continue to fulfillment|متابعة للاستلام"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    text: "Continue to fulfillment|متابعة للاستلام"
+- assertVisible:
+    text: "Fulfillment and contact|الاستلام والتواصل"
+- scrollUntilVisible:
+    element:
+      text: "Continue to review|متابعة للتأكيد"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    text: "Continue to review|متابعة للتأكيد"
+- assertVisible:
+    text: ".*(Enter a valid mobile number|اكتب رقم جوال صحيح).*"
+- assertNotVisible:
+    text: "Place order|تأكيد الطلب"
