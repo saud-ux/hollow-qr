@@ -58,6 +58,11 @@ jobs:
           pnpm typecheck
           pnpm lint
 
+      - name: Offline migration history audit checks (no production connection)
+        run: |
+          node --test tests/scripts/audit-production-migrations.test.mjs
+          node scripts/audit-production-migrations.mjs --history docs/audits/supabase-migration-history-2026-11-01.json
+
       - name: Database least-privilege regression (RLS and RPC grants)
         run: pnpm exec vitest run tests/integration/security-posture.test.ts
 
