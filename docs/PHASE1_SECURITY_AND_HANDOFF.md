@@ -63,6 +63,8 @@ Reference: [Supabase database linter](https://supabase.com/docs/guides/database/
 - [ ] Prove user registration, login, staff/admin roles, pickup/curbside/delivery orders, cancel/refund, loyalty/Wallet, notifications and account deletion with **disposable accounts** on a separate staging environment or authorized controlled acceptance test.
 - [ ] Verify local legal/privacy obligations around transfer of customer personal data separately from IP ownership.
 
+> **Follow-up:** [Performance and offline migration reconciliation](PHASE1_PERFORMANCE_AND_MIGRATION_AUDIT.md) documents the 25 exact history IDs, two renumbered entries, one unrecorded SQL patch, and prioritization of eight foreign-key index notices. It does not alter production.
+
 ## 5. Scope of this PR
 
 - Adds automated **isolated** tests against the final migration security posture: RLS on all public tables, no unwanted browser grants, and no browser-executable privileged functions.
