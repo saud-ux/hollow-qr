@@ -1,0 +1,22 @@
+appId: com.hollowzulfi.coffee
+name: Guest empty cart - browse menu without an order
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: deny
+- extendedWaitUntil:
+    visible: "لا تفوّت كوبك وأنت قريب"
+    timeout: 15000
+- tapOn: "مو الحين"
+- assertNotVisible: "لا تفوّت كوبك وأنت قريب"
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
+- tapOn:
+    text: "^(Cart|السلة)$"
+- assertVisible:
+    text: "Your cart is empty|سلتك فارغة"
+- tapOn:
+    text: "Browse the menu|تصفّح المنيو"
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
