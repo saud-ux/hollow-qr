@@ -3,6 +3,8 @@ name: Guest registration screen - no account created
 ---
 - launchApp:
     clearState: true
+    permissions:
+      all: deny
 - assertVisible:
     text: "QA Espresso|إسبريسو تجريبي"
 - tapOn:
