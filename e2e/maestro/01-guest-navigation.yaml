@@ -1,0 +1,19 @@
+appId: com.hollowzulfi.coffee
+name: Guest navigation - menu to login and recovery
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    text: "QA Espresso|إسبريسو تجريبي"
+- tapOn:
+    text: "^(Account|حسابي)$"
+- assertVisible:
+    text: "^(Sign in|تسجيل الدخول)$"
+- tapOn:
+    text: "^(Sign in|تسجيل الدخول)$"
+- assertVisible:
+    text: "Welcome back|أهلًا من جديد"
+- tapOn:
+    text: "Forgot your password|نسيت كلمة المرور"
+- assertVisible:
+    text: "Reset your password|استعادة كلمة المرور"
