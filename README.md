@@ -74,5 +74,6 @@ docs/                deployment, Apple Wallet, architecture & security notes
 - [docs/APPLE_WALLET.md](docs/APPLE_WALLET.md): certificates, switching mock → production, APNs mTLS
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): loyalty rules, security model, design decisions
 - [docs/PHASE1_SECURITY_AND_HANDOFF.md](docs/PHASE1_SECURITY_AND_HANDOFF.md): security posture, migration reconciliation and safe transfer checklist
+- [docs/PHASE1_STAGING_RECOVERY_RUNBOOK.md](docs/PHASE1_STAGING_RECOVERY_RUNBOOK.md): one-click isolated restore drill, staging acceptance plan and buyer handoff
 - [docs/PHASE1_PERFORMANCE_AND_MIGRATION_AUDIT.md](docs/PHASE1_PERFORMANCE_AND_MIGRATION_AUDIT.md): offline migration audit, performance priorities, no-production-write guardrails
 - [docs/ORDERING.md](docs/ORDERING.md): online ordering rules, order flow, deployment notes

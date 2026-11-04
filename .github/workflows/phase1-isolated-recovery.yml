@@ -1,0 +1,65 @@
+# Read-only GitHub job. Uses disposable PGlite with synthetic records.
+# No GitHub repo secrets, Supabase project, cloud deployment, or external payment.
+name: Phase 1 isolated recovery drill
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "tests/integration/isolated-recovery.test.ts"
+      - "scripts/guard-isolated-ci.mjs"
+      - ".github/workflows/phase1-isolated-recovery.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase1-recovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      APP_ENV: "test"
+      HOLLOW_TEST_ISOLATED: "true"
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Verify no live service configuration is available
+        run: node scripts/guard-isolated-ci.mjs
+
+      - name: Install locked packages
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify lint and type safety
+        run: pnpm lint && pnpm typecheck
+
+      - name: Exercise synthetic backup and restore in PGlite
+        run: pnpm exec vitest run tests/integration/isolated-recovery.test.ts
+
+      - name: Recheck least-privilege database contract
+        run: pnpm exec vitest run tests/integration/security-posture.test.ts
+
+      - name: Record test scope
+        if: always()
+        run: |
+          {
+            echo "## Phase 1 isolated recovery"
+            echo ""
+            echo "This drill backs up and restores a generated PGlite database with synthetic users."
+            echo "It does not create, validate, or restore a real Supabase production backup."
+            echo "No production database, customer records, Supabase credentials, deployments, or payment systems were used."
+            echo "Live acceptance on a separate staging Supabase project remains a separate step."
+          } >> "$GITHUB_STEP_SUMMARY"
