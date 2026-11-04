@@ -5993,6 +5993,15 @@ html.staff-ui[data-theme="dark"] body {
 .staff-side__tool:hover {
   background: rgb(244 237 224 / 12%);
 }
+.staff-side__tool--app {
+  width: 100%;
+  text-decoration: none;
+  color: #f1c75a;
+  background: rgb(227 194 92 / 12%);
+}
+.staff-side__tool--app:hover {
+  background: rgb(227 194 92 / 18%);
+}
 .staff-scrim {
   display: none;
 }

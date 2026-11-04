@@ -79,6 +79,13 @@ const ICONS = {
     </>
   ),
   burger: <path d="M4 7h16M4 12h16M4 17h16" />,
+  app: (
+    <>
+      <path d="M4 11.5 12 4l8 7.5" />
+      <path d="M6 10.5V20h12v-9.5" />
+      <path d="M10 20v-5h4v5" />
+    </>
+  ),
   sun: (
     <>
       <circle cx="12" cy="12" r="4" />
@@ -189,6 +196,10 @@ export function StaffLayout({ title, actions, wide, children }: { title?: string
               </span>
             </div>
           )}
+          <Link to="/menu" className="staff-side__tool staff-side__tool--app" onClick={() => setOpen(false)}>
+            <StaffIcon name="app" size={20} />
+            العودة للتطبيق
+          </Link>
           <div className="staff-side__tools">
             <button type="button" className="staff-side__tool" onClick={() => setTheme(toggleStaffTheme())}>
               <StaffIcon name={theme === "dark" ? "sun" : "moon"} size={20} />
