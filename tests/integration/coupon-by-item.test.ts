@@ -300,10 +300,33 @@ describe("coupon split: real orders charge what the old preview said", () => {
       for (let i = 0; i < 300; i++) await db.query(`select public.${fn}($1,$2::jsonb)`, [customer, data]);
       return performance.now() - t;
     };
+    // Prime both implementations before timing. In shared CI runners a single
+    // timing sample is noisy, especially when it always runs the new path last.
     await time("benefit_quote_old");
-    const oldMs = await time("benefit_quote_old");
-    const newMs = await time("benefit_quote");
-    report("coupon split speed", { calls: 300, oldMs: Math.round(oldMs), newMs: Math.round(newMs) });
+    await time("benefit_quote");
+    const oldSamples: number[] = [];
+    const newSamples: number[] = [];
+    for (let sample = 0; sample < 3; sample++) {
+      // Alternate the order to reduce bias from changes in runner load.
+      if (sample % 2 === 0) {
+        newSamples.push(await time("benefit_quote"));
+        oldSamples.push(await time("benefit_quote_old"));
+      } else {
+        oldSamples.push(await time("benefit_quote_old"));
+        newSamples.push(await time("benefit_quote"));
+      }
+    }
+    const median = (samples: number[]) => [...samples].sort((a, b) => a - b)[1]!;
+    const oldMs = median(oldSamples);
+    const newMs = median(newSamples);
+    report("coupon split speed", {
+      calls: 300,
+      oldMs: Math.round(oldMs),
+      newMs: Math.round(newMs),
+      oldSamples: oldSamples.map(Math.round),
+      newSamples: newSamples.map(Math.round),
+    });
+    // Keep the original performance threshold; use a representative result.
     expect(newMs).toBeLessThan(oldMs * 1.5 + 50);
   }, 120_000);
 });
