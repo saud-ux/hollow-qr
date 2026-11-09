@@ -4,7 +4,7 @@ import { amountDue, type MenuItem, type Order } from "../../shared/ordering";
 import { formatDateTime, formatWhen } from "../lib/dates";
 import { tr } from "../lib/i18n";
 import { riyals } from "../lib/menu";
-import { fulfillmentLabel, lineName, lineOptionName, statusLabel } from "../lib/menuText";
+import { fulfillmentLabel, lineName, lineOptionName, lineSubName, statusLabel, subNameDir } from "../lib/menuText";
 import { motionOn, play } from "../lib/motion";
 import { tapFeedback } from "../lib/native";
 import { paperSound, printBurst, stampSound, tearSound } from "../lib/printerSound";
@@ -47,6 +47,7 @@ export function ReceiptPaper({ order, menuItems, status = false, thanks = false 
           <span key={i} className="paper-receipt__line">
             <span className="paper-receipt__name">
               {line.quantity} × {lineName(line, menuItems)}
+              {lineSubName(line, menuItems) && <small dir={subNameDir()}>{lineSubName(line, menuItems)}</small>}
               {option && <small>{option}</small>}
               {line.note && <small>{line.note}</small>}
             </span>

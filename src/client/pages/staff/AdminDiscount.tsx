@@ -43,7 +43,7 @@ function untilText(iso: string): string {
 
 function scopeText(d: Pick<Discount, "scope" | "itemIds">, items: MenuItem[]): string {
   if (d.scope === "all") return "على كل المنيو";
-  const names = items.filter((i) => d.itemIds.includes(i.id)).map((i) => i.nameAr);
+  const names = items.filter((i) => d.itemIds.includes(i.id)).map((i) => (i.nameEn ? `${i.nameAr} / ${i.nameEn}` : i.nameAr));
   if (names.length <= 3) return `على ${names.join("، ")}`;
   return `على ${names.slice(0, 2).join("، ")} و${names.length - 2} أصناف ثانية`;
 }
@@ -286,7 +286,7 @@ export function AdminDiscountPage() {
                       {list.map((i) => (
                         <label key={i.id} className={`disc-item ${chosen.has(i.id) ? "is-on" : ""}`}>
                           <input type="checkbox" checked={chosen.has(i.id)} onChange={() => toggle(i.id)} />
-                          <span className="disc-item__name">{i.nameAr}</span>
+                          <span className="disc-item__name">{i.nameAr}{i.nameEn && <small className="choice-en" dir="ltr"> · {i.nameEn}</small>}</span>
                           <span className="sale-price">
                             {chosen.has(i.id) && pctOk ? (
                               <>

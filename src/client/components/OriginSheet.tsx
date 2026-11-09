@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { isOrderable, type MenuItem } from "../../shared/ordering";
 import { useCart } from "../lib/cart";
 import { tr } from "../lib/i18n";
-import { itemName, optionLabel, optionName, optionNote } from "../lib/menuText";
+import { itemName, itemSubName, optionLabel, optionName, optionNote, subNameDir } from "../lib/menuText";
 import { dropSheet, flyToCart } from "../lib/motion";
 import { stockLeftText, stockRoom } from "../lib/stock";
 import { useSheetDrag } from "./ProductSheet";
@@ -75,6 +75,7 @@ export function OriginSheet({ item, onClose, onAdded }: { item: MenuItem; onClos
           <span className="origin-sheet__title">
             <strong>{title}</strong>
             <span>{itemName(item)}</span>
+            {itemSubName(item) && <small className="pass-label" dir={subNameDir()}>{itemSubName(item)}</small>}
           </span>
         </div>
         <ul className="origin-sheet__list">

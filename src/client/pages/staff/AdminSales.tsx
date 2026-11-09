@@ -3,7 +3,7 @@ import { WEEKDAY_LABELS_AR, type SalesRange, type SalesReport } from "../../../s
 import { Alert, Spinner } from "../../components/Field";
 import { apiDownload, apiGet, errorText } from "../../lib/api";
 import { shopDay } from "../../lib/dates";
-import { riyals } from "../../lib/menu";
+import { riyals, useMenu } from "../../lib/menu";
 
 const RANGES: { value: SalesRange; label: string; compare: string; days: number }[] = [
   { value: "today", label: "اليوم", compare: "عن أمس لنفس الوقت", days: 1 },
@@ -249,6 +249,7 @@ function HourBars({ report }: { report: SalesReport }) {
 }
 
 function TopItems({ report }: { report: SalesReport }) {
+  const { menu } = useMenu();
   if (report.topItems.length === 0) return null;
   const max = report.topItems[0]!.quantity;
   return (
@@ -259,6 +260,9 @@ function TopItems({ report }: { report: SalesReport }) {
           <li key={`${t.nameAr}|${t.optionNameAr ?? ""}`} className="top-items__row">
             <span className="top-items__name">
               {t.nameAr}
+              {menu?.items.find((m) => m.nameAr === t.nameAr)?.nameEn && (
+                <small className="choice-en" dir="ltr"> · {menu.items.find((m) => m.nameAr === t.nameAr)!.nameEn}</small>
+              )}
               {t.optionNameAr && <small> · {t.optionNameAr}</small>}
             </span>
             <span className="top-items__track" aria-hidden="true">

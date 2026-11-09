@@ -90,7 +90,7 @@ export function AvailabilityList({ scroll = false }: { scroll?: boolean }) {
                         <div className="avail__card-head">
                           <ItemImage item={item} className="avail__photo" />
                           <div className="avail__identity">
-                            <h3>{item.nameAr}</h3>
+                            <h3>{item.nameAr}{item.nameEn && <small className="choice-en" dir="ltr"> · {item.nameEn}</small>}</h3>
                             <span className={`avail__status ${out ? "is-out" : ""}`}>
                               {!item.isAvailable ? "متوقف" : item.stockQuantity === 0 ? "نفد" : out ? "الخيارات غير متوفرة" : "متوفر"}
                             </span>
@@ -108,7 +108,7 @@ export function AvailabilityList({ scroll = false }: { scroll?: boolean }) {
                                 <label key={o.id} className={`avail__option ${o.isAvailable ? "is-active" : "is-out"}`}>
                                   <input type="checkbox" checked={o.isAvailable} disabled={busy !== null}
                                     onChange={(e) => void toggle(item, e.target.checked, o.id)} />
-                                  <span>{o.nameAr}</span>
+                                  <span>{o.nameAr}{o.nameEn && <small className="choice-en" dir="ltr"> · {o.nameEn}</small>}</span>
                                 </label>
                               ))}
                             </div>

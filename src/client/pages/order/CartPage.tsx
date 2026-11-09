@@ -35,7 +35,7 @@ import { useCart, type CartLine } from "../../lib/cart";
 import { newIdempotencyKey } from "../../lib/hooks";
 import { RIYAL, riyals, useMenu } from "../../lib/menu";
 import { withNext } from "../../lib/next";
-import { fulfillmentLabel, itemName, optionLabel } from "../../lib/menuText";
+import { fulfillmentLabel, itemName, itemSubName, optionLabel, subNameDir } from "../../lib/menuText";
 import { closedNote } from "./hours";
 import { MAX_PLACES } from "../../../shared/types";
 import { AccountIcon } from "../../components/AccountIcons";
@@ -513,7 +513,12 @@ export function CartPage() {
                   <ItemImage item={item} className="cart-line__img" />
                   <div className="cart-line__body">
                     <div className="cart-line__top">
-                      <span className="cart-line__name">{itemName(item)}</span>
+                      <span className="cart-line__name">
+                        {itemName(item)}
+                        {itemSubName(item) && (
+                          <span className="cart-line__sub pass-label" dir={subNameDir()}>{itemSubName(item)}</span>
+                        )}
+                      </span>
                       <span className="cart-line__price">
                         <SalePrice item={item} quantity={line.quantity} rolling />
                       </span>
@@ -711,7 +716,7 @@ export function CartPage() {
                 <span className="coupon-line__new" aria-hidden="true">{bigSign(riyals(price - share))}</span>
               </span>
             ) : <span>{riyals(price)}</span>;
-            return <li key={lineKey(line)}><ItemImage item={item} /><div><strong>{line.quantity} × {itemName(item)}</strong>{origin && <small>{tr(origin.nameAr, origin.nameEn || origin.nameAr)}</small>}{line.note && <small>{line.note}</small>}</div>{priceTag}</li>;
+            return <li key={lineKey(line)}><ItemImage item={item} /><div><strong>{line.quantity} × {itemName(item)}</strong>{itemSubName(item) && <small dir={subNameDir()}>{itemSubName(item)}</small>}{origin && <small>{tr(origin.nameAr, origin.nameEn || origin.nameAr)}</small>}{line.note && <small>{line.note}</small>}</div>{priceTag}</li>;
           }); })()}</ul>
           {note && <p className="checkout-review__note">{note}</p>}
           {unavailable.length > 0 && <Alert tone="error">{tr("بعض الأصناف لم تعد متوفرة. عدّل سلتك للمتابعة.", "Some items are no longer available. Edit your cart to continue.")}</Alert>}

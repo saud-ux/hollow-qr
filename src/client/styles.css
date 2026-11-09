@@ -1693,6 +1693,20 @@ html[lang="ar"] .shop__cups-label {
   gap: 8px;
   font-weight: 700;
 }
+.cart-line__name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cart-line__sub {
+  font-weight: 700;
+}
+.choice-en {
+  font-weight: 500;
+  opacity: 0.65;
+  font-size: 0.85em;
+}
 .cart-line__actions {
   display: flex;
   align-items: center;
