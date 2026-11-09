@@ -1702,6 +1702,11 @@ html[lang="ar"] .shop__cups-label {
 .cart-line__sub {
   font-weight: 700;
 }
+.choice-en {
+  font-weight: 500;
+  opacity: 0.65;
+  font-size: 0.85em;
+}
 .cart-line__actions {
   display: flex;
   align-items: center;

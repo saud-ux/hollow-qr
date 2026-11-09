@@ -5,6 +5,7 @@ import {
   rewardDiscount,
   STATUS_LABELS_AR,
   type AdminOrder,
+  type MenuItem,
   type OrderHistoryFilter,
   type OrderHistoryPage,
 } from "../../../shared/ordering";
@@ -14,7 +15,8 @@ import { CarDescription } from "../../components/CarPlate";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiDownload, apiGet, errorText } from "../../lib/api";
 import { formatDate, formatDateTime, shopDay } from "../../lib/dates";
-import { riyals } from "../../lib/menu";
+import { riyals, useMenu } from "../../lib/menu";
+import { lineNameEn } from "../../lib/menuText";
 
 const PAGE_SIZE = 30;
 
@@ -81,7 +83,13 @@ function daySummaryLabel(day: string): string {
 }
 
 const itemCount = (o: AdminOrder) => o.items.reduce((n, l) => n + l.quantity, 0);
-const itemsLine = (o: AdminOrder) => o.items.map((l) => `${l.quantity}× ${l.nameAr}${l.optionNameAr ? ` (${l.optionNameAr})` : ""}`).join("، ");
+const itemsLine = (o: AdminOrder, items: MenuItem[] | null | undefined) =>
+  o.items
+    .map((l) => {
+      const en = lineNameEn(l, items);
+      return `${l.quantity}× ${l.nameAr}${en ? ` / ${en}` : ""}${l.optionNameAr ? ` (${l.optionNameAr})` : ""}`;
+    })
+    .join("، ");
 
 function KindIcon({ order }: { order: AdminOrder }) {
   const Icon = order.fulfillment === "pickup" ? StoreIcon : order.fulfillment === "curbside" ? CarIcon : ScooterIcon;
@@ -94,6 +102,7 @@ interface Loaded extends OrderHistoryPage {
 
 /** Admin: every order, open or finished, searchable, with all its details. */
 export function AdminOrdersPage() {
+  const { menu } = useMenu();
   const [state, setState] = useState<OrderHistoryFilter>("all");
   const [period, setPeriod] = useState<Period>("all");
   const [from, setFrom] = useState(() => localDay(6));
@@ -279,7 +288,7 @@ export function AdminOrdersPage() {
                       <strong>{o.customerName}</strong>
                       <small dir="ltr">{o.customerPhone}</small>
                     </span>
-                    <span className="ohist__items">{itemsLine(o)}</span>
+                    <span className="ohist__items">{itemsLine(o, menu?.items)}</span>
                     <span className="ohist__total">{riyals(o.totalHalalas)}</span>
                     <span className={`status-chip status-chip--${o.status}`}>{STATUS_LABELS_AR[o.status]}</span>
                   </button>
@@ -312,6 +321,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 /** Everything about one order, in a side panel (a full sheet on the phone). */
 function OrderDetail({ order: o, onClose }: { order: AdminOrder | null; onClose: () => void }) {
+  const { menu } = useMenu();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -418,6 +428,7 @@ function OrderDetail({ order: o, onClose }: { order: AdminOrder | null; onClose:
                   <span className="ticket-card__qty">{l.quantity}</span>
                   <span className="odet__item">
                     <strong>{l.nameAr}</strong>
+                    {lineNameEn(l, menu?.items) && <small className="choice-en" dir="ltr">{lineNameEn(l, menu?.items)}</small>}
                     {l.optionNameAr && <span className="ticket-card__option">{l.optionNameAr}</span>}
                     {l.note && <span className="ticket-card__note">{l.note}</span>}
                   </span>

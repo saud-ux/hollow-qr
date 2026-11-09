@@ -101,6 +101,7 @@ export function BenefitForm({
             {coffees.map((c) => (
               <button key={c.id} type="button" className={item === c.id ? "is-on" : ""} aria-pressed={item === c.id} onClick={() => setPicked(c.id)}>
                 {c.nameAr}
+                {c.nameEn && <small className="choice-en" dir="ltr"> · {c.nameEn}</small>}
               </button>
             ))}
           </div>

@@ -17,7 +17,8 @@ import { CarDescription } from "../../components/CarPlate";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiGet, apiPost, errorText } from "../../lib/api";
 import { isAudioReady, orderChime, primeAudio } from "../../lib/feedback";
-import { riyals } from "../../lib/menu";
+import { riyals, useMenu } from "../../lib/menu";
+import { lineNameEn } from "../../lib/menuText";
 import { animateBoard, newBoardMemory } from "../../lib/motion";
 
 const POLL_MS = 5_000;
@@ -344,6 +345,7 @@ function OrderTicket({
   onNext: (s: OrderStatus) => void;
   onCancel: () => void;
 }) {
+  const { menu } = useMenu();
   const next = nextStatus(o);
   const Icon = o.fulfillment === "pickup" ? StoreIcon : o.fulfillment === "curbside" ? CarIcon : ScooterIcon;
   const map = mapsUrl(o);
@@ -372,6 +374,7 @@ function OrderTicket({
             <span className="ticket-card__qty">{line.quantity}</span>
             <span>
               {line.nameAr}
+              {lineNameEn(line, menu?.items) && <small className="choice-en" dir="ltr">{lineNameEn(line, menu?.items)}</small>}
               {line.optionNameAr && <span className="ticket-card__option">{line.optionNameAr}</span>}
               {line.note && <span className="ticket-card__note">{line.note}</span>}
             </span>

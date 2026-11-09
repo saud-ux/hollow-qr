@@ -208,6 +208,7 @@ export function AdminCoupons() {
                 }
               />
               {i.nameAr}
+              {i.nameEn && <small className="choice-en" dir="ltr"> · {i.nameEn}</small>}
             </label>
           ))}
           </fieldset>
@@ -337,6 +338,7 @@ export function AdminCoupons() {
                   }
                 />
                 {i.nameAr}
+                {i.nameEn && <small className="choice-en" dir="ltr"> · {i.nameEn}</small>}
               </label>
             ))}
         </div>
