@@ -63,6 +63,13 @@ export function lineName(line: Pick<OrderLine, "menuItemId" | "nameAr">, menu: M
   return menu?.find((i) => i.id === line.menuItemId)?.nameEn || line.nameAr;
 }
 
+/** The order line's name in the other language, shown small under the main one. */
+export function lineSubName(line: Pick<OrderLine, "menuItemId" | "nameAr">, menu: MenuItem[] | null | undefined): string | null {
+  const enName = menu?.find((i) => i.id === line.menuItemId)?.nameEn || null;
+  if (en()) return enName ? line.nameAr : null;
+  return enName;
+}
+
 export function lineOptionName(
   line: Pick<OrderLine, "menuItemId" | "optionId" | "optionNameAr">,
   menu: MenuItem[] | null | undefined,

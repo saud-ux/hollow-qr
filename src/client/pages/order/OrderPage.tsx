@@ -14,7 +14,7 @@ import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { formatDateTime } from "../../lib/dates";
 import { riyals, useMenu } from "../../lib/menu";
-import { fulfillmentLabel, lineName, lineOptionName, statusLabel } from "../../lib/menuText";
+import { fulfillmentLabel, lineName, lineOptionName, lineSubName, statusLabel, subNameDir } from "../../lib/menuText";
 import { animateTracker, motionOn, play, serveCup } from "../../lib/motion";
 import { isNative, successFeedback } from "../../lib/native";
 import { endOrderOnLockScreen, refreshWidget, trackOrderOnLockScreen } from "../../lib/widget";
@@ -270,6 +270,7 @@ export function OrderPage() {
             <li key={i}>
               <span>
                 {line.quantity} × {lineName(line, menu?.items)}
+                {lineSubName(line, menu?.items) && <small className="receipt__option" dir={subNameDir()}>{lineSubName(line, menu?.items)}</small>}
                 {line.optionNameAr && <small className="receipt__option">{lineOptionName(line, menu?.items)}</small>}
                 {line.note && <small className="receipt__note">{line.note}</small>}
               </span>

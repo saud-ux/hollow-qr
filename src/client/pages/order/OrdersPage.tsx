@@ -9,7 +9,7 @@ import { useAuth } from "../../lib/auth";
 import { formatDateTimeShort } from "../../lib/dates";
 import { openOrdersFromPhotos } from "../../lib/motion";
 import { riyals, useMenu } from "../../lib/menu";
-import { lineName, lineOptionName, statusLabel } from "../../lib/menuText";
+import { lineName, lineOptionName, lineSubName, statusLabel } from "../../lib/menuText";
 import { tr } from "../../lib/i18n";
 
 /** How far along the order is, for the small progress bar (0–100). */
@@ -53,7 +53,8 @@ export function OrdersPage() {
     o.items
       .map((i) => {
         const option = lineOptionName(i, menu?.items);
-        return `${i.quantity}× ${lineName(i, menu?.items)}${option ? ` (${option})` : ""}`;
+        const sub = lineSubName(i, menu?.items);
+        return `${i.quantity}× ${lineName(i, menu?.items)}${sub ? ` / ${sub}` : ""}${option ? ` (${option})` : ""}`;
       })
       .join(tr("، ", ", "));
   const [orders, setOrders] = useState<Order[] | null>(null);

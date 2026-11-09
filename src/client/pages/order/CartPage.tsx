@@ -716,7 +716,7 @@ export function CartPage() {
                 <span className="coupon-line__new" aria-hidden="true">{bigSign(riyals(price - share))}</span>
               </span>
             ) : <span>{riyals(price)}</span>;
-            return <li key={lineKey(line)}><ItemImage item={item} /><div><strong>{line.quantity} × {itemName(item)}</strong>{origin && <small>{tr(origin.nameAr, origin.nameEn || origin.nameAr)}</small>}{line.note && <small>{line.note}</small>}</div>{priceTag}</li>;
+            return <li key={lineKey(line)}><ItemImage item={item} /><div><strong>{line.quantity} × {itemName(item)}</strong>{itemSubName(item) && <small dir={subNameDir()}>{itemSubName(item)}</small>}{origin && <small>{tr(origin.nameAr, origin.nameEn || origin.nameAr)}</small>}{line.note && <small>{line.note}</small>}</div>{priceTag}</li>;
           }); })()}</ul>
           {note && <p className="checkout-review__note">{note}</p>}
           {unavailable.length > 0 && <Alert tone="error">{tr("بعض الأصناف لم تعد متوفرة. عدّل سلتك للمتابعة.", "Some items are no longer available. Edit your cart to continue.")}</Alert>}
