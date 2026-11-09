@@ -35,7 +35,7 @@ import { useCart, type CartLine } from "../../lib/cart";
 import { newIdempotencyKey } from "../../lib/hooks";
 import { RIYAL, riyals, useMenu } from "../../lib/menu";
 import { withNext } from "../../lib/next";
-import { fulfillmentLabel, itemName, optionLabel } from "../../lib/menuText";
+import { fulfillmentLabel, itemName, itemSubName, optionLabel, subNameDir } from "../../lib/menuText";
 import { closedNote } from "./hours";
 import { MAX_PLACES } from "../../../shared/types";
 import { AccountIcon } from "../../components/AccountIcons";
@@ -513,7 +513,12 @@ export function CartPage() {
                   <ItemImage item={item} className="cart-line__img" />
                   <div className="cart-line__body">
                     <div className="cart-line__top">
-                      <span className="cart-line__name">{itemName(item)}</span>
+                      <span className="cart-line__name">
+                        {itemName(item)}
+                        {itemSubName(item) && (
+                          <span className="cart-line__sub pass-label" dir={subNameDir()}>{itemSubName(item)}</span>
+                        )}
+                      </span>
                       <span className="cart-line__price">
                         <SalePrice item={item} quantity={line.quantity} rolling />
                       </span>
