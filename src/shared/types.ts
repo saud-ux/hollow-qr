@@ -130,6 +130,8 @@ export interface StaffMember {
   email: string;
   role: AppRole;
   createdAt: string;
+  /** A paused account can't sign in until the admin resumes it. */
+  paused: boolean;
 }
 
 export type StaffActionRequest =

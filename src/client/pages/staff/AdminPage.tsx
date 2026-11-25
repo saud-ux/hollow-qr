@@ -1,5 +1,6 @@
 import { AdminCoupons } from "./AdminCoupons";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router";
 import { RESET_CONFIRM_WORD } from "../../../shared/constants";
 import { normalizeEmail } from "../../../shared/format";
 import { ROLE_LABELS_AR } from "../../../shared/messages";
@@ -34,6 +35,9 @@ function StaffManagement() {
   const [busy, setBusy] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<StaffMember | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [pauseTarget, setPauseTarget] = useState<StaffMember | null>(null);
+  const [pausing, setPausing] = useState(false);
+  const [passwordTarget, setPasswordTarget] = useState<StaffMember | null>(null);
 
   const load = useCallback(() => {
     apiGet<{ items: StaffMember[] }>("/api/admin/staff")
@@ -83,6 +87,24 @@ function StaffManagement() {
     }
   }
 
+  async function onPauseToggle() {
+    if (!pauseTarget) return;
+    const resume = pauseTarget.paused;
+    setPausing(true);
+    setError(null);
+    setOk(null);
+    try {
+      await apiPost(`/api/admin/staff/${pauseTarget.id}/${resume ? "resume" : "pause"}`);
+      setOk(resume ? `رجع حساب ${pauseTarget.displayName} يشتغل` : `تم إيقاف حساب ${pauseTarget.displayName} مؤقتًا`);
+      setPauseTarget(null);
+      load();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setPausing(false);
+    }
+  }
+
   return (
     <section className="panel">
       <h2>الموظفون</h2>
@@ -96,6 +118,7 @@ function StaffManagement() {
                 <div className="staff-list__head">
                   <span className="staff-list__name">{s.displayName}</span>
                   <span className={`badge ${s.role === "admin" ? "badge--gold" : "badge--muted"}`}>{ROLE_LABELS_AR[s.role]}</span>
+                  {s.paused && <span className="badge badge--danger">موقوف</span>}
                 </div>
                 <span className="staff-list__email" dir="ltr">
                   {s.email}
@@ -103,9 +126,17 @@ function StaffManagement() {
                 <span className="staff-list__date">أُضيف في {formatDate(s.createdAt)}</span>
               </div>
               {s.role === "staff" && (
-                <button type="button" className="btn btn--small btn--danger-soft" onClick={() => setRemoveTarget(s)}>
-                  حذف
-                </button>
+                <div className="staff-list__actions">
+                  <button type="button" className={`btn btn--small ${s.paused ? "btn--primary" : "btn--secondary"}`} onClick={() => setPauseTarget(s)}>
+                    {s.paused ? "إعادة تفعيل" : "إيقاف مؤقت"}
+                  </button>
+                  <button type="button" className="btn btn--small btn--secondary" onClick={() => setPasswordTarget(s)}>
+                    كلمة المرور
+                  </button>
+                  <button type="button" className="btn btn--small btn--danger-soft" onClick={() => setRemoveTarget(s)}>
+                    حذف
+                  </button>
+                </div>
               )}
             </li>
           ))}
@@ -145,7 +176,101 @@ function StaffManagement() {
         onConfirm={() => void onRemove()}
         onCancel={() => !removing && setRemoveTarget(null)}
       />
+
+      <ConfirmDialog
+        open={pauseTarget !== null}
+        title={pauseTarget?.paused ? "إعادة تفعيل الموظف" : "إيقاف الموظف مؤقتًا"}
+        message={
+          pauseTarget ? (
+            pauseTarget.paused ? (
+              <p>
+                يرجع <strong>{pauseTarget.displayName}</strong> يدخل النظام بنفس البريد وكلمة المرور.
+              </p>
+            ) : (
+              <p>
+                ما يقدر <strong>{pauseTarget.displayName}</strong> يدخل النظام ولا توصله تنبيهات الطلبات لين ترجّع حسابه. سجل عملياته يبقى كما هو.
+              </p>
+            )
+          ) : null
+        }
+        confirmLabel={pauseTarget?.paused ? "إعادة تفعيل" : "إيقاف مؤقت"}
+        tone={pauseTarget?.paused ? undefined : "danger"}
+        busy={pausing}
+        onConfirm={() => void onPauseToggle()}
+        onCancel={() => !pausing && setPauseTarget(null)}
+      />
+
+      {passwordTarget && (
+        <StaffPasswordDialog
+          member={passwordTarget}
+          onClose={() => setPasswordTarget(null)}
+          onDone={(text) => {
+            setPasswordTarget(null);
+            setError(null);
+            setOk(text);
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+/** A new sign-in password for a staff member who forgot theirs. */
+function StaffPasswordDialog({ member, onClose, onDone }: { member: StaffMember; onClose: () => void; onDone: (text: string) => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function save(e?: FormEvent) {
+    e?.preventDefault();
+    const invalid = validatePassword(password);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await apiPost(`/api/admin/staff/${member.id}/password`, { password });
+      onDone(`تم تغيير كلمة مرور ${member.displayName}. أعطه الكلمة الجديدة بنفسك`);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open
+      title={`كلمة مرور جديدة لـ ${member.displayName}`}
+      onClose={() => !busy && onClose()}
+      actions={
+        <>
+          <button type="button" className="btn btn--primary" disabled={busy || password.length === 0} onClick={() => void save()}>
+            {busy ? "جارٍ الحفظ…" : "حفظ كلمة المرور"}
+          </button>
+          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
+            إلغاء
+          </button>
+        </>
+      }
+    >
+      <form onSubmit={(e) => void save(e)} noValidate>
+        <Field
+          label="كلمة المرور الجديدة"
+          type="password"
+          dir="ltr"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+          hint="8 أحرف على الأقل، حروف وأرقام"
+          error={error}
+          autoFocus
+        />
+      </form>
+      <p className="muted small">يدخل فيها من الحين، والكلمة القديمة ما تشتغل.</p>
+    </Dialog>
   );
 }
 
@@ -285,7 +410,12 @@ export function AdminTeamPage() {
 
 /** العروض والتقييمات: offer notifications and what customers said. */
 export function AdminEngagePage() {
-  const [tab, setTab] = useState<"coupons" | "offers" | "ratings">("coupons");
+  // A low-rating alert opens straight on the ratings (?tab=ratings).
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<"coupons" | "offers" | "ratings">(() => {
+    const wanted = params.get("tab");
+    return wanted === "offers" || wanted === "ratings" ? wanted : "coupons";
+  });
   return (
     <StaffLayout title="الكوبونات والعروض" wide>
       <div className="admin-section-nav" role="tablist" aria-label="إدارة تواصل العملاء">

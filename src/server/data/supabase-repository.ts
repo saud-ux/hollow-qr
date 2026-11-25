@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Broadcast, Discount, NotificationPrefs, Order, OrderStatus, RatingOverview, SalesRange, SalesReport, ShopSettings } from "../../shared/ordering";
+import type { Broadcast, Discount, NotificationPrefs, Order, OrderStatus, RatingOverview, SalesRange, SalesReport, ServiceReport, ShopSettings } from "../../shared/ordering";
 import { MENU_IMAGE_BUCKET, isDiscountLive } from "../../shared/ordering";
 import type { SavedPlace } from "../../shared/types";
 import type { CarDetails, SavedCar } from "../../shared/cars";
@@ -15,6 +15,8 @@ import {
   mapDiscount,
   mapOrderHistory,
   mapSalesReport,
+  mapScheduledBroadcast,
+  mapServiceReport,
   notificationPrefsColumns,
   rateOrderResult,
   mapProfile,
@@ -30,6 +32,7 @@ import type {
   AccountRow,
   ApplyActionParams,
   ApplyActionResult,
+  CancelBroadcastResult,
   CreateStaffParams,
   CreateStaffResult,
   DashboardStatsRow,
@@ -40,6 +43,7 @@ import type {
   MenuItemRow,
   OrderRpcResult,
   OrderSummary,
+  PauseStaffResult,
   PlaceInput,
   PlaceOrderParams,
   ProfileRow,
@@ -50,12 +54,14 @@ import type {
   RemoveStaffResult,
   ResetShopResult,
   Repository,
+  SetStaffPasswordResult,
   StaffAlertKind,
   WebPushKeyPair,
 } from "./repository";
-import { deleteAccountCode, saveCarResult, savePlaceResult } from "./repository";
+import { deleteAccountCode, saveCarResult, savePlaceResult, staffPauseBlock } from "./repository";
 
 type Raw = Record<string, unknown>;
+const BROADCAST_COLUMNS = "id, title, body, recipients, sent, created_at, scheduled_at, started_at, finished_at, cancelled_at";
 type DbError = { message: string; code?: string } | null;
 /** supabase-js returns `any` data for an untyped schema; narrow it explicitly. */
 type DbResult = { data: unknown; error: DbError; count?: number | null };
@@ -107,7 +113,7 @@ export class SupabaseRepository implements Repository {
   async getProfile(userId: string): Promise<ProfileRow | null> {
     const { data, error } = (await this.db
       .from("profiles")
-      .select("id, display_name, email, role, email_confirmed_at, disabled_at, created_at")
+      .select("id, display_name, email, role, email_confirmed_at, disabled_at, staff_paused, created_at")
       .eq("id", userId)
       .maybeSingle()) as DbResult;
     if (error) throw new RepositoryError("getProfile", error);
@@ -184,9 +190,9 @@ export class SupabaseRepository implements Repository {
   async listStaff(): Promise<ProfileRow[]> {
     const { data, error } = (await this.db
       .from("profiles")
-      .select("id, display_name, email, role, email_confirmed_at, disabled_at, created_at")
+      .select("id, display_name, email, role, email_confirmed_at, disabled_at, staff_paused, created_at")
       .in("role", ["staff", "admin"])
-      .is("disabled_at", null)
+      .or("disabled_at.is.null,staff_paused.eq.true")
       .order("created_at", { ascending: true })
       .limit(500)) as DbResult;
     if (error) throw new RepositoryError("listStaff", error);
@@ -222,15 +228,40 @@ export class SupabaseRepository implements Repository {
     const profile = await this.getProfile(userId);
     if (!profile) return { ok: false, code: "NOT_FOUND" };
     if (profile.role !== "staff") return { ok: false, code: "NOT_STAFF" };
-    if (profile.disabledAt !== null) return { ok: false, code: "ALREADY_REMOVED" };
+    if (profile.disabledAt !== null && !profile.staffPaused) return { ok: false, code: "ALREADY_REMOVED" };
 
-    const { error } = (await this.db
-      .from("profiles")
-      .update({ disabled_at: new Date().toISOString() })
-      .eq("id", userId)
-      .eq("role", "staff")
-      .is("disabled_at", null)) as DbResult;
+    // A paused account is already disabled: removing it only takes it off the list.
+    const update = profile.staffPaused ? { staff_paused: false } : { disabled_at: new Date().toISOString() };
+    let query = this.db.from("profiles").update(update).eq("id", userId).eq("role", "staff");
+    query = profile.staffPaused ? query.eq("staff_paused", true) : query.is("disabled_at", null);
+    const { error } = (await query) as DbResult;
     if (error) throw new RepositoryError("removeStaffUser", error);
+    return { ok: true };
+  }
+
+  async setStaffPaused(userId: string, paused: boolean): Promise<PauseStaffResult> {
+    const profile = await this.getProfile(userId);
+    const blocked = staffPauseBlock(profile, paused);
+    if (blocked) return { ok: false, code: blocked };
+    const update = paused ? { disabled_at: new Date().toISOString(), staff_paused: true } : { disabled_at: null, staff_paused: false };
+    let query = this.db.from("profiles").update(update).eq("id", userId).eq("role", "staff");
+    query = paused ? query.is("disabled_at", null) : query.eq("staff_paused", true);
+    const { error } = (await query) as DbResult;
+    if (error) throw new RepositoryError("setStaffPaused", error);
+    return { ok: true };
+  }
+
+  async setStaffPassword(userId: string, password: string): Promise<SetStaffPasswordResult> {
+    const profile = await this.getProfile(userId);
+    if (!profile) return { ok: false, code: "NOT_FOUND" };
+    if (profile.role !== "staff") return { ok: false, code: "NOT_STAFF" };
+    if (profile.disabledAt !== null && !profile.staffPaused) return { ok: false, code: "ALREADY_REMOVED" };
+    const { error } = await this.db.auth.admin.updateUserById(userId, { password });
+    if (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "weak_password") return { ok: false, code: "WEAK_PASSWORD" };
+      throw new RepositoryError("setStaffPassword", { code });
+    }
     return { ok: true };
   }
 
@@ -495,7 +526,7 @@ export class SupabaseRepository implements Repository {
   async getNotificationPrefs(userId: string): Promise<NotificationPrefs> {
     const { data, error } = (await this.db
       .from("notification_prefs")
-      .select("offers, new_orders, daily_summary")
+      .select("offers, new_orders, daily_summary, low_ratings")
       .eq("user_id", userId)
       .maybeSingle()) as DbResult;
     if (error) throw new RepositoryError("getNotificationPrefs", error);
@@ -507,17 +538,23 @@ export class SupabaseRepository implements Repository {
     const { data, error } = (await this.db
       .from("notification_prefs")
       .upsert({ user_id: userId, ...notificationPrefsColumns(merged) }, { onConflict: "user_id" })
-      .select("offers, new_orders, daily_summary")
+      .select("offers, new_orders, daily_summary, low_ratings")
       .single()) as DbResult;
     if (error) throw new RepositoryError("setNotificationPrefs", error);
     return mapNotificationPrefs(data as Raw);
   }
 
-  async createBroadcast(input: { title: string; body: string; sentBy: string; recipients: number }): Promise<Broadcast> {
+  async createBroadcast(input: { title: string; body: string; sentBy: string; recipients: number; scheduledAt?: Date | null }): Promise<Broadcast> {
     const { data, error } = (await this.db
       .from("push_broadcasts")
-      .insert({ title: input.title, body: input.body, sent_by: input.sentBy, recipients: input.recipients })
-      .select("id, title, body, recipients, sent, created_at")
+      .insert({
+        title: input.title,
+        body: input.body,
+        sent_by: input.sentBy,
+        recipients: input.recipients,
+        scheduled_at: input.scheduledAt ? input.scheduledAt.toISOString() : null,
+      })
+      .select(BROADCAST_COLUMNS)
       .single()) as DbResult;
     if (error) throw new RepositoryError("createBroadcast", error);
     return mapBroadcast(data as Raw);
@@ -526,11 +563,25 @@ export class SupabaseRepository implements Repository {
   async getBroadcast(id: string): Promise<Broadcast | null> {
     const { data, error } = (await this.db
       .from("push_broadcasts")
-      .select("id, title, body, recipients, sent, created_at")
+      .select(BROADCAST_COLUMNS)
       .eq("id", id)
       .maybeSingle()) as DbResult;
     if (error) throw new RepositoryError("getBroadcast", error);
     return data ? mapBroadcast(data as Raw) : null;
+  }
+
+  async claimDueBroadcast(now: Date): Promise<(Broadcast & { cursor: string | null }) | null> {
+    const data = await this.rpc("claim_due_broadcast", { p_now: now.toISOString(), p_lease_seconds: 50 });
+    const row = (Array.isArray(data) ? (data as Raw[]) : [])[0];
+    return row ? mapScheduledBroadcast(row) : null;
+  }
+
+  async advanceBroadcast(id: string, sent: number, cursor: string | null, finished: boolean, now: Date): Promise<void> {
+    await this.rpc("advance_broadcast", { p_id: id, p_sent: sent, p_cursor: cursor, p_finished: finished, p_now: now.toISOString() });
+  }
+
+  async cancelBroadcast(id: string, now: Date): Promise<CancelBroadcastResult> {
+    return (await this.rpc("cancel_broadcast", { p_id: id, p_now: now.toISOString() })) as CancelBroadcastResult;
   }
 
   async setBroadcastSent(id: string, sent: number): Promise<void> {
@@ -541,7 +592,7 @@ export class SupabaseRepository implements Repository {
   async listBroadcasts(limit: number): Promise<Broadcast[]> {
     const { data, error } = (await this.db
       .from("push_broadcasts")
-      .select("id, title, body, recipients, sent, created_at")
+      .select(BROADCAST_COLUMNS)
       .order("created_at", { ascending: false })
       .limit(limit)) as DbResult;
     if (error) throw new RepositoryError("listBroadcasts", error);
@@ -571,6 +622,16 @@ export class SupabaseRepository implements Repository {
       p_tz: timeZone,
     });
     return mapSalesReport(range, raw as Raw);
+  }
+
+  async serviceReport(from: Date, to: Date, prevFrom: Date, prevTo: Date): Promise<ServiceReport> {
+    const raw = await this.rpc("service_report", {
+      p_from: from.toISOString(),
+      p_to: to.toISOString(),
+      p_prev_from: prevFrom.toISOString(),
+      p_prev_to: prevTo.toISOString(),
+    });
+    return mapServiceReport(raw as Raw);
   }
 
   async orderSummary(from: Date, to: Date): Promise<OrderSummary> {

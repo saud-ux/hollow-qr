@@ -22,7 +22,7 @@ import { ApiError, type ErrorStatus } from "../http/errors";
 import { repoOf, runInBackground, type AppContext, type HonoEnv } from "../http/context";
 import { rateLimit, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
-import { notifyOrderStatus, notifyStaffNewOrder } from "../push/order-notifications";
+import { notifyLowRating, notifyOrderStatus, notifyStaffNewOrder } from "../push/order-notifications";
 import { carSchema } from "./car-schema";
 
 const rateSchema = z.object({
@@ -251,6 +251,9 @@ export const orderRoutes = new Hono<HonoEnv>()
     const result = await repoOf(c).rateOrder(c.get("user").id, id, body.rating, body.comment ?? null);
     if (result === "NOT_FOUND") throw new ApiError(404, "ORDER_NOT_FOUND");
     if (result !== "ok") throw new ApiError(409, result);
-    c.get("deps").logger.info("order.rated", { orderId: id, rating: body.rating });
-    return c.json({ order: await ownOrder(c, id) });
+    const deps = c.get("deps");
+    deps.logger.info("order.rated", { orderId: id, rating: body.rating });
+    const order = await ownOrder(c, id);
+    runInBackground(c, notifyLowRating({ repo: repoOf(c), appPush: deps.appPush, webPush: deps.webPush, logger: deps.logger }, order));
+    return c.json({ order });
   });

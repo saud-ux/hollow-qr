@@ -7,6 +7,7 @@
  * key, so only this server can push to it. The VAPID key pair is made on first
  * use and kept in the database: there is nothing to configure.
  */
+import { RATINGS_PAGE } from "../../shared/ordering";
 import type { Logger } from "../lib/logger";
 import { base64UrlToBytes, bytesToBase64Url, bytesToHex, utf8 } from "../security/encoding";
 import type { PushOutcome } from "../wallet/apns";
@@ -135,6 +136,7 @@ export function webPushPayload(message: AppPushMessage): { title: string; body: 
   let url = "/menu";
   if (data.orderId && /^[0-9a-f-]{36}$/i.test(data.orderId)) url = `/orders/${data.orderId}`;
   else if (data.link === "staff-orders") url = "/staff/orders";
+  else if (data.link === "staff-ratings") url = RATINGS_PAGE;
   return { title: message.title.slice(0, 120), body: message.body.slice(0, 400), ...(message.collapseId ? { tag: message.collapseId } : {}), url };
 }
 

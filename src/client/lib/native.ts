@@ -71,13 +71,14 @@ let onToken: TokenHandler | null = null;
  * to the server; `open` handles a tapped notification.
  */
 /** Where a tapped notification leads (the server sets it in the payload). */
-export type PushTarget = { kind: "order"; orderId: string } | { kind: "menu" } | { kind: "staff-orders" };
+export type PushTarget = { kind: "order"; orderId: string } | { kind: "menu" } | { kind: "staff-orders" } | { kind: "staff-ratings" };
 
 export function pushTarget(data: unknown): PushTarget | null {
   const d = (data ?? {}) as { orderId?: unknown; link?: unknown };
   if (typeof d.orderId === "string" && /^[0-9a-f-]{36}$/i.test(d.orderId)) return { kind: "order", orderId: d.orderId };
   if (d.link === "menu") return { kind: "menu" };
   if (d.link === "staff-orders") return { kind: "staff-orders" };
+  if (d.link === "staff-ratings") return { kind: "staff-ratings" };
   return null;
 }
 

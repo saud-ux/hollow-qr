@@ -1,4 +1,4 @@
-import { amountDue, flowStep, FULFILLMENT_LABELS_AR, formatSar, orderFlow, type Order } from "../../shared/ordering";
+import { amountDue, flowStep, FULFILLMENT_LABELS_AR, formatSar, LOW_RATING_MAX, orderFlow, type Order } from "../../shared/ordering";
 import type { PushDevice, PushLang, Repository } from "../data/repository";
 import type { Logger } from "../lib/logger";
 import type { AppPushMessage, AppPushSender, LiveActivityUpdate } from "./app-push";
@@ -146,4 +146,25 @@ export async function notifyStaffNewOrder(deps: PushDeps, order: Order): Promise
   if (devices.length === 0) return;
   const sent = await sendToDevices(deps, devices, newOrderStaffMessage(order));
   deps.logger.info("app_push.staff_new_order", { orderId: order.id, devices: devices.length, sent });
+}
+
+/** What admins see when a customer is unhappy: the stars, who, which order and what they wrote. */
+export function lowRatingMessage(order: Order): AppPushMessage {
+  const stars = order.rating ?? 0;
+  const comment = order.ratingComment ? ` · «${order.ratingComment.length > 90 ? `${order.ratingComment.slice(0, 90)}…` : order.ratingComment}»` : "";
+  return {
+    title: `تقييم ${stars === 1 ? "نجمة واحدة" : `${stars} نجوم`} · طلب #${order.orderNumber}`,
+    body: `${order.customerName}${comment}`,
+    collapseId: `rating-${order.id}`,
+    data: { link: "staff-ratings" },
+  };
+}
+
+/** Alerts admins who kept low-rating alerts on when an order gets LOW_RATING_MAX stars or fewer. */
+export async function notifyLowRating(deps: PushDeps, order: Order): Promise<void> {
+  if (order.rating === null || order.rating > LOW_RATING_MAX || pushOff(deps)) return;
+  const devices = await deps.repo.staffPushDevices("low_ratings");
+  if (devices.length === 0) return;
+  const sent = await sendToDevices(deps, devices, lowRatingMessage(order));
+  deps.logger.info("app_push.low_rating", { orderId: order.id, rating: order.rating, devices: devices.length, sent });
 }

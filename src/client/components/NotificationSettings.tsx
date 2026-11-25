@@ -65,6 +65,11 @@ export function NotificationSettings({ role }: { role: AppRole }) {
   }
   if (role === "admin") {
     rows.push({ key: "dailySummary", label: tr("ملخص اليوم", "Daily summary"), hint: tr("بعد الإغلاق: عدد الطلبات والمبيعات", "After closing: orders and sales") });
+    rows.push({
+      key: "lowRatings",
+      label: tr("التقييمات المنخفضة", "Low ratings"),
+      hint: tr("إذا عميل قيّم طلبه بنجمة أو نجمتين", "When a customer gives an order one or two stars"),
+    });
   }
 
   return (

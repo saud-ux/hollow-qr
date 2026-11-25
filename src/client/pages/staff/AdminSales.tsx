@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { WEEKDAY_LABELS_AR, type SalesRange, type SalesReport } from "../../../shared/ordering";
+import { SLOW_ORDER_MINUTES, WEEKDAY_LABELS_AR, type SalesDashboard, type SalesRange, type SalesReport, type ServicePeriod, type ServiceReport } from "../../../shared/ordering";
 import { Alert, Spinner } from "../../components/Field";
 import { apiDownload, apiGet, errorText } from "../../lib/api";
 import { shopDay } from "../../lib/dates";
@@ -31,12 +31,12 @@ function hourSpan(report: SalesReport): number[] {
 /** Sales dashboard: totals with the change from the period before, sales per day, best sellers, busiest hours. */
 export function SalesPanel() {
   const [range, setRange] = useState<SalesRange>("7d");
-  const [report, setReport] = useState<SalesReport | null>(null);
+  const [report, setReport] = useState<SalesDashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    apiGet<SalesReport>(`/api/admin/sales?range=${range}`)
+    apiGet<SalesDashboard>(`/api/admin/sales?range=${range}`)
       .then((r) => {
         if (!alive) return;
         setReport(r);
@@ -106,14 +106,9 @@ export function SalesPanel() {
               compare={current.compare}
             />
           </div>
-          {shown.cancelled > 0 && (
-            <p className="muted small">
-              {shown.cancelled === 1 ? "طلب واحد ملغي" : `${shown.cancelled} طلبات ملغاة`} في هذه الفترة.
-            </p>
-          )}
-
           {range === "today" ? <HourBars report={shown} /> : <DayBars report={shown} />}
           <TopItems report={shown} />
+          {shown.service && <ServicePanel service={shown.service} compare={current.compare} />}
           {range !== "today" && <BusyHours report={shown} />}
         </>
       )}
@@ -121,12 +116,28 @@ export function SalesPanel() {
   );
 }
 
-function Kpi({ label, value, now, before, compare }: { label: string; value: string; now: number; before: number; compare: string }) {
+function Kpi({
+  label,
+  value,
+  now,
+  before,
+  compare,
+  lowerIsBetter = false,
+}: {
+  label: string;
+  value: string;
+  now: number;
+  before: number;
+  compare: string;
+  /** Times and cancellations: going down is the good news (green). */
+  lowerIsBetter?: boolean;
+}) {
   let change: { text: string; tone: "up" | "down" | "flat" } | null = null;
+  const good = (rising: boolean) => (rising !== lowerIsBetter ? "up" : "down");
   if (before > 0) {
     const pct = Math.round(((now - before) / before) * 100);
-    change = pct === 0 ? { text: "بدون تغيير", tone: "flat" } : { text: `${pct > 0 ? "↑" : "↓"} ${Math.abs(pct)}%`, tone: pct > 0 ? "up" : "down" };
-  } else if (now > 0) change = { text: "↑ جديد", tone: "up" };
+    change = pct === 0 ? { text: "بدون تغيير", tone: "flat" } : { text: `${pct > 0 ? "↑" : "↓"} ${Math.abs(pct)}%`, tone: good(pct > 0) };
+  } else if (now > 0) change = { text: "↑ جديد", tone: good(true) };
   return (
     <div className="kpi">
       <span className="kpi__label">{label}</span>
@@ -321,6 +332,88 @@ function BusyHours({ report }: { report: SalesReport }) {
         <span className="heat__cell" /> بدون طلبات
         <span className="heat__cell" style={{ background: "rgb(201 162 39 / 100%)" }} /> الأكثر ({max} {max === 1 ? "طلب" : "طلبات"})
       </p>
+    </figure>
+  );
+}
+
+/** "6.5 د" */
+const minutes = (m: number | null) => (m === null ? "—" : `${Number.isInteger(m) ? m : m.toFixed(1)} د`);
+
+/** Share of finished orders that were cancelled, in percent. */
+function cancelRate(p: ServicePeriod): number | null {
+  const ended = p.completed + p.cancelled;
+  return ended ? (p.cancelled * 100) / ended : null;
+}
+
+/** Service speed and cancellations, against the period before. */
+function ServicePanel({ service, compare }: { service: ServiceReport; compare: string }) {
+  const { current: cur, previous: prev } = service;
+  const rate = cancelRate(cur);
+  const prevRate = cancelRate(prev);
+  return (
+    <figure className="chart service">
+      <figcaption className="chart__title">سرعة الخدمة والإلغاء</figcaption>
+      <div className="kpis">
+        <Kpi
+          label="متوسط التحضير"
+          value={minutes(cur.prepMinutes)}
+          now={cur.prepMinutes ?? 0}
+          before={prev.prepMinutes ?? 0}
+          compare={compare}
+          lowerIsBetter
+        />
+        <Kpi
+          label="انتظار العميل"
+          value={minutes(cur.waitMinutes)}
+          now={cur.waitMinutes ?? 0}
+          before={prev.waitMinutes ?? 0}
+          compare={compare}
+          lowerIsBetter
+        />
+        <Kpi
+          label="وقت قبول الطلب"
+          value={minutes(cur.acceptMinutes)}
+          now={cur.acceptMinutes ?? 0}
+          before={prev.acceptMinutes ?? 0}
+          compare={compare}
+          lowerIsBetter
+        />
+        <Kpi
+          label="نسبة الإلغاء"
+          value={rate === null ? "—" : `${Math.round(rate)}%`}
+          now={rate ?? 0}
+          before={prevRate ?? 0}
+          compare={compare}
+          lowerIsBetter
+        />
+      </div>
+      <p className="muted small service__notes">
+        التحضير: من قبول الطلب إلى جاهزيته. الانتظار: من وصول الطلب إلى جاهزيته.
+        {cur.slow > 0 && (
+          <>
+            {" "}
+            <strong className="service__slow">
+              {cur.slow === 1 ? "طلب واحد" : `${cur.slow} طلبات`} أخذت أكثر من {SLOW_ORDER_MINUTES} دقيقة.
+            </strong>
+          </>
+        )}
+      </p>
+      {service.reasons.length > 0 && (
+        <div className="service__reasons">
+          <h3 className="service__subtitle">
+            أسباب الإلغاء <small>({cur.cancelled === 1 ? "طلب واحد ملغي" : `${cur.cancelled} طلبات ملغاة`})</small>
+          </h3>
+          <ul>
+            {service.reasons.map((r) => (
+              <li key={`${r.by}|${r.reason ?? ""}`}>
+                <span className="service__reason">{r.reason ?? <span className="muted">بدون سبب</span>}</span>
+                <span className={`badge ${r.by === "customer" ? "badge--muted" : "badge--danger"}`}>{r.by === "customer" ? "ألغاه العميل" : "ألغاه الكوفي"}</span>
+                <span className="service__count">{r.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </figure>
   );
 }

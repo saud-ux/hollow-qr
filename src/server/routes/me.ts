@@ -37,7 +37,7 @@ const webPushSchema = z.object({
 });
 
 const prefsSchema = z
-  .object({ offers: z.boolean(), newOrders: z.boolean(), dailySummary: z.boolean() })
+  .object({ offers: z.boolean(), newOrders: z.boolean(), dailySummary: z.boolean(), lowRatings: z.boolean() })
   .partial()
   .refine((p) => Object.keys(p).length > 0, "nothing to update");
 

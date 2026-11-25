@@ -15,6 +15,8 @@ import {
   mapDiscount,
   mapOrderHistory,
   mapSalesReport,
+  mapScheduledBroadcast,
+  mapServiceReport,
   notificationPrefsColumns,
   rateOrderResult,
   mapProfile,
@@ -32,6 +34,7 @@ import type { CarDetails, SavedCar } from "../../src/shared/cars";
 import type {
   ApplyActionParams,
   ApplyActionResult,
+  CancelBroadcastResult,
   CreateStaffParams,
   CreateStaffResult,
   DashboardStatsRow,
@@ -40,16 +43,18 @@ import type {
   OrderHistoryParams,
   MenuItemInput,
   OrderRpcResult,
+  PauseStaffResult,
   PlaceInput,
   PlaceOrderParams,
   RemoveStaffResult,
   ResetShopResult,
   PushLang,
   Repository,
+  SetStaffPasswordResult,
   StaffAlertKind,
   WebPushKeyPair,
 } from "../../src/server/data/repository";
-import { deleteAccountCode, saveCarResult, savePlaceResult } from "../../src/server/data/repository";
+import { deleteAccountCode, saveCarResult, savePlaceResult, staffPauseBlock } from "../../src/server/data/repository";
 
 type Raw = Record<string, unknown>;
 
@@ -141,7 +146,7 @@ export class PgliteRepository implements Repository {
     return r!.s as DashboardStatsRow;
   }
   async listStaff() {
-    const res = await this.db.query<Raw>("select * from public.profiles where role in ('staff','admin') and disabled_at is null order by created_at");
+    const res = await this.db.query<Raw>("select * from public.profiles where role in ('staff','admin') and (disabled_at is null or staff_paused) order by created_at");
     return res.rows.map(mapProfile);
   }
   async createStaffUser(p: CreateStaffParams): Promise<CreateStaffResult> {
@@ -158,8 +163,26 @@ export class PgliteRepository implements Repository {
     const profile = await this.getProfile(userId);
     if (!profile) return { ok: false, code: "NOT_FOUND" };
     if (profile.role !== "staff") return { ok: false, code: "NOT_STAFF" };
-    if (profile.disabledAt !== null) return { ok: false, code: "ALREADY_REMOVED" };
-    await this.db.query("update public.profiles set disabled_at = now() where id = $1 and role = 'staff' and disabled_at is null", [userId]);
+    if (profile.disabledAt !== null && !profile.staffPaused) return { ok: false, code: "ALREADY_REMOVED" };
+    if (profile.staffPaused) await this.db.query("update public.profiles set staff_paused = false where id = $1 and role = 'staff' and staff_paused", [userId]);
+    else await this.db.query("update public.profiles set disabled_at = now() where id = $1 and role = 'staff' and disabled_at is null", [userId]);
+    return { ok: true };
+  }
+  /** Passwords that would be set (Supabase Auth does it in production). */
+  readonly staffPasswords = new Map<string, string>();
+  async setStaffPaused(userId: string, paused: boolean): Promise<PauseStaffResult> {
+    const blocked = staffPauseBlock(await this.getProfile(userId), paused);
+    if (blocked) return { ok: false, code: blocked };
+    if (paused) await this.db.query("update public.profiles set disabled_at = now(), staff_paused = true where id = $1 and role = 'staff' and disabled_at is null", [userId]);
+    else await this.db.query("update public.profiles set disabled_at = null, staff_paused = false where id = $1 and role = 'staff' and staff_paused", [userId]);
+    return { ok: true };
+  }
+  async setStaffPassword(userId: string, password: string): Promise<SetStaffPasswordResult> {
+    const profile = await this.getProfile(userId);
+    if (!profile) return { ok: false, code: "NOT_FOUND" };
+    if (profile.role !== "staff") return { ok: false, code: "NOT_STAFF" };
+    if (profile.disabledAt !== null && !profile.staffPaused) return { ok: false, code: "ALREADY_REMOVED" };
+    this.staffPasswords.set(userId, password);
     return { ok: true };
   }
   async resetShopData(actorId: string): Promise<ResetShopResult> {
@@ -375,21 +398,30 @@ export class PgliteRepository implements Repository {
   async setNotificationPrefs(userId: string, patch: Partial<NotificationPrefs>) {
     const cols = notificationPrefsColumns({ ...(await this.getNotificationPrefs(userId)), ...patch });
     const r = await this.one(
-      `insert into public.notification_prefs (user_id, offers, new_orders, daily_summary) values ($1, $2, $3, $4)
-       on conflict (user_id) do update set offers = excluded.offers, new_orders = excluded.new_orders, daily_summary = excluded.daily_summary
+      `insert into public.notification_prefs (user_id, offers, new_orders, daily_summary, low_ratings) values ($1, $2, $3, $4, $5)
+       on conflict (user_id) do update set offers = excluded.offers, new_orders = excluded.new_orders,
+         daily_summary = excluded.daily_summary, low_ratings = excluded.low_ratings
        returning *`,
-      [userId, cols.offers, cols.new_orders, cols.daily_summary],
+      [userId, cols.offers, cols.new_orders, cols.daily_summary, cols.low_ratings],
     );
     return mapNotificationPrefs(r);
   }
-  async createBroadcast(input: { title: string; body: string; sentBy: string; recipients: number }) {
-    const r = await this.one("insert into public.push_broadcasts (title, body, sent_by, recipients) values ($1, $2, $3, $4) returning *", [
-      input.title,
-      input.body,
-      input.sentBy,
-      input.recipients,
-    ]);
+  async createBroadcast(input: { title: string; body: string; sentBy: string; recipients: number; scheduledAt?: Date | null }) {
+    const r = await this.one(
+      "insert into public.push_broadcasts (title, body, sent_by, recipients, scheduled_at) values ($1, $2, $3, $4, $5) returning *",
+      [input.title, input.body, input.sentBy, input.recipients, input.scheduledAt ? input.scheduledAt.toISOString() : null],
+    );
     return mapBroadcast(r!);
+  }
+  async claimDueBroadcast(now: Date) {
+    const r = await this.one("select * from public.claim_due_broadcast($1, 50)", [now.toISOString()]);
+    return r && r.id ? mapScheduledBroadcast(r) : null;
+  }
+  async advanceBroadcast(id: string, sent: number, cursor: string | null, finished: boolean, now: Date) {
+    await this.db.query("select public.advance_broadcast($1, $2, $3, $4, $5)", [id, sent, cursor, finished, now.toISOString()]);
+  }
+  async cancelBroadcast(id: string, now: Date) {
+    return (await this.one("select public.cancel_broadcast($1, $2) as r", [id, now.toISOString()]))!.r as CancelBroadcastResult;
   }
   async getBroadcast(id: string) {
     const r = await this.one("select * from public.push_broadcasts where id = $1", [id]);
@@ -418,6 +450,15 @@ export class PgliteRepository implements Repository {
       timeZone,
     ]);
     return mapSalesReport(range, r!.result as Raw);
+  }
+  async serviceReport(from: Date, to: Date, prevFrom: Date, prevTo: Date) {
+    const r = await this.one("select public.service_report($1, $2, $3, $4) as result", [
+      from.toISOString(),
+      to.toISOString(),
+      prevFrom.toISOString(),
+      prevTo.toISOString(),
+    ]);
+    return mapServiceReport(r!.result as Raw);
   }
   async orderSummary(from: Date, to: Date) {
     return mapOrderSummary((await this.one("select public.order_summary($1, $2) as result", [from.toISOString(), to.toISOString()]))!.result as Raw);

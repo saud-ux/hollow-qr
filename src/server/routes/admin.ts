@@ -4,12 +4,14 @@ import { BUSINESS_TIME_ZONE, DISPLAY_NAME_MAX_LENGTH, PASSWORD_MIN_LENGTH, RESET
 import { formatRiyadh, normalizeEmail } from "../../shared/format";
 import {
   BROADCAST_BODY_MAX,
+  BROADCAST_SCHEDULE_MAX_DAYS,
   BROADCAST_TITLE_MAX,
   MAX_DISCOUNT_PERCENT,
   isDiscountLive,
   type AdminOrder,
   type Discount,
   type OrderHistoryPage,
+  type SalesDashboard,
 } from "../../shared/ordering";
 import type { Paginated, TransactionItem } from "../../shared/types";
 import { ApiError } from "../http/errors";
@@ -30,6 +32,8 @@ const BROADCAST_BATCH = 35;
 const broadcastSchema = z.object({
   title: z.string().trim().min(1).max(BROADCAST_TITLE_MAX),
   body: z.string().trim().min(1).max(BROADCAST_BODY_MAX),
+  /** Send later from the server instead of right away from the page. */
+  scheduledAt: z.iso.datetime({ offset: true }).nullish(),
 });
 const EXPORT_MAX_PAGES = 40; // 40k rows; stays well under Workers subrequest limits
 
@@ -44,6 +48,22 @@ const createStaffSchema = z.object({
   email: z.email().max(254).transform(normalizeEmail),
   password: passwordSchema,
 });
+
+const staffPasswordSchema = z.object({ password: passwordSchema });
+
+const STAFF_ERRORS: Record<string, [404 | 409 | 400, string]> = {
+  NOT_FOUND: [404, "الموظف غير موجود"],
+  NOT_STAFF: [400, "هذا متاح لحسابات الموظفين فقط"],
+  ALREADY_REMOVED: [409, "تم حذف هذا الموظف مسبقًا"],
+  ALREADY_PAUSED: [409, "حساب الموظف موقوف مسبقًا"],
+  NOT_PAUSED: [409, "حساب الموظف مفعّل"],
+  WEAK_PASSWORD: [400, "كلمة المرور ضعيفة: 8 أحرف على الأقل، حروف وأرقام"],
+};
+
+function staffError(code: string): ApiError {
+  const [status, message] = STAFF_ERRORS[code] ?? [400, "طلب غير صالح"];
+  return new ApiError(status, status === 404 ? "NOT_FOUND" : "INVALID_REQUEST", undefined, message);
+}
 
 const pageQuery = z.object({
   page: z.coerce.number().int().min(1).max(10_000).optional().default(1),
@@ -250,6 +270,32 @@ export const adminRoutes = new Hono<HonoEnv>()
     return c.json({ ok: true });
   })
 
+  // Pause / resume: a paused account can't sign in, stays on the list and keeps its history.
+  .post("/staff/:id/pause", async (c) => {
+    const id = parseWith(z.uuid(), c.req.param("id"));
+    const result = await repoOf(c).setStaffPaused(id, true);
+    if (!result.ok) throw staffError(result.code);
+    c.get("deps").logger.info("admin.staff_paused", { actor: c.get("user").id, staffUserId: id });
+    return c.json({ ok: true });
+  })
+
+  .post("/staff/:id/resume", async (c) => {
+    const id = parseWith(z.uuid(), c.req.param("id"));
+    const result = await repoOf(c).setStaffPaused(id, false);
+    if (!result.ok) throw staffError(result.code);
+    c.get("deps").logger.info("admin.staff_resumed", { actor: c.get("user").id, staffUserId: id });
+    return c.json({ ok: true });
+  })
+
+  .post("/staff/:id/password", async (c) => {
+    const id = parseWith(z.uuid(), c.req.param("id"));
+    const { password } = await parseJsonBody(c, staffPasswordSchema);
+    const result = await repoOf(c).setStaffPassword(id, password);
+    if (!result.ok) throw staffError(result.code);
+    c.get("deps").logger.info("admin.staff_password_set", { actor: c.get("user").id, staffUserId: id });
+    return c.json({ ok: true });
+  })
+
   .post("/reset", async (c) => {
     await parseJsonBody(c, resetSchema);
     const { logger, wallet } = c.get("deps");
@@ -444,7 +490,13 @@ export const adminRoutes = new Hono<HonoEnv>()
     const prevFrom = new Date(from.getTime() - span);
     const prevTo = new Date(now.getTime() - span);
     c.header("Cache-Control", "no-store");
-    return c.json(await repoOf(c).salesReport(range, from, now, prevFrom, prevTo, BUSINESS_TIME_ZONE));
+    const repo = repoOf(c);
+    const [report, service] = await Promise.all([
+      repo.salesReport(range, from, now, prevFrom, prevTo, BUSINESS_TIME_ZONE),
+      repo.serviceReport(from, now, prevFrom, prevTo),
+    ]);
+    const body: SalesDashboard = { ...report, service };
+    return c.json(body);
   })
 
   .get("/ratings", async (c) => {
@@ -455,19 +507,38 @@ export const adminRoutes = new Hono<HonoEnv>()
   // (one request per batch keeps each Worker call under the subrequest limit).
   .get("/broadcasts", async (c) => {
     const repo = repoOf(c);
-    const [items, recipients] = await Promise.all([repo.listBroadcasts(5), repo.offerPushCount()]);
+    const [items, recipients] = await Promise.all([repo.listBroadcasts(8), repo.offerPushCount()]);
     return c.json({ items, recipients });
   })
 
   .post("/broadcasts", async (c) => {
-    const { title, body } = await parseJsonBody(c, broadcastSchema);
+    const { title, body, scheduledAt: when } = await parseJsonBody(c, broadcastSchema);
     const repo = repoOf(c);
+    let scheduledAt: Date | null = null;
+    if (when) {
+      scheduledAt = new Date(when);
+      const now = c.get("deps").now().getTime();
+      // A minute of slack for the clock on the admin's phone.
+      if (scheduledAt.getTime() < now - 60_000 || scheduledAt.getTime() > now + BROADCAST_SCHEDULE_MAX_DAYS * 86_400_000) {
+        throw new ApiError(400, "INVALID_REQUEST", undefined, `اختر وقتًا من الآن إلى ${BROADCAST_SCHEDULE_MAX_DAYS} يوم`);
+      }
+    }
     // No wait between offers: the dashboard asks before each one is sent.
     const recipients = await repo.offerPushCount();
-    if (recipients === 0) throw new ApiError(409, "NO_RECIPIENTS");
-    const broadcast = await repo.createBroadcast({ title, body, sentBy: c.get("user").id, recipients });
-    c.get("deps").logger.info("broadcast.created", { id: broadcast.id, recipients });
+    if (recipients === 0 && !scheduledAt) throw new ApiError(409, "NO_RECIPIENTS");
+    const broadcast = await repo.createBroadcast({ title, body, sentBy: c.get("user").id, recipients, scheduledAt });
+    c.get("deps").logger.info("broadcast.created", { id: broadcast.id, recipients, scheduled: scheduledAt !== null });
     return c.json({ broadcast }, 201);
+  })
+
+  // A scheduled offer can be called off until the server starts sending it.
+  .post("/broadcasts/:id/cancel", async (c) => {
+    const id = parseWith(z.uuid(), c.req.param("id"));
+    const result = await repoOf(c).cancelBroadcast(id, c.get("deps").now());
+    if (result === "NOT_FOUND") throw new ApiError(404, "NOT_FOUND");
+    if (result === "ALREADY_SENT") throw new ApiError(409, "ALREADY_SENT");
+    c.get("deps").logger.info("broadcast.cancelled", { id });
+    return c.json({ ok: true });
   })
 
   .post("/broadcasts/:id/send", async (c) => {
@@ -477,6 +548,8 @@ export const adminRoutes = new Hono<HonoEnv>()
     const repo = repoOf(c);
     const broadcast = await repo.getBroadcast(id);
     if (!broadcast) throw new ApiError(404, "NOT_FOUND");
+    // Scheduled offers are sent by the server; the page must not send them too.
+    if (broadcast.scheduledAt) throw new ApiError(409, "ALREADY_SENT");
     const push = { repo, appPush: deps.appPush, webPush: deps.webPush, logger: deps.logger };
     if (pushOff(push)) throw new ApiError(503, "CONFIG_ERROR");
     const devices = await repo.offerPushDevices(after, BROADCAST_BATCH);

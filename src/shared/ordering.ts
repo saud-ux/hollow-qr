@@ -283,12 +283,53 @@ export interface SalesReport {
   topItems: { nameAr: string; optionNameAr: string | null; quantity: number; revenueHalalas: number }[];
 }
 
+/** How fast orders were served, for orders placed in a period. Minutes; null when there is nothing to measure. */
+export interface ServicePeriod {
+  completed: number;
+  cancelled: number;
+  /** Placed to accepted. */
+  acceptMinutes: number | null;
+  /** Accepted to ready (or out for delivery). */
+  prepMinutes: number | null;
+  /** Placed to ready: what the customer waits. */
+  waitMinutes: number | null;
+  /** Completed orders that took longer than SLOW_ORDER_MINUTES to be ready. */
+  slow: number;
+}
+
+export const SLOW_ORDER_MINUTES = 15;
+
+export interface ServiceReport {
+  current: ServicePeriod;
+  previous: ServicePeriod;
+  /** Most common cancellations in the period; reason null = none given. */
+  reasons: { by: "customer" | "staff"; reason: string | null; count: number }[];
+}
+
+/** The sales dashboard: sales plus service speed and cancellations. */
+export type SalesDashboard = SalesReport & { service: ServiceReport };
+
+/** Ticket colours on the staff board: minutes since the order was placed. */
+export const ORDER_WARN_MINUTES = 5;
+export const ORDER_LATE_MINUTES = 10;
+export function orderUrgency(createdAt: string, now: number): "ok" | "warn" | "late" {
+  const minutes = (now - new Date(createdAt).getTime()) / 60_000;
+  return minutes >= ORDER_LATE_MINUTES ? "late" : minutes >= ORDER_WARN_MINUTES ? "warn" : "ok";
+}
+
 /** Per-user push switches. Offers are opt-in; the staff ones only apply to staff/admin. */
 export interface NotificationPrefs {
   offers: boolean;
   newOrders: boolean;
   dailySummary: boolean;
+  /** Admins: a push when a customer gives one or two stars. */
+  lowRatings: boolean;
 }
+
+/** Ratings at or below this alert the admins. */
+export const LOW_RATING_MAX = 2;
+/** Where a low-rating alert opens. */
+export const RATINGS_PAGE = "/staff/admin/engage?tab=ratings";
 
 export interface Broadcast {
   id: string;
@@ -297,7 +338,15 @@ export interface Broadcast {
   recipients: number;
   sent: number;
   createdAt: string;
+  /** Set for an offer sent later by the server; null = sent from the page right away. */
+  scheduledAt: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  cancelledAt: string | null;
 }
+
+/** How far ahead an offer can be scheduled. */
+export const BROADCAST_SCHEDULE_MAX_DAYS = 30;
 
 export const BROADCAST_TITLE_MAX = 40;
 export const BROADCAST_BODY_MAX = 180;

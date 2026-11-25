@@ -110,9 +110,9 @@ describe("notification preferences", () => {
   it("default to offers off and staff alerts on, and can be changed", async () => {
     const customer = await newCustomer();
     const res = await get("/api/me/notification-prefs", customer);
-    expect(((await res.json()) as { prefs: NotificationPrefs }).prefs).toEqual({ offers: false, newOrders: true, dailySummary: true });
+    expect(((await res.json()) as { prefs: NotificationPrefs }).prefs).toEqual({ offers: false, newOrders: true, dailySummary: true, lowRatings: true });
     const put = await send("PUT", "/api/me/notification-prefs", { offers: true }, customer);
-    expect(((await put.json()) as { prefs: NotificationPrefs }).prefs).toEqual({ offers: true, newOrders: true, dailySummary: true });
+    expect(((await put.json()) as { prefs: NotificationPrefs }).prefs).toEqual({ offers: true, newOrders: true, dailySummary: true, lowRatings: true });
     expect((await send("PUT", "/api/me/notification-prefs", {}, customer)).status).toBe(400);
   });
 });

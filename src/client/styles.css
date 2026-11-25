@@ -8371,3 +8371,151 @@ html.staff-ui[data-theme="dark"] .orders-sound.is-on { color: #8fc69d; }
 :is(html.themed, html.staff-ui)[data-theme="dark"] .car-plate {
   box-shadow: 0 0 0 1px rgb(0 0 0 / 40%), 0 0.3em 0.8em rgb(0 0 0 / 40%);
 }
+
+/* ---- Order board: tickets change colour as an order waits (new / preparing only). ---- */
+.ticket-card__time--warn,
+.ticket-card__time--late,
+.orders-workspace .ticket-card__time--warn,
+.orders-workspace .ticket-card__time--late {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+.ticket-card__time--warn,
+.orders-workspace .ticket-card__time--warn {
+  background: var(--warning-soft);
+  color: #8a5a00;
+}
+.ticket-card__time--late,
+.orders-workspace .ticket-card__time--late {
+  background: var(--danger);
+  color: #fff;
+}
+.orders-workspace .ticket-card--warn {
+  border-color: #d9a21b;
+}
+.orders-workspace .ticket-card--late,
+.orders-workspace .ticket-card--new.ticket-card--late {
+  border: 2px solid var(--danger);
+  box-shadow: 0 0 0 3px rgb(169 50 38 / 14%);
+}
+.board-tab__count.is-late {
+  background: var(--danger);
+  color: #fff;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ticket-card__time--late svg {
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+}
+html.staff-ui[data-theme="dark"] .ticket-card__time--warn {
+  background: rgb(217 162 27 / 18%);
+  color: #f1c75b;
+}
+html.staff-ui[data-theme="dark"] .ticket-card__time--late {
+  background: #c2453a;
+}
+
+/* ---- Sales: service speed and cancellations ---- */
+.service {
+  gap: 10px;
+}
+.service__notes {
+  margin: 0;
+}
+.service__slow {
+  color: var(--danger);
+  font-weight: 700;
+}
+.service__subtitle {
+  margin: 4px 0 6px;
+  font-size: 0.95rem;
+}
+.service__subtitle small {
+  font-weight: 500;
+  color: var(--label);
+}
+.service__reasons ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.service__reasons li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #e2d5bf;
+  border-radius: 12px;
+}
+.service__reason {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.service__count {
+  min-width: 2ch;
+  text-align: end;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] .service__reasons li {
+  border-color: #33271e;
+}
+
+/* ---- Offers: send now or later ---- */
+.field__label {
+  font-weight: 700;
+}
+.offer-when {
+  justify-self: start;
+}
+.broadcasts__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.broadcasts__status {
+  font-weight: 700;
+}
+.broadcasts__status--gold {
+  color: #8a6d0f;
+}
+.broadcasts__status--danger {
+  color: var(--danger);
+}
+.broadcasts li.is-cancelled > :is(strong, span:not(.broadcasts__foot)) {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+:is(html.themed, html.staff-ui)[data-theme="dark"] .broadcasts__status--gold {
+  color: #e3c35a;
+}
+
+/* ---- Staff list: pause / password / remove ---- */
+.staff-list__item:has(.staff-list__actions) {
+  flex-wrap: wrap;
+}
+.staff-list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+@media (max-width: 599px) {
+  .staff-list__actions {
+    flex-basis: 100%;
+  }
+}
+html.staff-ui[data-theme="dark"] .orders-workspace .ticket-card--late {
+  border-color: #c2453a;
+}
+html.staff-ui[data-theme="dark"] .orders-workspace .ticket-card--warn:not(.ticket-card--new) {
+  border-color: #b8891a;
+}

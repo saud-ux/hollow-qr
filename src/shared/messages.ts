@@ -62,6 +62,7 @@ export const ERROR_MESSAGES_AR: Record<string, string> = {
   NOT_COMPLETED: "تقدر تقيّم الطلب بعد ما تستلمه",
   ALREADY_RATED: "قيّمت هذا الطلب من قبل، شكرًا لك",
   NO_RECIPIENTS: "ما فيه أحد مفعّل إشعارات العروض حتى الآن",
+  ALREADY_SENT: "بدأ إرسال هذا الإشعار أو انتهى، ما يمكن تغييره",
   INTERNAL: "حدث خطأ غير متوقع، حاول مرة أخرى",
 };
 

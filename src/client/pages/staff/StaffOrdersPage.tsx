@@ -3,6 +3,9 @@ import {
   FULFILLMENT_LABELS_AR,
   isActiveStatus,
   nextStatus,
+  ORDER_LATE_MINUTES,
+  ORDER_WARN_MINUTES,
+  orderUrgency,
   rewardDiscount,
   STATUS_LABELS_AR,
   type Order,
@@ -22,6 +25,11 @@ import { lineNameEn } from "../../lib/menuText";
 import { animateBoard, newBoardMemory } from "../../lib/motion";
 
 const POLL_MS = 5_000;
+/** The ticket clocks move on even when a poll fails. */
+const CLOCK_MS = 15_000;
+
+/** Orders still in the shop's hands: colour them as they wait. Ready ones are waiting on the customer. */
+const urgencyOf = (o: Order, now: number) => (o.status === "new" || o.status === "preparing" ? orderUrgency(o.createdAt, now) : "ok");
 
 type Board = { items: Order[]; shop: { isOpen: boolean; settings: ShopSettings } };
 
@@ -117,7 +125,11 @@ export function StaffOrdersPage() {
   useEffect(() => {
     void load();
     const timer = setInterval(() => void load(), POLL_MS);
-    return () => clearInterval(timer);
+    const clock = setInterval(() => setNow(Date.now()), CLOCK_MS);
+    return () => {
+      clearInterval(timer);
+      clearInterval(clock);
+    };
   }, [load]);
 
   const newCount = board?.items.filter((o) => o.status === "new").length ?? 0;
@@ -208,7 +220,9 @@ export function StaffOrdersPage() {
         <>
           <div className="board-tabs" role="tablist" aria-label="حالة الطلبات">
             {COLUMNS.map((c) => {
-              const n = active.filter((o) => c.statuses.includes(o.status)).length;
+              const inTab = active.filter((o) => c.statuses.includes(o.status));
+              const n = inTab.length;
+              const late = inTab.filter((o) => urgencyOf(o, now) === "late").length;
               return (
                 <button key={c.key} id={`orders-tab-${c.key}`} type="button" role="tab" aria-selected={tab === c.key} aria-controls={`orders-panel-${c.key}`} tabIndex={tab === c.key ? 0 : -1} className={`board-tab ${tab === c.key ? "is-on" : ""}`} onClick={() => setTab(c.key)}
                   onKeyDown={(e) => {
@@ -226,7 +240,8 @@ export function StaffOrdersPage() {
                     document.getElementById(`orders-tab-${key}`)?.focus();
                   }}>
                   {c.title}
-                  <span className={`board-tab__count ${c.key === "new" && n > 0 ? "is-hot" : ""}`}>{n}</span>
+                  <span className={`board-tab__count ${late > 0 ? "is-late" : c.key === "new" && n > 0 ? "is-hot" : ""}`}>{n}</span>
+                  {late > 0 && <span className="visually-hidden">، {late === 1 ? "طلب متأخر" : `${late} طلبات متأخرة`}</span>}
                 </button>
               );
             })}
@@ -350,13 +365,21 @@ function OrderTicket({
   const Icon = o.fulfillment === "pickup" ? StoreIcon : o.fulfillment === "curbside" ? CarIcon : ScooterIcon;
   const map = mapsUrl(o);
   const arrived = o.fulfillment === "curbside" && o.customerArrivedAt !== null;
+  const urgency = urgencyOf(o, now);
   return (
-    <article data-ticket={o.id} className={`ticket-card ticket-card--${o.status} ${arrived ? "ticket-card--arrived" : ""}`}>
+    <article data-ticket={o.id} className={`ticket-card ticket-card--${o.status} ${arrived ? "ticket-card--arrived" : ""} ticket-card--${urgency}`}>
       <header className="ticket-card__head">
         <span className="ticket-card__num" dir="ltr">
           #{o.orderNumber}
         </span>
-        <span className="ticket-card__time">{minutesAgo(o.createdAt, now)}</span>
+        <span
+          className={`ticket-card__time ticket-card__time--${urgency}`}
+          title={urgency === "late" ? `تجاوز ${ORDER_LATE_MINUTES} دقائق` : urgency === "warn" ? `تجاوز ${ORDER_WARN_MINUTES} دقائق` : undefined}
+        >
+          {urgency !== "ok" && <ClockIcon />}
+          {minutesAgo(o.createdAt, now)}
+          {urgency === "late" && <span className="ticket-card__late"> · متأخر</span>}
+        </span>
       </header>
       <div className="ticket-card__identity">
         <strong className="ticket-card__customer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="7" r="4" /><path d="M4 22v-3a8 8 0 0 1 16 0v3" /></svg><bdi>{o.customerName}</bdi></strong>
@@ -435,5 +458,14 @@ function OrderTicket({
         </button>
       </div>
     </article>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
   );
 }

@@ -42,7 +42,9 @@
 
   // Hourly: sends the end-of-day summary to admins once the shop has closed
   // (src/server/push/daily-summary.ts decides whether a shift just ended).
-  "triggers": { "crons": ["5 * * * *"] },
+  // Every minute: sends offers the admin scheduled for later
+  // (src/server/push/scheduled-broadcasts.ts, one batch per run).
+  "triggers": { "crons": ["5 * * * *", "* * * * *"] },
 
   // Workers Rate Limiting bindings (optional; the code falls back to a
   // per-isolate limiter if they are absent). namespace_id is any unique

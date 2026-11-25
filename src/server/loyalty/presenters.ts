@@ -97,5 +97,5 @@ export function toDashboardStats(s: DashboardStatsRow): DashboardStats {
 }
 
 export function toStaffMember(p: ProfileRow): StaffMember {
-  return { id: p.id, displayName: p.displayName, email: p.email, role: p.role, createdAt: p.createdAt };
+  return { id: p.id, displayName: p.displayName, email: p.email, role: p.role, createdAt: p.createdAt, paused: p.staffPaused };
 }

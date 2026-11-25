@@ -6,6 +6,7 @@ import { initMotion } from "../lib/motion";
 import { currentLang, tr } from "../lib/i18n";
 import { appLinkPath } from "../../shared/app-links";
 import { parseEmailLink } from "../../shared/email-links";
+import { RATINGS_PAGE } from "../../shared/ordering";
 import { useConfig } from "../lib/config";
 import { showToast } from "./Toast";
 import { initNativePush, initNativeShell, isNative, refreshPushIfAllowed } from "../lib/native";
@@ -38,6 +39,7 @@ export function NativeBridge() {
       open: (target) => {
         if (target.kind === "order") void navigation.current(`/orders/${target.orderId}`);
         else if (target.kind === "menu") void navigation.current("/menu");
+        else if (target.kind === "staff-ratings") void navigation.current(RATINGS_PAGE);
         else void navigation.current("/staff/orders");
       },
     }).catch(() => undefined);

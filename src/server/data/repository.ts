@@ -17,6 +17,7 @@ import type {
   RatingOverview,
   SalesRange,
   SalesReport,
+  ServiceReport,
   ShopSettings,
 } from "../../shared/ordering";
 import type { AppRole, LoyaltyAction, MembershipStatus, PlaceKind, SavedPlace } from "../../shared/types";
@@ -29,6 +30,8 @@ export interface ProfileRow {
   role: AppRole;
   emailConfirmedAt: string | null;
   disabledAt: string | null;
+  /** Paused staff: disabled, but listed and can be resumed. */
+  staffPaused: boolean;
   createdAt: string;
 }
 
@@ -142,6 +145,19 @@ export interface CreateStaffParams {
 
 export type CreateStaffResult = { ok: true; userId: string } | { ok: false; code: "EMAIL_EXISTS" | "WEAK_PASSWORD" };
 export type RemoveStaffResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_STAFF" | "ALREADY_REMOVED" };
+export type PauseStaffResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_STAFF" | "ALREADY_REMOVED" | "ALREADY_PAUSED" | "NOT_PAUSED" };
+export type SetStaffPasswordResult = { ok: true } | { ok: false; code: "NOT_FOUND" | "NOT_STAFF" | "ALREADY_REMOVED" | "WEAK_PASSWORD" };
+export type CancelBroadcastResult = "ok" | "NOT_FOUND" | "ALREADY_SENT";
+
+/** Why a staff account can't be paused (paused = true) or resumed, or null if it can. */
+export function staffPauseBlock(profile: ProfileRow | null, paused: boolean): Exclude<PauseStaffResult, { ok: true }>["code"] | null {
+  if (!profile) return "NOT_FOUND";
+  if (profile.role !== "staff") return "NOT_STAFF";
+  if (profile.disabledAt !== null && !profile.staffPaused) return "ALREADY_REMOVED";
+  if (paused && profile.staffPaused) return "ALREADY_PAUSED";
+  if (!paused && !profile.staffPaused) return "NOT_PAUSED";
+  return null;
+}
 export type DeleteAccountResult = { ok: true; pending?: boolean } | { ok: false; code: "NOT_FOUND" | "NOT_A_CUSTOMER" | "ACTIVE_ORDER" };
 /** passSerials: the Wallet cards that had cups, to refresh on customers' phones. */
 export type ResetShopResult = { ok: true; orders: number; passSerials: string[] } | { ok: false; code: "FORBIDDEN" | "OPEN_ORDERS" | "PAID_BALANCE" };
@@ -248,7 +264,7 @@ export interface WebPushKeyPair {
   privateJwk: JsonWebKey;
 }
 
-export type StaffAlertKind = "new_orders" | "daily_summary";
+export type StaffAlertKind = "new_orders" | "daily_summary" | "low_ratings";
 
 export type RateOrderResult = "ok" | "NOT_FOUND" | "NOT_COMPLETED" | "ALREADY_RATED";
 
@@ -297,7 +313,12 @@ export interface Repository {
 
   listStaff(): Promise<ProfileRow[]>;
   createStaffUser(params: CreateStaffParams): Promise<CreateStaffResult>;
+  /** Removes a staff account for good (a paused one too); history stays. */
   removeStaffUser(userId: string): Promise<RemoveStaffResult>;
+  /** Pauses (true) or resumes (false) a staff account. */
+  setStaffPaused(userId: string, paused: boolean): Promise<PauseStaffResult>;
+  /** Sets a new sign-in password for a staff account (active or paused). */
+  setStaffPassword(userId: string, password: string): Promise<SetStaffPasswordResult>;
   /** Deletes every order and zeroes every card, balance and gift; accounts stay. */
   resetShopData(actorId: string): Promise<ResetShopResult>;
 
@@ -356,7 +377,12 @@ export interface Repository {
   getNotificationPrefs(userId: string): Promise<NotificationPrefs>;
   setNotificationPrefs(userId: string, patch: Partial<NotificationPrefs>): Promise<NotificationPrefs>;
 
-  createBroadcast(input: { title: string; body: string; sentBy: string; recipients: number }): Promise<Broadcast>;
+  createBroadcast(input: { title: string; body: string; sentBy: string; recipients: number; scheduledAt?: Date | null }): Promise<Broadcast>;
+  /** Claims the oldest due scheduled offer for one batch (a lease keeps other runs off it); null if none. */
+  claimDueBroadcast(now: Date): Promise<(Broadcast & { cursor: string | null }) | null>;
+  /** Records a sent batch of a scheduled offer and releases it. */
+  advanceBroadcast(id: string, sent: number, cursor: string | null, finished: boolean, now: Date): Promise<void>;
+  cancelBroadcast(id: string, now: Date): Promise<CancelBroadcastResult>;
   getBroadcast(id: string): Promise<Broadcast | null>;
   setBroadcastSent(id: string, sent: number): Promise<void>;
   listBroadcasts(limit: number): Promise<Broadcast[]>;
@@ -366,6 +392,8 @@ export interface Repository {
 
   /** Completed orders in [from, to) against [prevFrom, prevTo), grouped on the wall clock of `timeZone`. */
   salesReport(range: SalesRange, from: Date, to: Date, prevFrom: Date, prevTo: Date, timeZone: string): Promise<SalesReport>;
+  /** Service speed and cancellations of orders placed in [from, to) against [prevFrom, prevTo). */
+  serviceReport(from: Date, to: Date, prevFrom: Date, prevTo: Date): Promise<ServiceReport>;
 
   /** Orders created in [from, to), for the end-of-day summary. */
   orderSummary(from: Date, to: Date): Promise<OrderSummary>;

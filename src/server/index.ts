@@ -17,11 +17,14 @@ import { createLogger } from "./lib/logger";
 import { ApnsTokenSender, DisabledAppPushSender, MockAppPushSender, type AppPushSender } from "./push/app-push";
 import { DisabledWebPushSender, generateVapidKeys, MockWebPushSender, VapidWebPushSender, type VapidKeys, type WebPushSender } from "./push/web-push";
 import { runDailySummary } from "./push/daily-summary";
+import { runScheduledBroadcasts } from "./push/scheduled-broadcasts";
 import type { Bindings, ExecutionContextLike } from "./platform";
 import { DisabledPushNotifier, MockPushNotifier, MtlsApnsNotifier, type WalletPushNotifier } from "./wallet/apns";
 import { WalletService, WebCryptoPassGenerator } from "./wallet/service";
 
 const logger = createLogger();
+/** Must match the cron in wrangler.jsonc. */
+const EVERY_MINUTE = "* * * * *";
 let warnedFor: string | null = null;
 
 // Reuse the Supabase client across requests in the same isolate.
@@ -111,11 +114,22 @@ export default {
     return app.fetch(request, env, ctx as never);
   },
 
-  /** Hourly cron (wrangler.jsonc "triggers"): the end-of-day summary for admins. */
-  scheduled(_event: unknown, env: Bindings, ctx: ExecutionContextLike): void {
+  /**
+   * Crons (wrangler.jsonc "triggers"): every minute, scheduled offers;
+   * hourly, account deletions and the end-of-day summary for admins.
+   */
+  scheduled(event: { cron?: string }, env: Bindings, ctx: ExecutionContextLike): void {
     const deps = buildDeps(env);
     const { repo, appPush, webPush } = deps;
     if (!repo) return;
+    if (event.cron === EVERY_MINUTE) {
+      ctx.waitUntil(
+        runScheduledBroadcasts({ repo, appPush, webPush, logger }, new Date()).catch((err: unknown) => {
+          logger.error("broadcast.scheduled_failed", { error: err instanceof Error ? err.message : "unknown" });
+        }),
+      );
+      return;
+    }
     ctx.waitUntil(repo.completeAccountDeletions().then(({ completed, pending }) => {
       if (completed || pending) logger.info("account.deletions", { completed, pending });
       if (pending) logger.error("account.deletions_pending", { pending });

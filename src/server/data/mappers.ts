@@ -12,6 +12,8 @@ import type {
   RatingOverview,
   SalesRange,
   SalesReport,
+  ServicePeriod,
+  ServiceReport,
   ShopSettings,
 } from "../../shared/ordering";
 import type { AccountRow, MenuItemRow, OrderSummary, ProfileRow, PushDevice, RateOrderResult, SearchRow, TransactionRow } from "./repository";
@@ -38,6 +40,7 @@ export function mapProfile(r: Raw): ProfileRow {
     role: str(r.role) as ProfileRow["role"],
     emailConfirmedAt: isoOrNull(r.email_confirmed_at),
     disabledAt: isoOrNull(r.disabled_at),
+    staffPaused: Boolean(r.staff_paused),
     createdAt: iso(r.created_at),
   };
 }
@@ -319,14 +322,28 @@ export function mapBroadcast(r: Raw): Broadcast {
     recipients: num(r.recipients),
     sent: num(r.sent),
     createdAt: iso(r.created_at),
+    scheduledAt: isoOrNull(r.scheduled_at),
+    startedAt: isoOrNull(r.started_at),
+    finishedAt: isoOrNull(r.finished_at),
+    cancelledAt: isoOrNull(r.cancelled_at),
   };
 }
 
-export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = { offers: false, newOrders: true, dailySummary: true };
+export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = { offers: false, newOrders: true, dailySummary: true, lowRatings: true };
+
+/** A claimed scheduled offer, with where its next batch starts. */
+export function mapScheduledBroadcast(r: Raw): Broadcast & { cursor: string | null } {
+  return { ...mapBroadcast(r), cursor: strOrNull(r.send_cursor) };
+}
 
 export function mapNotificationPrefs(r: Raw | null | undefined): NotificationPrefs {
   if (!r) return { ...DEFAULT_NOTIFICATION_PREFS };
-  return { offers: Boolean(r.offers), newOrders: Boolean(r.new_orders), dailySummary: Boolean(r.daily_summary) };
+  return {
+    offers: Boolean(r.offers),
+    newOrders: Boolean(r.new_orders),
+    dailySummary: Boolean(r.daily_summary),
+    lowRatings: r.low_ratings === undefined || r.low_ratings === null ? true : Boolean(r.low_ratings),
+  };
 }
 
 export function notificationPrefsColumns(patch: Partial<NotificationPrefs>): Raw {
@@ -334,6 +351,7 @@ export function notificationPrefsColumns(patch: Partial<NotificationPrefs>): Raw
   if (patch.offers !== undefined) out.offers = patch.offers;
   if (patch.newOrders !== undefined) out.new_orders = patch.newOrders;
   if (patch.dailySummary !== undefined) out.daily_summary = patch.dailySummary;
+  if (patch.lowRatings !== undefined) out.low_ratings = patch.lowRatings;
   return out;
 }
 
@@ -386,4 +404,29 @@ export const RATE_ORDER_CODES = ["NOT_FOUND", "NOT_COMPLETED", "ALREADY_RATED"] 
 export function rateOrderResult(r: { ok: boolean; code?: string }): RateOrderResult {
   if (r.ok) return "ok";
   return (RATE_ORDER_CODES as readonly string[]).includes(r.code ?? "") ? (r.code as RateOrderResult) : "NOT_FOUND";
+}
+
+function servicePeriod(r: Raw | null | undefined): ServicePeriod {
+  const minutes = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return {
+    completed: num(r?.completed),
+    cancelled: num(r?.cancelled),
+    acceptMinutes: minutes(r?.accept_minutes),
+    prepMinutes: minutes(r?.prep_minutes),
+    waitMinutes: minutes(r?.wait_minutes),
+    slow: num(r?.slow),
+  };
+}
+
+export function mapServiceReport(r: Raw): ServiceReport {
+  const reasons = Array.isArray(r.reasons) ? (r.reasons as Raw[]) : [];
+  return {
+    current: servicePeriod(r.current as Raw),
+    previous: servicePeriod(r.previous as Raw),
+    reasons: reasons.map((x) => ({
+      by: x.by === "customer" ? "customer" : "staff",
+      reason: strOrNull(x.reason),
+      count: num(x.count),
+    })),
+  };
 }
