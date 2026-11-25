@@ -8519,3 +8519,37 @@ html.staff-ui[data-theme="dark"] .orders-workspace .ticket-card--late {
 html.staff-ui[data-theme="dark"] .orders-workspace .ticket-card--warn:not(.ticket-card--new) {
   border-color: #b8891a;
 }
+
+/* The whole ticket takes the colour, so a late order stands out from across the counter. */
+.orders-workspace .ticket-card--warn {
+  background: #fcefc8;
+  border: 2px solid #d9a21b;
+}
+.orders-workspace .ticket-card--late,
+.orders-workspace .ticket-card--new.ticket-card--late {
+  background: #f8d8d2;
+}
+.orders-workspace :is(.ticket-card--warn, .ticket-card--late) :is(.ticket-card__items, .ticket-card__meta, .ticket-card__total, .ticket-card__benefits) {
+  border-color: rgb(43 30 22 / 14%);
+}
+html.staff-ui[data-theme="dark"] .orders-workspace .ticket-card--warn {
+  background: #352a10;
+  border-color: #b8891a;
+}
+html.staff-ui[data-theme="dark"] .orders-workspace .ticket-card--late {
+  background: #3d1a16;
+  border-color: #c2453a;
+}
+html.staff-ui[data-theme="dark"] .orders-workspace :is(.ticket-card--warn, .ticket-card--late) :is(.ticket-card__items, .ticket-card__meta, .ticket-card__total, .ticket-card__benefits) {
+  border-color: rgb(241 232 218 / 14%);
+}
+.orders-workspace .ticket-card--warn .ticket-card__time--warn {
+  background: #d9a21b;
+  color: #2b1e16;
+}
+.orders-workspace :is(.ticket-card--warn, .ticket-card--late) .ticket-card__actions .btn--ghost {
+  border-color: rgb(43 30 22 / 22%);
+}
+html.staff-ui[data-theme="dark"] .orders-workspace :is(.ticket-card--warn, .ticket-card--late) .ticket-card__actions .btn--ghost {
+  border-color: rgb(241 232 218 / 25%);
+}
