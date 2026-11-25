@@ -47,13 +47,17 @@ export function primeAudio(): void {
 
 let keepingAlive = false;
 /**
- * Keeps the order sound on without a button: the first tap anywhere unlocks
+ * Keeps the order sound on without a button. Where the device allows sound
+ * without a tap it is on at once; otherwise the first tap anywhere unlocks
  * it, and any later tap brings it back after the iPad slept or the tab was
  * in the background. Safe to call many times.
  */
 export function keepAudioAlive(): void {
   if (keepingAlive || typeof window === "undefined") return;
   keepingAlive = true;
+  // Try right away: the iOS app (and Chrome once the site is installed) lets
+  // sound play without a tap. Elsewhere it stays off until the first tap.
+  primeAudio();
   const wake = () => {
     if (!isAudioReady()) primeAudio();
   };

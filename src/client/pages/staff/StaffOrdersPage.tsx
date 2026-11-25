@@ -22,6 +22,7 @@ import { apiGet, apiPost, errorText } from "../../lib/api";
 import { isAudioReady, keepAudioAlive, onAudioChange, orderChime, primeAudio } from "../../lib/feedback";
 import { riyals, useMenu } from "../../lib/menu";
 import { lineNameEn } from "../../lib/menuText";
+import { keepScreenAwake } from "../../lib/native";
 import { animateBoard, newBoardMemory } from "../../lib/motion";
 
 const POLL_MS = 5_000;
@@ -60,6 +61,11 @@ function mapsUrl(o: Order): string | null {
 
 /** Keeps the iPad screen awake while the board is open (where supported). */
 function useWakeLock(enabled: boolean) {
+  // The app can always keep the screen on; the website only after a tap.
+  useEffect(() => {
+    keepScreenAwake(true);
+    return () => keepScreenAwake(false);
+  }, []);
   useEffect(() => {
     if (!enabled || !("wakeLock" in navigator)) return;
     let lock: WakeLockSentinel | null = null;

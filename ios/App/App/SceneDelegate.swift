@@ -30,6 +30,26 @@ class HollowBridgeViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(HollowWalletPlugin())
         bridge?.registerPluginInstance(HollowWidgetPlugin())
         bridge?.registerPluginInstance(HollowGeofencePlugin())
+        bridge?.registerPluginInstance(HollowScreenPlugin())
+    }
+}
+
+/// Keeps the screen on while the staff order board is open, so iOS doesn't
+/// lock the iPad and silence the new-order chime.
+@objc(HollowScreenPlugin)
+public class HollowScreenPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "HollowScreenPlugin"
+    public let jsName = "HollowScreen"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "keepAwake", returnType: CAPPluginReturnPromise),
+    ]
+
+    @objc func keepAwake(_ call: CAPPluginCall) {
+        let on = call.getBool("on") ?? false
+        DispatchQueue.main.async {
+            UIApplication.shared.isIdleTimerDisabled = on
+            call.resolve()
+        }
     }
 }
 

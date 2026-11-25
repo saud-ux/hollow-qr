@@ -21,6 +21,13 @@ interface HollowWalletPlugin {
   addPass(options: { url: string }): Promise<{ added: boolean; alreadyInWallet?: boolean }>;
 }
 const HollowWallet = registerPlugin<HollowWalletPlugin>("HollowWallet");
+const HollowScreen = registerPlugin<{ keepAwake(options: { on: boolean }): Promise<void> }>("HollowScreen");
+
+/** In the app: stops iOS locking the screen (and silencing the order chime) while `on`. */
+export function keepScreenAwake(on: boolean): void {
+  if (!isNative || !Capacitor.isPluginAvailable("HollowScreen")) return;
+  void HollowScreen.keepAwake({ on }).catch(() => undefined);
+}
 
 /** Shows Apple's "Add to Wallet" sheet for a signed pass URL. */
 export async function addPassNatively(url: string): Promise<{ added: boolean; alreadyInWallet: boolean }> {

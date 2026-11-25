@@ -1,3 +1,4 @@
+import AVFoundation
 import UIKit
 import Capacitor
 
@@ -9,6 +10,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Restore opt-in region monitoring, including a Core Location wake-up.
         HollowGeofenceManager.shared.restore()
+        // The staff new-order chime must play with the silent switch on, and
+        // must not stop someone's music: playback, mixed with other audio.
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
         return true
     }
 
