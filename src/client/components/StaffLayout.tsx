@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink } from "react-router";
 import { ROLE_LABELS_AR } from "../../shared/messages";
 import { useAuth } from "../lib/auth";
+import { keepAudioAlive } from "../lib/feedback";
 import { enterStaffTheme, staffTheme, toggleStaffTheme } from "../lib/staffTheme";
 import { Wordmark } from "./Brand";
 import { SignOutDialog } from "./SignOutDialog";
@@ -159,6 +160,8 @@ export function StaffLayout({ title, actions, wide, children }: { title?: string
   const [theme, setTheme] = useState(staffTheme);
 
   useEffect(() => enterStaffTheme(setTheme), []);
+  // Any tap on a staff page unlocks the new-order sound for the order board.
+  useEffect(() => keepAudioAlive(), []);
 
   const link = (item: NavItem) => (
     <NavLink key={item.to} to={item.to} end={item.end} className="staff-side__link" onClick={() => setOpen(false)}>

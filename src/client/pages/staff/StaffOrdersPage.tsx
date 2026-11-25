@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   FULFILLMENT_LABELS_AR,
   isActiveStatus,
@@ -19,7 +19,7 @@ import { CarIcon, ScooterIcon, StoreIcon } from "../../components/Shop";
 import { CarDescription } from "../../components/CarPlate";
 import { StaffLayout } from "../../components/StaffLayout";
 import { apiGet, apiPost, errorText } from "../../lib/api";
-import { isAudioReady, orderChime, primeAudio } from "../../lib/feedback";
+import { isAudioReady, keepAudioAlive, onAudioChange, orderChime, primeAudio } from "../../lib/feedback";
 import { riyals, useMenu } from "../../lib/menu";
 import { lineNameEn } from "../../lib/menuText";
 import { animateBoard, newBoardMemory } from "../../lib/motion";
@@ -82,7 +82,9 @@ function useWakeLock(enabled: boolean) {
 export function StaffOrdersPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [soundOn, setSoundOn] = useState(isAudioReady);
+  // The sound is always on: any tap on the page unlocks it (browsers need one),
+  // and it comes back by itself after the iPad sleeps.
+  const soundOn = useSyncExternalStore(onAudioChange, isAudioReady, () => false);
   const [tab, setTab] = useState("new");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ tone: "success" | "warning"; text: string } | null>(null);
@@ -95,6 +97,7 @@ export function StaffOrdersPage() {
   const boardMemory = useRef(newBoardMemory());
 
   useWakeLock(soundOn);
+  useEffect(() => keepAudioAlive(), []);
 
   // New orders slide in; a ticket that changes column glides across.
   useLayoutEffect(() => animateBoard(boardRef.current, boardMemory.current), [board]);
@@ -141,9 +144,9 @@ export function StaffOrdersPage() {
     };
   }, [newCount]);
 
-  function enableSound() {
+  /** Unlocks the sound if needed and plays the alert, to check the volume. */
+  function testSound() {
     primeAudio();
-    setSoundOn(true);
     orderChime();
   }
 
@@ -195,9 +198,9 @@ export function StaffOrdersPage() {
             <span className="shop-state__dot" aria-hidden="true" />
             {board ? (board.shop.isOpen ? "نستقبل الطلبات" : board.shop.settings.orderingPaused ? "الطلبات متوقفة" : "خارج أوقات الدوام") : "…"}
           </div>
-          <button type="button" className={`orders-sound ${soundOn ? "is-on" : ""}`} onClick={enableSound} disabled={soundOn} aria-label={soundOn ? "صوت تنبيه الطلبات مفعّل" : "تفعيل صوت تنبيه الطلبات"}>
+          <button type="button" className={`orders-sound ${soundOn ? "is-on" : ""}`} onClick={testSound} aria-label={soundOn ? "الصوت شغّال، اضغط لتجربة التنبيه" : "تشغيل صوت تنبيه الطلبات"}>
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" /></svg>
-            {soundOn ? "الصوت مفعّل" : "تفعيل الصوت"}
+            {soundOn ? <>الصوت شغّال <small>· تجربة</small></> : "تشغيل الصوت"}
           </button>
         </div>
         {board && <div className="orders-toolbar__actions">
@@ -208,6 +211,15 @@ export function StaffOrdersPage() {
         </div>}
       </div>
 
+      {!soundOn && (
+        <button type="button" className="sound-gate" onClick={testSound}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" /></svg>
+          <span>
+            <strong>المس الشاشة لتشغيل صوت الطلبات</strong>
+            <small>الجهاز يحتاج لمسة وحدة بعد فتح الصفحة، وبعدها يبقى الصوت شغّال</small>
+          </span>
+        </button>
+      )}
       {error && <Alert tone="error">{error}</Alert>}
       {toast && (
         <div className={`board-toast board-toast--${toast.tone}`} role="status" onClick={() => setToast(null)}>

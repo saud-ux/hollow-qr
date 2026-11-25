@@ -8553,3 +8553,50 @@ html.staff-ui[data-theme="dark"] .orders-workspace :is(.ticket-card--warn, .tick
 html.staff-ui[data-theme="dark"] .orders-workspace :is(.ticket-card--warn, .ticket-card--late) .ticket-card__actions .btn--ghost {
   border-color: rgb(241 232 218 / 25%);
 }
+
+/* ---- Order sound: always on; a banner until the first tap unlocks it ---- */
+.orders-sound.is-on {
+  cursor: pointer;
+}
+.orders-sound small {
+  font-weight: 500;
+  opacity: 0.8;
+}
+.sound-gate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--gold) 18%, var(--paper));
+  color: var(--espresso);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.sound-gate span {
+  display: grid;
+  gap: 2px;
+}
+.sound-gate small {
+  font-weight: 500;
+  color: var(--label);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sound-gate svg {
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+}
+html.staff-ui[data-theme="dark"] .sound-gate {
+  color: #f1e8da;
+  background: color-mix(in srgb, var(--gold) 16%, #1b140f);
+}
+html.staff-ui[data-theme="dark"] .sound-gate small {
+  color: #c9b79f;
+}
+.sound-gate span {
+  flex: 1;
+  justify-items: start;
+}

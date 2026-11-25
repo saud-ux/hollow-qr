@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { Navigate, useNavigate } from "react-router";
+import { keepAudioAlive } from "../../lib/feedback";
 import { Wordmark } from "../../components/Brand";
 import { useAuth } from "../../lib/auth";
 import { roleHomePath } from "../../lib/role-route";
@@ -7,6 +9,8 @@ import { LoginForm } from "../customer/LoginPage";
 export function StaffLoginPage() {
   const { session, me } = useAuth();
   const navigate = useNavigate();
+  // Tapping «دخول» also unlocks the new-order sound.
+  useEffect(() => keepAudioAlive(), []);
   if (session && me && me.user.role !== "customer") return <Navigate to={roleHomePath(me.user.role)} replace />;
   return (
     <div className="staff-login">
