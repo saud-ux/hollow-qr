@@ -8563,18 +8563,34 @@ html.staff-ui[data-theme="dark"] .orders-workspace :is(.ticket-card--warn, .tick
   opacity: 0.8;
 }
 .sound-gate {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
+  display: grid;
+  gap: 10px;
   padding: 14px 16px;
   border: 2px solid var(--gold);
   border-radius: 14px;
   background: color-mix(in srgb, var(--gold) 18%, var(--paper));
   color: var(--espresso);
+}
+.sound-gate__tap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
   font: inherit;
   text-align: start;
   cursor: pointer;
+}
+.sound-gate__install {
+  justify-self: start;
+}
+.sound-gate__how {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--label);
 }
 .sound-gate span {
   display: grid;

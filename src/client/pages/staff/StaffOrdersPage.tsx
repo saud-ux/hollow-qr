@@ -22,7 +22,8 @@ import { apiGet, apiPost, errorText } from "../../lib/api";
 import { isAudioReady, keepAudioAlive, onAudioChange, orderChime, primeAudio } from "../../lib/feedback";
 import { riyals, useMenu } from "../../lib/menu";
 import { lineNameEn } from "../../lib/menuText";
-import { keepScreenAwake } from "../../lib/native";
+import { isNative, keepScreenAwake } from "../../lib/native";
+import { installStaffApp, isInstalledApp, useCanInstall } from "../../lib/staffApp";
 import { animateBoard, newBoardMemory } from "../../lib/motion";
 
 const POLL_MS = 5_000;
@@ -59,17 +60,22 @@ function mapsUrl(o: Order): string | null {
   return `https://maps.google.com/?q=${o.deliveryLat},${o.deliveryLng}`;
 }
 
-/** Keeps the iPad screen awake while the board is open (where supported). */
-function useWakeLock(enabled: boolean) {
-  // The app can always keep the screen on; the website only after a tap.
+/**
+ * Keeps the screen awake while the board is open, so the device never sleeps
+ * and silences the chime: natively in the iOS app, with the Wake Lock API on
+ * the website. Chrome (Android) grants the lock straight away; a browser that
+ * wants a tap first gets asked again on the next touch.
+ */
+function useWakeLock() {
   useEffect(() => {
     keepScreenAwake(true);
     return () => keepScreenAwake(false);
   }, []);
   useEffect(() => {
-    if (!enabled || !("wakeLock" in navigator)) return;
+    if (!("wakeLock" in navigator)) return;
     let lock: WakeLockSentinel | null = null;
     const acquire = () => {
+      if (lock && !lock.released) return;
       navigator.wakeLock
         .request("screen")
         .then((l) => (lock = l))
@@ -78,11 +84,13 @@ function useWakeLock(enabled: boolean) {
     acquire();
     const onVisible = () => document.visibilityState === "visible" && acquire();
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pointerdown", acquire, { passive: true });
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pointerdown", acquire);
       void lock?.release().catch(() => undefined);
     };
-  }, [enabled]);
+  }, []);
 }
 
 export function StaffOrdersPage() {
@@ -102,7 +110,7 @@ export function StaffOrdersPage() {
   const boardRef = useRef<HTMLDivElement>(null);
   const boardMemory = useRef(newBoardMemory());
 
-  useWakeLock(soundOn);
+  useWakeLock();
   useEffect(() => keepAudioAlive(), []);
 
   // New orders slide in; a ticket that changes column glides across.
@@ -217,15 +225,7 @@ export function StaffOrdersPage() {
         </div>}
       </div>
 
-      {!soundOn && (
-        <button type="button" className="sound-gate" onClick={testSound}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" /></svg>
-          <span>
-            <strong>المس الشاشة لتشغيل صوت الطلبات</strong>
-            <small>الجهاز يحتاج لمسة وحدة بعد فتح الصفحة، وبعدها يبقى الصوت شغّال</small>
-          </span>
-        </button>
-      )}
+      {!soundOn && <SoundGate onTap={testSound} />}
       {error && <Alert tone="error">{error}</Alert>}
       {toast && (
         <div className={`board-toast board-toast--${toast.tone}`} role="status" onClick={() => setToast(null)}>
@@ -485,5 +485,37 @@ function ClockIcon() {
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
     </svg>
+  );
+}
+
+/**
+ * Until the sound is unlocked: one tap turns it on. On Android, installing the
+ * board as an app removes the tap for good (Chrome lets installed apps play sound).
+ */
+function SoundGate({ onTap }: { onTap: () => void }) {
+  const canInstall = useCanInstall();
+  const installable = !isNative && !isInstalledApp();
+  return (
+    <div className="sound-gate">
+      <button type="button" className="sound-gate__tap" onClick={onTap}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" /></svg>
+        <span>
+          <strong>المس الشاشة لتشغيل صوت الطلبات</strong>
+          <small>
+            {installable
+              ? "المتصفح يحتاج لمسة بعد فتح الصفحة. ثبّت لوحة الطلبات كتطبيق، ويشتغل الصوت بدون لمس"
+              : "الجهاز يحتاج لمسة وحدة بعد فتح الصفحة، وبعدها يبقى الصوت شغّال"}
+          </small>
+        </span>
+      </button>
+      {installable && canInstall && (
+        <button type="button" className="btn btn--primary btn--small sound-gate__install" onClick={() => void installStaffApp()}>
+          تثبيت تطبيق الطلبات
+        </button>
+      )}
+      {installable && !canInstall && (
+        <p className="sound-gate__how">للتثبيت من كروم: القائمة ⋮ ← «إضافة إلى الشاشة الرئيسية» أو «تثبيت التطبيق»، ثم افتح «طلبات HOLLOW» من الأيقونة.</p>
+      )}
+    </div>
   );
 }

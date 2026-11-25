@@ -9,6 +9,8 @@ import { captureEmailCallback } from "./lib/email-callback";
 import { initLang, tr } from "./lib/i18n";
 import { initTheme } from "./lib/theme";
 import { installWesternDigits } from "./lib/digits";
+// Catches Chrome's install offer early, for the orders app button.
+import "./lib/staffApp";
 import "./styles.css";
 
 initTheme();
