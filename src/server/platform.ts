@@ -26,6 +26,14 @@ export interface ExecutionContextLike {
 export interface Bindings {
   MOYASAR_SECRET_KEY?: string;
   MOYASAR_TOPUPS_ENABLED?: string;
+  /** Loyverse POS: completed app orders become receipts. Secret; unset = off. */
+  LOYVERSE_ACCESS_TOKEN?: string;
+  /** Optional: only needed when the Loyverse account has more than one store. */
+  LOYVERSE_STORE_ID?: string;
+  /** Optional names in Loyverse (defaults: «تطبيق» and «طلب تطبيق»). */
+  LOYVERSE_PAYMENT_TYPE_NAME?: string;
+  LOYVERSE_WALLET_PAYMENT_TYPE_NAME?: string;
+  LOYVERSE_FALLBACK_ITEM_NAME?: string;
   // --- vars ---------------------------------------------------------------
   APP_ENV?: string;
   APP_URL?: string;
