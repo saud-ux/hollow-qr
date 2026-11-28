@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { silentLogger } from "../../src/server/lib/logger";
 import { ApnsTokenSender, AppPushKeyError, apnsKeyDer } from "../../src/server/push/app-push";
-import { newOrderStaffMessage, orderStatusMessage } from "../../src/server/push/order-notifications";
+import { customerArrivedMessage, newOrderStaffMessage, orderStatusMessage } from "../../src/server/push/order-notifications";
 import { base64ToBytes, bytesToBase64 } from "../../src/server/security/encoding";
 import type { Order } from "../../src/shared/ordering";
 
@@ -139,5 +139,24 @@ describe("newOrderStaffMessage", () => {
   it("shows the amount staff collect, after the balance", () => {
     expect(newOrderStaffMessage(order).body).toBe("سارة · قهوة اليوم · 25 ر.س · استلام من الكاشير");
     expect(newOrderStaffMessage({ ...order, walletHalalas: 1500 }).body).toBe("سارة · قهوة اليوم · المتبقي 10 ر.س · استلام من الكاشير");
+  });
+});
+
+describe("customerArrivedMessage", () => {
+  const order = {
+    id: "o2",
+    orderNumber: 12,
+    customerName: "سعود",
+    fulfillment: "curbside",
+    carDescription: "كامري بيضاء",
+  } as unknown as Order;
+
+  it("names the order, the customer and the car, and opens the order board", () => {
+    const m = customerArrivedMessage(order);
+    expect(m.title).toBe("🚗 العميل وصل · طلب #12");
+    expect(m.body).toBe("سعود · كامري بيضاء · استلام من السيارة");
+    expect(m.collapseId).toBe("arrived-o2");
+    expect(m.data).toEqual({ link: "staff-orders" });
+    expect(customerArrivedMessage({ ...order, carDescription: null }).body).toBe("سعود · استلام من السيارة");
   });
 });
