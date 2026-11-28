@@ -148,6 +148,26 @@ export async function notifyStaffNewOrder(deps: PushDeps, order: Order): Promise
   deps.logger.info("app_push.staff_new_order", { orderId: order.id, devices: devices.length, sent });
 }
 
+/** What staff see when a curbside customer taps «وصلت»: which order, who, and which car to walk to. */
+export function customerArrivedMessage(order: Order): AppPushMessage {
+  const car = order.carDescription?.trim();
+  return {
+    title: `🚗 العميل وصل · طلب #${order.orderNumber}`,
+    body: [order.customerName, car, FULFILLMENT_LABELS_AR[order.fulfillment]].filter(Boolean).join(" · "),
+    collapseId: `arrived-${order.id}`,
+    data: { link: "staff-orders" },
+  };
+}
+
+/** Alerts staff and admins with new-order alerts on that the customer is outside. */
+export async function notifyCustomerArrived(deps: PushDeps, order: Order): Promise<void> {
+  if (pushOff(deps)) return;
+  const devices = await deps.repo.staffPushDevices("new_orders");
+  if (devices.length === 0) return;
+  const sent = await sendToDevices(deps, devices, customerArrivedMessage(order));
+  deps.logger.info("app_push.staff_customer_arrived", { orderId: order.id, devices: devices.length, sent });
+}
+
 /** What admins see when a customer is unhappy: the stars, who, which order and what they wrote. */
 export function lowRatingMessage(order: Order): AppPushMessage {
   const stars = order.rating ?? 0;

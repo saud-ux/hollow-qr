@@ -22,7 +22,7 @@ import { ApiError, type ErrorStatus } from "../http/errors";
 import { repoOf, runInBackground, type AppContext, type HonoEnv } from "../http/context";
 import { rateLimit, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
-import { notifyLowRating, notifyOrderStatus, notifyStaffNewOrder } from "../push/order-notifications";
+import { notifyCustomerArrived, notifyLowRating, notifyOrderStatus, notifyStaffNewOrder } from "../push/order-notifications";
 import { carSchema } from "./car-schema";
 
 const rateSchema = z.object({
@@ -238,10 +238,17 @@ export const orderRoutes = new Hono<HonoEnv>()
   .post("/orders/:id/:action{cancel|arrived}", requireUser, rateLimit("api", "user"), async (c) => {
     const id = parseWith(uuid, c.req.param("id"));
     const action = c.req.param("action") as "cancel" | "arrived";
+    // Only the first «وصلت» alerts staff; a second tap keeps the first time.
+    const alreadyArrived = action === "arrived" && (await ownOrder(c, id)).customerArrivedAt !== null;
     const result = await repoOf(c).customerOrderAction(c.get("user").id, id, action);
     if (!result.ok) throwOrderError(result);
-    c.get("deps").logger.info(`order.customer_${action}`, { orderId: id });
-    return c.json({ order: await ownOrder(c, id) });
+    const deps = c.get("deps");
+    deps.logger.info(`order.customer_${action}`, { orderId: id });
+    const order = await ownOrder(c, id);
+    if (action === "arrived" && !alreadyArrived) {
+      runInBackground(c, notifyCustomerArrived({ repo: repoOf(c), appPush: deps.appPush, webPush: deps.webPush, logger: deps.logger }, order));
+    }
+    return c.json({ order });
   })
 
   // The customer rates a completed order once (1–5 stars, optional comment).
