@@ -13,6 +13,7 @@ import { formatDate } from "../../lib/dates";
 import { validateEmail, validateName, validatePassword } from "../../lib/validation";
 import { OffersPanel, RatingsPanel } from "./AdminEngagement";
 import { SalesPanel } from "./AdminSales";
+import { LoyversePanel } from "./AdminLoyverse";
 
 const STAT_LABELS: [keyof DashboardStats, string][] = [
   ["totalCustomers", "إجمالي العملاء"],
@@ -394,6 +395,7 @@ export function AdminPage() {
           </button>
         </div>
       </section>
+      <LoyversePanel />
       <ResetPanel onReset={() => setVersion((v) => v + 1)} />
     </StaffLayout>
   );

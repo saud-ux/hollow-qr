@@ -7,6 +7,7 @@ import { repoOf, runInBackground, walletOf, type HonoEnv } from "../http/context
 import { rateLimit, requireRole, requireUser } from "../http/middleware";
 import { parseJsonBody, parseWith } from "../http/validation";
 import { notifyOrderStatus } from "../push/order-notifications";
+import { loyverseSettings, pushOrderToLoyverse } from "../pos/loyverse";
 import { throwOrderError, toMenuItem } from "./orders";
 
 const uuid = z.uuid();
@@ -57,6 +58,9 @@ export const staffOrderRoutes = new Hono<HonoEnv>()
     if (!order) throw new ApiError(404, "ORDER_NOT_FOUND");
     const { appPush, webPush, logger } = c.get("deps");
     runInBackground(c, notifyOrderStatus({ repo, appPush, webPush, logger }, order));
+    // Paid at the counter: the sale goes to the Loyverse till as a receipt.
+    const loyverse = body.status === "completed" ? loyverseSettings(c.env) : null;
+    if (loyverse) runInBackground(c, pushOrderToLoyverse({ logger, settings: loyverse }, order));
     return c.json({ order });
   })
 

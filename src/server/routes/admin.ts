@@ -25,6 +25,7 @@ import { XLSX_MIME } from "../lib/xlsx";
 import { startOfDate, startOfLocalDay } from "../push/daily-summary";
 import { pushOff, sendToDevices } from "../push/order-notifications";
 import { salesWorkbook } from "../reports/sales-workbook";
+import { checkLoyverse, LoyverseError, loyverseSettings } from "../pos/loyverse";
 
 const EXPORT_PAGE = 1000;
 const BROADCAST_BATCH = 35;
@@ -229,6 +230,20 @@ function stamp(now: Date): string {
 
 export const adminRoutes = new Hono<HonoEnv>()
   .use("*", requireUser, requireRole("admin"), rateLimit("api", "user"))
+
+  // Loyverse link check: store, payment type, and which menu items match by name.
+  .get("/loyverse/check", async (c) => {
+    c.header("Cache-Control", "no-store");
+    const settings = loyverseSettings(c.env);
+    if (!settings) return c.json({ enabled: false });
+    const menu = await repoOf(c).listMenuItems(false);
+    try {
+      return c.json({ enabled: true, ok: true, ...(await checkLoyverse(settings, menu)) });
+    } catch (err) {
+      const error = err instanceof LoyverseError ? err.message : "LOYVERSE_CHECK_FAILED";
+      return c.json({ enabled: true, ok: false, error });
+    }
+  })
 
   .get("/stats", async (c) => {
     const stats = await repoOf(c).getDashboardStats(BUSINESS_TIME_ZONE);
